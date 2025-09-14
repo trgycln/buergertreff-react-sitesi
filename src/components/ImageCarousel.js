@@ -62,7 +62,7 @@ const ImageCarousel = ({ images }) => {
                 <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4" onClick={closeLightbox}>
                     <div className="relative max-w-5xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                         <button onClick={closeLightbox} className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300 transition-colors z-50"><FaTimes /></button>
-                        <img src={lightboxImage} alt="" className="max-w-full max-h-[90vh] object-contain" />
+                        <img src={lightboxImage} className="max-w-full max-h-[90vh] object-contain" />
                         <button onClick={goToLightboxPrevious} className="absolute top-1/2 -left-12 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors z-50"><FaChevronLeft /></button>
                         <button onClick={goToLightboxNext} className="absolute top-1/2 -right-12 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors z-50"><FaChevronRight /></button>
                     </div>

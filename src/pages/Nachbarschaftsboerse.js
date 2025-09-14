@@ -1,7 +1,7 @@
 // src/pages/Nachbarschaftsboerse.js
 import React from 'react';
 import PageBanner from '../components/PageBanner';
-import { FaWhatsapp, FaHandsHelping, FaUsers, FaGift, FaCar, FaComments, FaBook, FaBan, FaExclamationTriangle, FaLightbulb, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaWhatsapp, FaHandsHelping, FaUsers, FaGift, FaCar, FaComments, FaBook, FaExclamationTriangle, FaLightbulb, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { MdGroups } from 'react-icons/md';
 
 import nachbarschaftBanner from '../assets/images/nachbarschaft-banner.jpg';
