@@ -1,7 +1,7 @@
 // src/components/Header.js
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import logoImage from '../assets/images/logo.jpg';
+import logoImage from '../assets/images/logo.jpg'; // Sizin .jpg uzantınız korundu
 
 import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -21,6 +21,7 @@ const Header = () => {
             <div className="bg-rcBlue text-gray-300 py-2">
                 <div className="container mx-auto flex justify-end items-center">
                     <div className="flex items-center gap-5">
+                        {/* Sizin ikon boyutlarınız (size={15}) korundu */}
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={15} /></a>
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={15} /></a>
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={15} /></a>
@@ -47,6 +48,7 @@ const Header = () => {
                         <li><NavLink to="/wir-uber-uns" className={navLinkStyles}>Wir über uns</NavLink></li>
                         <li><NavLink to="/machen-sie-mit" className={navLinkStyles}>Machen Sie Mit</NavLink></li>
                         <li className="relative" onMouseEnter={() => setIsDropdownOpen(true)} onMouseLeave={() => setIsDropdownOpen(false)}>
+                            {/* Sizin özel stilinizdeki & işareti korundu */}
                             <NavLink to="/angebote-und-veranstaltungen" className={navLinkStyles}>Angebote<b className='text-red-700'>&</b>Veranstaltungen </NavLink>
                             {isDropdownOpen && (
                                 <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
@@ -63,25 +65,28 @@ const Header = () => {
                 </nav>
 
                 <div className="header-actions">
-                    <button className="lg:hidden text-rcBlue" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0_0_24_24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4_6h16M4_12h16m-7_6h7"></path></svg>
+                    {/* --- DEĞİŞTİRİLEN VE DÜZELTİLEN MOBİL BUTON --- */}
+                    <button className="lg:hidden text-rcBlue z-50" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                        {isMobileMenuOpen ? (
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        ) : (
+                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                        )}
                     </button>
                 </div>
             </div>
 
-            {/* --- MOBİL MENÜ --- */}
-            {isMobileMenuOpen && (
-                <div className="lg:hidden bg-white shadow-md">
-                    <ul className="flex flex-col items-center py-4">
-                        <li className="py-2"><NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>Start</NavLink></li>
-                        <li className="py-2"><NavLink to="/wir-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Wir über uns</NavLink></li>
-                        <li className="py-2"><NavLink to="/machen-sie-mit" onClick={() => setIsMobileMenuOpen(false)}>Machen Sie Mit</NavLink></li>
-                        <li className="py-2"><NavLink to="/angebote-und-veranstaltungen" onClick={() => setIsMobileMenuOpen(false)}>Angebote</NavLink></li>
-                        <li className="py-2"><NavLink to="/presse-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Presse</NavLink></li>
-                        <li className="py-2"><NavLink to="/kontakt" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</NavLink></li>
-                    </ul>
-                </div>
-            )}
+            {/* --- GELİŞTİRİLMİŞ ANİMASYONLU MOBİL MENÜ --- */}
+            <div className={`lg:hidden bg-white shadow-md absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
+                <ul className="flex flex-col items-center py-4">
+                    <li className="py-2"><NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>Start</NavLink></li>
+                    <li className="py-2"><NavLink to="/wir-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Wir über uns</NavLink></li>
+                    <li className="py-2"><NavLink to="/machen-sie-mit" onClick={() => setIsMobileMenuOpen(false)}>Machen Sie Mit</NavLink></li>
+                    <li className="py-2"><NavLink to="/angebote-und-veranstaltungen" onClick={() => setIsMobileMenuOpen(false)}>Angebote</NavLink></li>
+                    <li className="py-2"><NavLink to="/presse-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Presse</NavLink></li>
+                    <li className="py-2"><NavLink to="/kontakt" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</NavLink></li>
+                </ul>
+            </div>
         </header>
     );
 };

@@ -27,156 +27,156 @@ const Beitrittsformular = () => {
             </p>
           </div>
 
-          <form
-            action="https://formspree.io/f/xovnbbkj"
-            method="POST"
-            className="space-y-8"
-          >
-            <input
-              type="hidden"
-              name="_next"
-              value="https://buergertreffwissen.netlify.app/danke"
-            />
-            <input type="hidden" name="_language" value="de" />
-
-            <input type="hidden" name="_subject" value={emailSubject} />
-
-            {/* Adım 1: Kişisel Bilgiler */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-rcLightBlue pb-2 mb-4">
-                Schritt 1: Ihre Kontaktdaten
-              </h2>
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="flex items-center text-gray-700 font-semibold"
-                  >
-                    <FaUser className="mr-2 text-rcRed" /> Vorname & Name
-                  </label>
-                  <input
-                    type="text"
-                    name="Name"
-                    id="name"
-                    required
-                    className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="anschrift"
-                    className="text-gray-700 font-semibold"
-                  >
-                    Anschrift (Straße, Hausnr., Ort)
-                  </label>
-                  <input
-                    type="text"
-                    name="Anschrift"
-                    id="anschrift"
-                    required
-                    className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="flex items-center text-gray-700 font-semibold"
+         <form
+                      action="https://formspree.io/f/xovnbbkj"
+                      method="POST"
+                      className="space-y-8"
                     >
-                      <FaEnvelope className="mr-2 text-rcRed" /> E-Mail
-                    </label>
-                    <input
-                      type="email"
-                      name="Email"
-                      id="email"
-                      className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="handy"
-                      className="flex items-center text-gray-700 font-semibold"
-                    >
-                      <FaPhone className="mr-2 text-rcRed" /> Handy
-                    </label>
-                    <input
-                      type="tel"
-                      name="Handy"
-                      id="handy"
-                      className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                      {/* --- YÖNLENDİRME, DİL VE E-POSTA BAŞLIĞI AYARLARI --- */}
+                      <input
+                        type="hidden"
+                        name="_next"
+                        value="https://buergertreffwissen.netlify.app/danke"
+                      />
+                      <input type="hidden" name="_language" value="de" />
+                      <input type="hidden" name="_subject" value={emailSubject} />
 
-            {/* Adım 2: Üyelik Ücreti */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-rcLightBlue pb-2 mb-4">
-                Schritt 2: Ihr Beitrag
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Ihr Jahresbeitrag sichert unsere Arbeit und ermöglicht neue
-                Projekte. Vielen Dank für Ihre Unterstützung!
-              </p>
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
-                  <input
-                    type="radio"
-                    name="Beitrag"
-                    value="24 Euro (Mindestbeitrag)"
-                    className="h-5 w-5 text-rcRed focus:ring-rcRed"
-                    defaultChecked
-                  />
-                  <span className="ml-4 text-gray-700">
-                    Ich bezahle den Mindest-Jahresbeitrag in Höhe von{" "}
-                    <strong>24,00 Euro</strong>
-                  </span>
-                </label>
-                <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
-                  <input
-                    type="radio"
-                    name="Beitrag"
-                    value="50 Euro (Erhöhter Beitrag)"
-                    className="h-5 w-5 text-rcRed focus:ring-rcRed"
-                  />
-                  <span className="ml-4 text-gray-700">
-                    Ich unterstütze den Verein mit einem erhöhten Jahresbeitrag
-                    in Höhe von <strong>50,00 Euro</strong>
-                  </span>
-                </label>
-                <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
-                  <input
-                    type="radio"
-                    name="Beitrag"
-                    value="Individueller Beitrag"
-                    className="h-5 w-5 text-rcRed focus:ring-rcRed"
-                  />
-                  <span className="ml-4 flex items-center text-gray-700">
-                    Ich wähle einen individuellen Betrag:
-                    <input
-                      type="number"
-                      name="Individueller Betrag"
-                      placeholder="z.B. 100"
-                      className="ml-2 w-24 px-2 py-1 border-gray-300 rounded-md focus:ring-rcRed focus:border-rcRed"
-                    />
-                    <FaEuroSign className="ml-1 text-gray-500" />
-                  </span>
-                </label>
-              </div>
-              <p className="text-xs text-gray-500 mt-4">
-                Der Beitrag kann bar bezahlt oder überwiesen werden: Sparkasse
-                Westerwald-Sieg, DE27 5735 1030 0055 0844 38
-              </p>
-            </div>
+                      {/* Adım 1: Kişisel Bilgiler */}
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-rcLightBlue pb-2 mb-4">
+                          Schritt 1: Ihre Kontaktdaten
+                        </h2>
+                        <div className="grid grid-cols-1 gap-6">
+                          <div>
+                            <label
+                              htmlFor="name"
+                              className="flex items-center text-gray-700 font-semibold"
+                            >
+                              <FaUser className="mr-2 text-rcRed" /> Vorname & Name
+                            </label>
+                            <input
+                              type="text"
+                              name="Name"
+                              id="name"
+                              required
+                              className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="anschrift"
+                              className="text-gray-700 font-semibold"
+                            >
+                              Anschrift (Straße, Hausnr., Ort)
+                            </label>
+                            <input
+                              type="text"
+                              name="Anschrift"
+                              id="anschrift"
+                              required
+                              className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label
+                                htmlFor="email"
+                                className="flex items-center text-gray-700 font-semibold"
+                              >
+                                <FaEnvelope className="mr-2 text-rcRed" /> E-Mail
+                              </label>
+                              <input
+                                type="email"
+                                name="Email"
+                                id="email"
+                                className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor="handy"
+                                className="flex items-center text-gray-700 font-semibold"
+                              >
+                                <FaPhone className="mr-2 text-rcRed" /> Handy
+                              </label>
+                              <input
+                                type="tel"
+                                name="Handy"
+                                id="handy"
+                                className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
 
-            <button
-              type="submit"
-              className="w-full bg-rcRed text-white font-bold text-xl py-4 px-6 rounded-lg hover:bg-opacity-80 transition-transform hover:scale-105"
-            >
-              Mitglied werden!
-            </button>
-          </form>
+                      {/* Adım 2: Üyelik Ücreti */}
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-700 border-b-2 border-rcLightBlue pb-2 mb-4">
+                          Schritt 2: Ihr Beitrag
+                        </h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Ihr Jahresbeitrag sichert unsere Arbeit und ermöglicht neue
+                          Projekte. Vielen Dank für Ihre Unterstützung!
+                        </p>
+                        <div className="space-y-4">
+                          <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
+                            <input
+                              type="radio"
+                              name="Beitrag"
+                              value="24 Euro (Mindestbeitrag)"
+                              className="h-5 w-5 text-rcRed focus:ring-rcRed"
+                              defaultChecked
+                            />
+                            <span className="ml-4 text-gray-700">
+                              Ich bezahle den Mindest-Jahresbeitrag in Höhe von{" "}
+                              <strong>24,00 Euro</strong>
+                            </span>
+                          </label>
+                          <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
+                            <input
+                              type="radio"
+                              name="Beitrag"
+                              value="50 Euro (Erhöhter Beitrag)"
+                              className="h-5 w-5 text-rcRed focus:ring-rcRed"
+                            />
+                            <span className="ml-4 text-gray-700">
+                              Ich unterstütze den Verein mit einem erhöhten Jahresbeitrag
+                              in Höhe von <strong>50,00 Euro</strong>
+                            </span>
+                          </label>
+                          <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
+                            <input
+                              type="radio"
+                              name="Beitrag"
+                              value="Individueller Beitrag"
+                              className="h-5 w-5 text-rcRed focus:ring-rcRed"
+                            />
+                            <span className="ml-4 flex items-center text-gray-700">
+                              Ich wähle einen individuellen Betrag:
+                              <input
+                                type="number"
+                                name="Individueller Betrag"
+                                placeholder="z.B. 100"
+                                className="ml-2 w-24 px-2 py-1 border-gray-300 rounded-md focus:ring-rcRed focus:border-rcRed"
+                              />
+                              <FaEuroSign className="ml-1 text-gray-500" />
+                            </span>
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">
+                          Der Beitrag kann bar bezahlt oder überwiesen werden: Sparkasse
+                          Westerwald-Sieg, DE27 5735 1030 0055 0844 38
+                        </p>
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="w-full bg-rcRed text-white font-bold text-xl py-4 px-6 rounded-lg hover:bg-opacity-80 transition-transform hover:scale-105"
+                      >
+                        Mitglied werden!
+                      </button>
+                    </form>
 
           {/* PDF İNDİRME BÖLÜMÜ */}
           <div className="mt-10 pt-8 border-t-2 border-dashed border-gray-200 text-center">
