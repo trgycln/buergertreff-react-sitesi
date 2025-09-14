@@ -6,7 +6,10 @@ import ContentBlock from '../components/ContentBlock';
 import teamPhoto from '../assets/images/team-photo.png';
 
 import aboutBannerImage from '../assets/images/about-banner.png'; 
-import introImage from '../assets/images/intro-image.JPG';     
+import introImage from '../assets/images/intro-image.JPG';  
+import wirUberUns2 from '../assets/images/wirUberUns-2.jpg'
+import wirUberUns3 from '../assets/images/wirUberUns-3.jpg'
+
 
 const WirUberUns = () => {
     // Bu sayfadaki ContentBlock için farklı bir blob listesi tanımlıyoruz
@@ -44,7 +47,7 @@ const WirUberUns = () => {
             </ContentBlock>
              <ContentBlock 
                 title="Miteinander reden statt übereinander – handeln statt lamentieren" 
-                imageUrl={introImage}
+                imageUrl={wirUberUns2}
                 imageSide="right"
                 blobs={wirUeberUnsBlobs}
             >
@@ -57,7 +60,7 @@ Der Bürgertreff soll andere Hilfs- und Beratungsangebote in der VG nicht ersetz
             </ContentBlock>
                <ContentBlock 
                 title="Jede lange Reise beginnt mit dem ersten Schritt." 
-                imageUrl={introImage}
+                imageUrl={wirUberUns3}
                 imageSide="left"
                 blobs={wirUeberUnsBlobs}
             >

@@ -5,8 +5,7 @@ import { Link } from "react-router-dom";
 // Gerekli bileşenleri ve ikonları import edelim
 import PageBanner from "../components/PageBanner";
 import ActionCard from "../components/ActionCard";
-import { FaIdCard, FaMoneyBillWave } from "react-icons/fa";
-import { MdCardMembership } from "react-icons/md";
+import { FaIdCard, FaMoneyBillWave, FaClipboardList } from "react-icons/fa";
 
 // Banner resmini import edelim
 import mitBannerImage from "../assets/images/machen-sie-mit-banner.jpg";
@@ -53,7 +52,7 @@ const MachenSieMit = () => {
               <div className="mt-4 pt-4 border-t"></div>
             </ActionCard>
             
-            <ActionCard title="Betriebsformular" icon={<MdCardMembership />}>
+            <ActionCard title="Betriebsformular" icon={<FaClipboardList />}>
               {/* Paragraf sadece metni içermeli */}
               <p className="text-gray-600">
                 Natürlich sind Sie uns auch willkommen, wenn Sie kein Mitglied
