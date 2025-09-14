@@ -17,6 +17,7 @@ import Presse from './pages/Presse';
 import Kontakt from './pages/Kontakt';
 import Beitrittsformular from './pages/Beitrittsformular';
 import ScrollToTop from './components/ScrollToTop';
+import Danke from './pages/Danke';
 // --- TÜM İMPORTLAR EKLENDİ ---
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
             <Route path="/presse-uber-uns" element={<Presse />} />
             <Route path="/kontakt" element={<Kontakt />} />
              <Route path="/beitrittsformular" element={<Beitrittsformular />} />
+             <Route path="/danke" element={<Danke />} />
           </Routes>
         </main>
         <Footer />
