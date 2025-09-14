@@ -1,5 +1,5 @@
 // src/pages/Start.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import ContentBlock from '../components/ContentBlock';
@@ -9,13 +9,13 @@ import heroImage from '../assets/images/hero-background.jpg';
 import introImage from '../assets/images/intro-image.JPG';
 
 const Start = () => {
-    const welcomeMessages = [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا‎","Serdecznie witamy","Hûn bi xêr hatinî"];
+    const welcomeMessages = useMemo(() => [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا","Serdecznie witamy","Hûn bi xêr hatinî"],[]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
 
     useEffect(() => {
         const intervalId = setInterval(() => {
             setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % welcomeMessages.length);
-        }, 3000); 
+        }, 1000); 
         return () => clearInterval(intervalId);
     }, [welcomeMessages]);
 

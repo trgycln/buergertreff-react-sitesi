@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 // Gerekli bileşenleri ve ikonları import edelim
 import PageBanner from "../components/PageBanner";
 import ActionCard from "../components/ActionCard";
-import { FaBoxOpen, FaIdCard, FaMoneyBillWave } from "react-icons/fa";
+import { FaIdCard, FaMoneyBillWave } from "react-icons/fa";
 import { MdCardMembership } from "react-icons/md";
 
 // Banner resmini import edelim
@@ -42,6 +42,7 @@ const MachenSieMit = () => {
                 Möglichkeiten.
               </p>
             </ActionCard>
+
             <ActionCard title="Unterstutzung" icon={<FaMoneyBillWave />}>
               <p>
                 Mit Ihrer finanziellen Unterstützung sichern Sie den Fortbestand

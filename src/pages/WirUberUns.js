@@ -3,7 +3,7 @@ import React from 'react';
 
 import PageBanner from '../components/PageBanner';
 import ContentBlock from '../components/ContentBlock';
-import teamPhoto from '../assets/images/team-photo.png'; // teamPhoto'yu da import etmeliyiz
+import teamPhoto from '../assets/images/team-photo.png';
 
 import aboutBannerImage from '../assets/images/about-banner.png'; 
 import introImage from '../assets/images/intro-image.JPG';     

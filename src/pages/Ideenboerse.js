@@ -2,10 +2,7 @@
 import React, { useEffect, useRef } from 'react'; // React, useEffect ve useRef tek satırda import edildi
 import PageBanner from '../components/PageBanner';
 import ContentBlock from '../components/ContentBlock';
-import { Link } from 'react-router-dom';
 import IdeaForm from '../components/IdeaForm';
-
-// ...
 
 // --- TÜM RESİMLER ---
 import ideenboerseBanner from '../assets/images/ideenboerse-banner.png';
