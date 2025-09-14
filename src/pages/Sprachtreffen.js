@@ -75,10 +75,10 @@ const Sprachtreffen = () => {
                     <FaUser className="text-gray-400 text-4xl mx-auto mb-4" />
                     <h3 className="text-2xl font-bold text-gray-800">Ansprechpartnerin</h3>
                     <p className="mt-2 text-lg text-gray-600">
-                        Erika Mustermann
+                        Erika Uber
                     </p>
                     <p className="mt-1 text-gray-600">
-                        Haben Sie Fragen? Sie erreichen Frau Mustermann per E-Mail: <a href="mailto:erika@example.com" className="text-red-600 hover:underline">erika@example.com</a>
+                        Haben Sie Fragen? Sie erreichen Frau Uber per E-Mail: <a href="mailto:Erika.uber@t-online.de" className="text-red-600 hover:underline">Erika.uber@t-online.de</a>
                     </p>
                 </div>
             </section>
