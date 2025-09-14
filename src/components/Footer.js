@@ -88,7 +88,7 @@ const Footer = () => {
               {" "}
               {/* flex-wrap eklendi */}
               <a
-                href="[YOUTUBE_KANALINIZIN_LİNKİ]"
+                href="https://www.youtube.com/@buergertreff-wissen"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-300 hover:text-white transition-colors"
