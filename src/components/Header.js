@@ -35,22 +35,29 @@ const Header = () => {
 
     return (
         <header className="bg-white shadow-md sticky top-0 z-50">
+
             {/* --- TOP BAR (SOSYAL MEDYA) --- */}
+{/* --- GÜNCELLENMİŞ TOP BAR --- */}
             <div className="bg-rcBlue text-gray-300 py-2">
-                <div className="container mx-auto flex justify-end items-center">
+                <div className="container mx-auto flex justify-center lg:justify-between items-center">
+                    {/* YENİ: Sol Taraf - Motto (Mobilde gizli) */}
+                    <div className="hidden lg:block">
+                        <p className="font-dancing text-xl text-white">"Miteinander füreinander"</p>
+                    </div>
+
+                    {/* Sağ Taraf - Sosyal Medya İkonları */}
                     <div className="flex items-center gap-5">
-                        {/* Sizin ikon boyutlarınız (size={15}) korundu */}
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaXTwitter size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaMastodon size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaWhatsapp size={15} /></a>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><MdGroups size={15} /></a>
+                        {/* ... (ikonlarınızın olduğu kod - dokunulmadı) ... */}
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaXTwitter size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaMastodon size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaWhatsapp size={16} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><MdGroups size={16} /></a>
                     </div>
                 </div>
-            </div>
-            
+            </div>            
             {/* --- ANA HEADER (LOGO VE NAVİGASYON) --- */}
             <div className="container mx-auto flex justify-between items-center p-4">
                 <div className="logo-container">

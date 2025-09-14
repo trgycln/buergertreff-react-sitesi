@@ -21,6 +21,7 @@ module.exports = {
         // Genellikle sans-serif bir font kullanılır, örneğin 'Inter' veya 'Open Sans'
         // Bu fontları Google Fonts'tan dahil etmeniz gerekebilir (aşağıda açıklanacak)
         sans: ['Inter', 'sans-serif'], 
+        dancing: ['Dancing Script', 'cursive']
       },
       container: {
         center: true, // Konteynerleri otomatik ortala
