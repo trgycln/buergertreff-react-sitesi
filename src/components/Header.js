@@ -63,7 +63,7 @@ const Header = () => {
                 <div className="logo-container">
                     <Link to="/" className="flex items-center gap-2">
                         <img src={logoImage} alt="Bürgertreff Wissen Logo" className="h-12 md:h-16" />
-                        <span className="text-lg md:text-xl font-bold text-rcBlue">Bürgertreff Wissen</span>
+                        <span className="text-3xl md:text-4xl font-fraktur text-rcBlue">Bürgertreff Wissen</span>
                     </Link>
                 </div>
 

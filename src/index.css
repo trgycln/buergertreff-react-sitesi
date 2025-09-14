@@ -24,6 +24,7 @@
 /* Komm rein yazısı için font (Örnek el yazısı fontu) */
 /* Gerçek font için font dosyasını projenize eklemeniz gerekebilir */
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap');
 
 /* Eğer özel bir font kullanmak isterseniz, burada tanımlayabilirsiniz.
    Şimdilik "Brush Script MT" gibi sistemde bulunabilen bir font veya Google Font kullanıyoruz.
