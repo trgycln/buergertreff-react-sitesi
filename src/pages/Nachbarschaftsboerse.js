@@ -5,7 +5,7 @@ import { FaWhatsapp, FaHandsHelping, FaUsers, FaGift, FaCar, FaComments, FaBook,
 import { MdGroups } from 'react-icons/md';
 
 import nachbarschaftBanner from '../assets/images/nachbarschaft-banner.jpg';
-import whatsappQrCode from '../assets/images/whatsapp-qr-code.jpeg';
+import whatsappQrCode from '../assets/images/whatsapp-qr-code.png';
 
 const Nachbarschaftsboerse = () => {
     const googleGroupsJoinLink = "mailto:nachbarschaftsborse+subscribe@googlegroups.com?subject=Beitrittsanfrage";
