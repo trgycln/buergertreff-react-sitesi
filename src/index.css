@@ -1,13 +1,36 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* tailwind-test/src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ... diğer CSS kodlarınız ... */
+
+/* src/index.css */
+/* ... (mevcut @tailwind importlarınız) ... */
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(10px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.animate-fade-in-out {
+  animation: fadeInOut 3s ease-in-out infinite;
+}
+
+/* Komm rein yazısı için font (Örnek el yazısı fontu) */
+/* Gerçek font için font dosyasını projenize eklemeniz gerekebilir */
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+
+/* Eğer özel bir font kullanmak isterseniz, burada tanımlayabilirsiniz.
+   Şimdilik "Brush Script MT" gibi sistemde bulunabilen bir font veya Google Font kullanıyoruz.
+*/
+
+@layer base {
+  body {
+    @apply bg-rcGray; /* Tüm sayfanın dış arka planını açık gri yap */
+  }
 }
