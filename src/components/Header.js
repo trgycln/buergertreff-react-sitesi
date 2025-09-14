@@ -4,7 +4,7 @@ import { Link, NavLink } from 'react-router-dom';
 import logoImage from '../assets/images/logo.jpg'; // Sizin .jpg uzantınız korundu
 
 // Gerekli tüm ikonlar
-import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp, FaChevronDown } from 'react-icons/fa';
+import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdGroups } from 'react-icons/md';
 
@@ -48,6 +48,9 @@ const Header = () => {
                     {/* Sağ Taraf - Sosyal Medya İkonları */}
                     <div className="flex items-center gap-5">
                         {/* ... (ikonlarınızın olduğu kod - dokunulmadı) ... */}
+                        <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all">
+                            <FaYoutube size={16} />
+                        </a>
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={16} /></a>
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={16} /></a>
                         <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={16} /></a>
