@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import logoImage from '../assets/images/logo.jpg'; // Sizin .jpg uzantınız korundu
 
-import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp } from 'react-icons/fa';
+// Gerekli tüm ikonlar
+import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp, FaChevronDown } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdGroups } from 'react-icons/md';
 
@@ -14,6 +15,11 @@ const Header = () => {
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [openSubmenu, setOpenSubmenu] = useState(null);
+
+    const toggleSubmenu = (menuName) => {
+        setOpenSubmenu(openSubmenu === menuName ? null : menuName);
+    };
 
     return (
         <header className="bg-white shadow-md sticky top-0 z-50">
@@ -48,7 +54,7 @@ const Header = () => {
                         <li><NavLink to="/wir-uber-uns" className={navLinkStyles}>Wir über uns</NavLink></li>
                         <li><NavLink to="/machen-sie-mit" className={navLinkStyles}>Machen Sie Mit</NavLink></li>
                         <li className="relative" onMouseEnter={() => setIsDropdownOpen(true)} onMouseLeave={() => setIsDropdownOpen(false)}>
-                            {/* Sizin özel stilinizdeki & işareti korundu */}
+                             {/* Sizin özel stilinizdeki & işareti korundu */}
                             <NavLink to="/angebote-und-veranstaltungen" className={navLinkStyles}>Angebote<b className='text-red-700'>&</b>Veranstaltungen </NavLink>
                             {isDropdownOpen && (
                                 <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
@@ -65,7 +71,6 @@ const Header = () => {
                 </nav>
 
                 <div className="header-actions">
-                    {/* --- DEĞİŞTİRİLEN VE DÜZELTİLEN MOBİL BUTON --- */}
                     <button className="lg:hidden text-rcBlue z-50" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                         {isMobileMenuOpen ? (
                             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -79,12 +84,23 @@ const Header = () => {
             {/* --- GELİŞTİRİLMİŞ ANİMASYONLU MOBİL MENÜ --- */}
             <div className={`lg:hidden bg-white shadow-md absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
                 <ul className="flex flex-col items-center py-4">
-                    <li className="py-2"><NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>Start</NavLink></li>
-                    <li className="py-2"><NavLink to="/wir-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Wir über uns</NavLink></li>
-                    <li className="py-2"><NavLink to="/machen-sie-mit" onClick={() => setIsMobileMenuOpen(false)}>Machen Sie Mit</NavLink></li>
-                    <li className="py-2"><NavLink to="/angebote-und-veranstaltungen" onClick={() => setIsMobileMenuOpen(false)}>Angebote</NavLink></li>
-                    <li className="py-2"><NavLink to="/presse-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Presse</NavLink></li>
-                    <li className="py-2"><NavLink to="/kontakt" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>Start</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/wir-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Wir über uns</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/machen-sie-mit" onClick={() => setIsMobileMenuOpen(false)}>Machen Sie Mit</NavLink></li>
+                    <li className="py-2 w-full text-center">
+                        <button onClick={() => toggleSubmenu('angebote')} className="w-full flex justify-center items-center gap-2 font-semibold">
+                            <span>Angebote & Veranstaltungen</span>
+                            <FaChevronDown className={`transition-transform duration-300 ${openSubmenu === 'angebote' ? 'rotate-180' : ''}`} />
+                        </button>
+                        <ul className={`overflow-hidden transition-all duration-300 ease-in-out bg-gray-50 w-full ${openSubmenu === 'angebote' ? 'max-h-96' : 'max-h-0'}`}>
+                            <li className="pt-2"><NavLink to="/angebote-und-veranstaltungen/sprachtreffen" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Sprachtreffen</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Bürgertreff Unterwegs</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Nachbarschaftsbörse</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/ideenboerse" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Ideenbörse</NavLink></li>
+                        </ul>
+                    </li>
+                    <li className="py-2 w-full text-center"><NavLink to="/presse-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Presse</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/kontakt" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</NavLink></li>
                 </ul>
             </div>
         </header>
