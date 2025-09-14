@@ -78,6 +78,7 @@ const Kontakt = () => {
                                 <div className="bg-white p-2 rounded-lg shadow-md">
                                     <iframe
                                         src={mapSrc}
+                                        title="Bürgertreff Wissen Standort"
                                         className="w-full h-80"
                                         style={{ border: 0 }}
                                         allowFullScreen=""

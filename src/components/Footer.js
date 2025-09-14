@@ -40,13 +40,13 @@ const Footer = () => {
          <div>
                 <h3 className="text-lg font-bold mb-4">Folgen Sie uns</h3>
                 <div className="flex flex-wrap items-center gap-5"> {/* flex-wrap eklendi */}
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaTiktok size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaXTwitter size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaMastodon size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaWhatsapp size={16} /></a>
-                    <a href="#" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><MdGroups size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaTiktok size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaXTwitter size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaMastodon size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaWhatsapp size={16} /></a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><MdGroups size={16} /></a>
                 </div>
             </div>
         </div>

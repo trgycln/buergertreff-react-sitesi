@@ -21,13 +21,13 @@ const Header = () => {
             <div className="bg-rcBlue text-gray-300 py-2">
                 <div className="container mx-auto flex justify-end items-center">
                     <div className="flex items-center gap-5">
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaXTwitter size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaMastodon size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaWhatsapp size={15} /></a>
-                        <a href="#" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><MdGroups size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaTiktok size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaXTwitter size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaMastodon size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaWhatsapp size={15} /></a>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><MdGroups size={15} /></a>
                     </div>
                 </div>
             </div>
