@@ -17,8 +17,20 @@ const Header = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openSubmenu, setOpenSubmenu] = useState(null);
 
+    // Alt menüyü açıp kapatan fonksiyon
     const toggleSubmenu = (menuName) => {
         setOpenSubmenu(openSubmenu === menuName ? null : menuName);
+    };
+
+    // Mobil menüdeki bir linke tıklandığında ana menüyü kapatır
+    const handleMobileLinkClick = () => {
+        setIsMobileMenuOpen(false);
+    };
+    
+    // Sadece oku tıklayınca alt menüyü açar/kapatır
+    const handleSubmenuToggle = (e) => {
+        e.stopPropagation(); // Olayın diğer elementlere yayılmasını engeller
+        toggleSubmenu('angebote');
     };
 
     return (
@@ -54,8 +66,7 @@ const Header = () => {
                         <li><NavLink to="/wir-uber-uns" className={navLinkStyles}>Wir über uns</NavLink></li>
                         <li><NavLink to="/machen-sie-mit" className={navLinkStyles}>Machen Sie Mit</NavLink></li>
                         <li className="relative" onMouseEnter={() => setIsDropdownOpen(true)} onMouseLeave={() => setIsDropdownOpen(false)}>
-                             {/* Sizin özel stilinizdeki & işareti korundu */}
-                            <NavLink to="/angebote-und-veranstaltungen" className={navLinkStyles}>Angebote<b className='text-red-700'>&</b>Veranstaltungen </NavLink>
+                            <NavLink to="/angebote-und-veranstaltungen" className={navLinkStyles}>Angebote<b className='text-rcRed'>&</b>Veranstaltungen </NavLink>
                             {isDropdownOpen && (
                                 <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
                                     <li><NavLink to="/angebote-und-veranstaltungen/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Sprachtreffen</NavLink></li>
@@ -82,25 +93,29 @@ const Header = () => {
             </div>
 
             {/* --- GELİŞTİRİLMİŞ ANİMASYONLU MOBİL MENÜ --- */}
-            <div className={`lg:hidden bg-white shadow-md absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
+            <div className={`lg:hidden bg-white shadow-lg absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
                 <ul className="flex flex-col items-center py-4">
-                    <li className="py-2 w-full text-center"><NavLink to="/" onClick={() => setIsMobileMenuOpen(false)}>Start</NavLink></li>
-                    <li className="py-2 w-full text-center"><NavLink to="/wir-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Wir über uns</NavLink></li>
-                    <li className="py-2 w-full text-center"><NavLink to="/machen-sie-mit" onClick={() => setIsMobileMenuOpen(false)}>Machen Sie Mit</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/" onClick={handleMobileLinkClick}>Start</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/wir-uber-uns" onClick={handleMobileLinkClick}>Wir über uns</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/machen-sie-mit" onClick={handleMobileLinkClick}>Machen Sie Mit</NavLink></li>
                     <li className="py-2 w-full text-center">
-                        <button onClick={() => toggleSubmenu('angebote')} className="w-full flex justify-center items-center gap-2 font-semibold">
-                            <span>Angebote & Veranstaltungen</span>
-                            <FaChevronDown className={`transition-transform duration-300 ${openSubmenu === 'angebote' ? 'rotate-180' : ''}`} />
-                        </button>
+                        <div className="flex justify-center items-center">
+                            <NavLink to="/angebote-und-veranstaltungen" className="font-semibold px-4" onClick={handleMobileLinkClick}>
+                                Angebote & Veranstaltungen
+                            </NavLink>
+                            <button onClick={handleSubmenuToggle} className="p-2">
+                                <FaChevronDown className={`transition-transform duration-300 ${openSubmenu === 'angebote' ? 'rotate-180' : ''}`} />
+                            </button>
+                        </div>
                         <ul className={`overflow-hidden transition-all duration-300 ease-in-out bg-gray-50 w-full ${openSubmenu === 'angebote' ? 'max-h-96' : 'max-h-0'}`}>
-                            <li className="pt-2"><NavLink to="/angebote-und-veranstaltungen/sprachtreffen" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Sprachtreffen</NavLink></li>
-                            <li><NavLink to="/angebote-und-veranstaltungen/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Bürgertreff Unterwegs</NavLink></li>
-                            <li><NavLink to="/angebote-und-veranstaltungen/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Nachbarschaftsbörse</NavLink></li>
-                            <li><NavLink to="/angebote-und-veranstaltungen/ideenboerse" className="block py-2 text-gray-600" onClick={() => setIsMobileMenuOpen(false)}>Ideenbörse</NavLink></li>
+                            <li className="pt-2"><NavLink to="/angebote-und-veranstaltungen/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Sprachtreffen</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Bürgertreff Unterwegs</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Nachbarschaftsbörse</NavLink></li>
+                            <li><NavLink to="/angebote-und-veranstaltungen/ideenboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Ideenbörse</NavLink></li>
                         </ul>
                     </li>
-                    <li className="py-2 w-full text-center"><NavLink to="/presse-uber-uns" onClick={() => setIsMobileMenuOpen(false)}>Presse</NavLink></li>
-                    <li className="py-2 w-full text-center"><NavLink to="/kontakt" onClick={() => setIsMobileMenuOpen(false)}>Kontakt</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/presse-uber-uns" onClick={handleMobileLinkClick}>Presse</NavLink></li>
+                    <li className="py-2 w-full text-center"><NavLink to="/kontakt" onClick={handleMobileLinkClick}>Kontakt</NavLink></li>
                 </ul>
             </div>
         </header>
