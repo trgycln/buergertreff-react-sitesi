@@ -9,6 +9,7 @@ import aboutBannerImage from '../assets/images/about-banner.png';
 import introImage from '../assets/images/intro-image.JPG';  
 import wirUberUns2 from '../assets/images/wirUberUns-2.jpg'
 import wirUberUns3 from '../assets/images/wirUberUns-3.jpg'
+import wirUberUns4 from '../assets/images/wirUberUns-4.jpg'
 
 
 const WirUberUns = () => {
@@ -72,7 +73,7 @@ Da sich alle MitstreiterInnen ehrenamtlich einsetzen und an eine bezahlte Kraft 
             </ContentBlock>
                   <ContentBlock 
                 title="Die nächsten Schritte (August 2025): Raumsuche, Finanzierung " 
-                imageUrl={introImage}
+                imageUrl={wirUberUns4}
                 imageSide="right"
                 blobs={wirUeberUnsBlobs}
             >

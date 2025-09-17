@@ -6,7 +6,7 @@ import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 import heroImage from '../assets/images/hero-background.jpg'; 
-import introImage from '../assets/images/intro-image.JPG';
+import foto1 from '../assets/images/startSeite.jpg';
 
 const Start = () => {
     const welcomeMessages = useMemo(() => [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا","Serdecznie witamy","Hûn bi xêr hatinî"],[]);
@@ -51,7 +51,7 @@ const Start = () => {
 
             <ContentBlock 
                 title="Herzlich Willkommen im Bürgertreff Wissen!" 
-                imageUrl={introImage}
+                imageUrl={foto1}
                 imageSide="right"
                 blobs={contentBlockBlobs}
             >
