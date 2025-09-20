@@ -41,7 +41,7 @@ const Start = () => {
                         “Komm ren„
                     </h1>
                     {/* GÜNCELLENDİ: 'whitespace-nowrap' ile tek satırda kalması sağlandı */}
-                    <h2 className="text-3xl md:text-5xl font-bold mt-2 ml-12 md:ml-24 whitespace-nowrap">
+                    <h2 className="text-2xl md:text-3xl font-bold mt-2 ml-20 md:ml-24 whitespace-nowrap">
                         Bürgertreff Wissen
                     </h2>
                 </div>
