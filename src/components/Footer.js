@@ -1,3 +1,4 @@
+// src/components/Footer.js
 import React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -14,7 +15,6 @@ import { MdGroups } from "react-icons/md";
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
 import sponsorLogoSparkasse from '../assets/images/sponsor2.png';
 
-// GÜNCELLENDİ: Sparkasse için URL eklendi.
 const footerSponsors = [
     { name: 'Kölschbach Heizung Klima Sanitär', logo: sponsorLogoKoelschbach, url: 'https://www.koelschbach.de/' },
     { name: 'Sparkasse', logo: sponsorLogoSparkasse, url: 'https://www.sparkasse.de' },
@@ -39,7 +39,6 @@ const Footer = () => {
                             rel="noopener noreferrer" 
                             className="group"
                         >
-                            {/* GÜNCELLENDİ: Taşmayı önlemek için "overflow-hidden" eklendi */}
                             <div className="w-12 h-12 bg-white rounded-full p-1 shadow-sm flex justify-center items-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-md overflow-hidden">
                                 <img src={sponsor.logo} alt={sponsor.name} className="w-10 h-10 object-contain" />
                             </div>
@@ -55,7 +54,8 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Kontakt</h3>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li>Marktstraße 7, 57537 Wissen</li>
+              {/* GÜNCELLENDİ: Adres geçici bir metinle değiştirildi */}
+              <li>Beispielstraße 1, 12345 Beispielstadt</li>
               <li><a href="tel:015165179082" className="hover:text-white">01516 5179082</a></li>
               <li><a href="mailto:buergertreff.wissen@gmail.com" className="hover:text-white">buergertreff.wissen@gmail.com</a></li>
             </ul>
@@ -76,7 +76,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Alt Telif Hakkı Bölümü */}
         <div className="border-t border-gray-700 pt-8 mt-10 text-center text-sm text-gray-400">
           <p className="mb-2">© {new Date().getFullYear()} Bürgertreff Wissen e.V. | Alle Rechte vorbehalten.</p>
           <div className="flex justify-center items-center gap-4 mb-4">

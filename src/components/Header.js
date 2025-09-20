@@ -8,6 +8,7 @@ import { FaXTwitter } from 'react-icons/fa6';
 import { MdGroups } from 'react-icons/md';
 
 const Header = () => {
+    // Navigasyon linkleri için stil fonksiyonu
     const navLinkStyles = ({ isActive }) => {
         return `uppercase font-semibold tracking-wide pb-2 border-b-4 transition-colors duration-300 ${isActive ? 'border-rcRed text-rcBlue' : 'border-transparent text-rcDarkGray hover:border-red-200'}`;
     };
@@ -32,6 +33,7 @@ const Header = () => {
     return (
         <header className="bg-white shadow-md sticky top-0 z-50">
 
+            {/* Üst Bar */}
             <div className="bg-rcBlue text-gray-300 py-2">
                 <div className="container mx-auto flex justify-center lg:justify-between items-center px-4">
                     <div className="hidden lg:block">
@@ -50,25 +52,26 @@ const Header = () => {
                 </div>
             </div>
             
+            {/* Ana Header */}
             <div className="container mx-auto flex justify-between items-center p-4">
                 <div className="logo-container">
                     <Link to="/" className="flex items-center gap-2">
                         <img src={logoImage} alt="Bürgertreff Wissen Logo" className="h-12 md:h-16" />
-                        <span className="text-3xl md:text-4xl font-fraktur text-rcBlue">Bürgertreff Wissen</span>
+                        {/* GÜNCELLENDİ: Font boyutu küçültüldü (text-2xl md:text-3xl) */}
+                        <span className="text-2xl md:text-3xl font-sans font-bold text-rcBlue">Bürgertreff Wissen</span>
                     </Link>
                 </div>
 
                 <nav>
-                    <ul className="hidden lg:flex items-center space-x-4">
+                    {/* GÜNCELLENDİ: Linkler arası boşluk azaltıldı (space-x-3) */}
+                    <ul className="hidden lg:flex items-center space-x-3">
                         <li><NavLink to="/" className={navLinkStyles}>Start</NavLink></li>
                         <li><NavLink to="/wir-uber-uns" className={navLinkStyles}>Wir über uns</NavLink></li>
                         <li><NavLink to="/machen-sie-mit" className={navLinkStyles}>Machen Sie Mit</NavLink></li>
                         <li className="relative" onMouseEnter={() => setIsDropdownOpen(true)} onMouseLeave={() => setIsDropdownOpen(false)}>
-                            {/* DÜZELTME: Rota App.js ile eşleşecek şekilde "/angebote" olarak değiştirildi */}
-                            <NavLink to="/angebote" className={navLinkStyles}>Angebote<b className='text-rcRed'>&</b>Veranstaltungen </NavLink>
+                            <NavLink to="/angebote" className={navLinkStyles}>Angebote<b className='text-rcRed'>&</b>Veranstaltungen</NavLink>
                             {isDropdownOpen && (
                                 <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
-                                    {/* DÜZELTME: Alt sayfa rotaları düzeltildi */}
                                     <li><NavLink to="/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Sprachtreffen</NavLink></li>
                                     <li><NavLink to="/buergertreff-unterwegs" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Bürgertreff Unterwegs</NavLink></li>
                                     <li><NavLink to="/nachbarschaftsboerse" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Nachbarschaftsbörse</NavLink></li>
@@ -93,14 +96,14 @@ const Header = () => {
                 </div>
             </div>
 
+            {/* Mobil Menü (değişiklik yok) */}
             <div className={`lg:hidden bg-white shadow-lg absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
-                <ul className="flex flex-col items-center py-4">
+                 <ul className="flex flex-col items-center py-4">
                     <li className="py-2 w-full text-center uppercase"><NavLink to="/" onClick={handleMobileLinkClick}>Start</NavLink></li>
                     <li className="py-2 w-full text-center uppercase"><NavLink to="/wir-uber-uns" onClick={handleMobileLinkClick}>Wir über uns</NavLink></li>
                     <li className="py-2 w-full text-center uppercase"><NavLink to="/machen-sie-mit" onClick={handleMobileLinkClick}>Machen Sie Mit</NavLink></li>
                     <li className="py-2 w-full text-center">
                         <div className="flex justify-center items-center">
-                            {/* DÜZELTME: Rota App.js ile eşleşecek şekilde "/angebote" olarak değiştirildi */}
                             <NavLink to="/angebote" className="font-semibold px-4 uppercase" onClick={handleMobileLinkClick}>
                                 Angebote & Veranstaltungen
                             </NavLink>
@@ -109,7 +112,6 @@ const Header = () => {
                             </button>
                         </div>
                         <ul className={`overflow-hidden transition-all duration-300 ease-in-out bg-gray-50 w-full ${openSubmenu === 'angebote' ? 'max-h-96' : 'max-h-0'}`}>
-                            {/* DÜZELTME: Alt sayfa rotaları düzeltildi */}
                             <li className="pt-2 uppercase"><NavLink to="/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Sprachtreffen</NavLink></li>
                             <li className="uppercase"><NavLink to="/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Bürgertreff Unterwegs</NavLink></li>
                             <li className="uppercase"><NavLink to="/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Nachbarschaftsbörse</NavLink></li>

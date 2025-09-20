@@ -22,7 +22,8 @@ module.exports = {
         // Bu fontları Google Fonts'tan dahil etmeniz gerekebilir (aşağıda açıklanacak)
         sans: ['Inter', 'sans-serif'], 
         dancing: ['Dancing Script', 'cursive'],
-        fraktur: ['UnifrakturCook', 'cursive']
+        fraktur: ['UnifrakturCook', 'cursive'],
+        market: ['"Permanent Marker"', 'cursive'],
       },
       container: {
         center: true, // Konteynerleri otomatik ortala
