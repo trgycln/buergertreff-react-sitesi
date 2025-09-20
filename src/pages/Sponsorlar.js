@@ -6,7 +6,7 @@ import PageBanner from '../components/PageBanner';
 import sponsorBanner from '../assets/images/sponsorenbanner.png'; 
 
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
-import sponsorLogoSparkasse from '../assets/images/sponsor2.png';
+import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
 
 const sponsors = [
   {
@@ -17,7 +17,7 @@ const sponsors = [
   {
     name: 'Sparkasse',
     logo: sponsorLogoSparkasse,
-    url: 'https://www.sparkasse.de'
+    url: 'https://www.sk-westerwald-sieg.de/de/home.html'
   }
 ];
 

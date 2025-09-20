@@ -7,7 +7,7 @@ import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebookF, FaInstagram, FaTwitte
 import kontaktBannerImage from '../assets/images/kontakt-banner.png';
 
 const Kontakt = () => {
-    const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2522.6579855053396!2d7.732635075759554!3d50.781913363443614!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea2ede17de4e9%3A0x2068e3463898b2ad!2sMarktstra%C3%9Fe%207%2C%2057537%20Wissen!5e0!3m2!1sde!2sde!4v1757830557294!5m2!1sde!2sde";
+    const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d80721.7566184201!2d7.680883438719719!3d50.78382421242446!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea24535194805%3A0x422d4d510dacca0!2s57537%20Wissen!5e0!3m2!1sde!2sde!4v1758371651993!5m2!1sde!2sde";
 
     return (
         <div>
@@ -29,7 +29,7 @@ const Kontakt = () => {
                                             <h3 className="font-semibold text-gray-700">Anschrift</h3>
                                             <p className="text-gray-600">
                                                 Bürgertreff Wissen<br />
-                                                Marktstraße 7<br />
+                                                Beispielstraße 7<br />
                                                 57537 Wissen
                                             </p>
                                         </div>

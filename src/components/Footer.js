@@ -13,11 +13,11 @@ import { FaXTwitter } from "react-icons/fa6";
 import { MdGroups } from "react-icons/md";
 
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
-import sponsorLogoSparkasse from '../assets/images/sponsor2.png';
+import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
 
 const footerSponsors = [
     { name: 'Kölschbach Heizung Klima Sanitär', logo: sponsorLogoKoelschbach, url: 'https://www.koelschbach.de/' },
-    { name: 'Sparkasse', logo: sponsorLogoSparkasse, url: 'https://www.sparkasse.de' },
+    { name: 'Sparkasse', logo: sponsorLogoSparkasse, url: 'https://www.sk-westerwald-sieg.de/de/home.html' },
 ];
 
 const Footer = () => {
