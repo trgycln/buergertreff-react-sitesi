@@ -36,7 +36,7 @@ const IdeaForm = ({ formspreeUrl }) => {
                     />
                 </div>
                 <div>
-                    <label htmlFor="idea" className="block text-sm font-medium text-gray-700">Ihre Idee oder Nachricht</label>
+                    <label htmlFor="idea" className="block text-sm font-medium text-gray-700">Ihre Idee oder Anregung</label>
                     <textarea 
                         name="message" 
                         id="idea" 

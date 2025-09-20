@@ -48,7 +48,7 @@ const MachenSieMit = () => {
                   to="/beitrittsformular"
                   className="bg-rcBlue text-white text-lg font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-transform hover:scale-105 inline-block"
                 >
-                  Jetzt Mitglied werden!
+                  Jetzt Mitglied werden
                 </Link>
               </div>
             </ActionCard>
