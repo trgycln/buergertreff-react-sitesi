@@ -9,9 +9,10 @@ import presseBannerImage from '../assets/images/presse-banner.png';
 import presse1 from '../assets/images/presse-1.jpg';
 import presse2 from '../assets/images/presse-2.jpg';
 import presse3 from '../assets/images/presse-3.jpg';
-import presse4 from '../assets/images/presse-4.jpg'; // Yeni resim
-import presse5 from '../assets/images/presse-5.jpg'; // Yeni resim
-import presse6 from '../assets/images/presse-6.jpg'; // Yeni resim
+import presse4 from '../assets/images/presse-4.jpg'; 
+import presse5 from '../assets/images/presse-5.jpg'; 
+import presse6 from '../assets/images/presse-6.jpg'; 
+import presse7 from '../assets/images/presse-7.jpg'; 
 
 Modal.setAppElement('#root');
 
@@ -33,39 +34,45 @@ const Presse = () => {
     const articles = [
         {
             publication: "Rhein-Zeitung",
-            date: "12. September 2025",
+            date: "12 September 2025",
             title: "Bürgertreff Wissen: Ein neuer Ort der Begegnung",
             image: presse1 
         },
         {
             publication: "Wochen-Kurier",
-            date: "10. September 2025",
+            date: "10 September 2025",
             title: "Wie der Bürgertreff die Nachbarschaftshilfe neu belebt",
             image: presse2
         },
         {
             publication: "AK-Kurier",
-            date: "05. September 2025",
+            date: "05 September 2025",
             title: "Erfolgreicher Start für das 'Sprachtreffen'",
             image: presse3
         },
         {
             publication: "Siegener Zeitung",
-            date: "01. September 2025",
+            date: "01 September 2025",
             title: "Bürgertreff Unterwegs: Gemeinsam die Heimat entdecken",
             image: presse4
         },
         {
             publication: "LokalAnzeiger",
-            date: "28. August 2025",
+            date: "28 August 2025",
             title: "Ehrenamt im Fokus: Das Engagement im Bürgertreff",
             image: presse5
         },
         {
             publication: "Rhein-Zeitung",
-            date: "25. August 2025",
+            date: "25 August 2025",
             title: "Nachbarschaftsbörse verbindet Generationen",
             image: presse6
+        },
+          {
+            publication: "Rhein-Zeitung",
+            date: "20 September 2025",
+            title: "Erkennungszeichen für Wissener Bürgertreff - Komm ren",
+            image: presse7
         }
     ];
 
