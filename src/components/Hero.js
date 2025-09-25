@@ -24,7 +24,7 @@ const Hero = ({ imageUrl, videoUrl, children }) => {
       )}
       
       {/* Videonun üzerindeki karartma katmanı */}
-      <div className="absolute inset-0 bg-rcBlue opacity-60 z-10"></div>
+      <div className="absolute inset-0 bg-rcBlue opacity-40 z-10"></div>
       
       {/* Metin içeriği */}
       <div className="relative z-20">

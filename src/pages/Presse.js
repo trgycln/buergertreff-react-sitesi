@@ -13,6 +13,8 @@ import presse4 from '../assets/images/presse-4.jpg';
 import presse5 from '../assets/images/presse-5.jpg'; 
 import presse6 from '../assets/images/presse-6.jpg'; 
 import presse7 from '../assets/images/presse-7.jpg'; 
+import presse8 from '../assets/images/presse-8.jpg'; 
+
 
 Modal.setAppElement('#root');
 
@@ -73,6 +75,12 @@ const Presse = () => {
             date: "20 September 2025",
             title: "Erkennungszeichen für Wissener Bürgertreff - Komm ren",
             image: presse7
+        },
+           {
+            publication: "Wissener",
+            date: "24 September 2025",
+            title: "Neues vom Bürgertreff Wissen Logo und E-Mail Adresse ",
+            image: presse8
         }
     ];
 
