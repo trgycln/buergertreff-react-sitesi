@@ -37,13 +37,13 @@ const Presse = () => {
         {
             publication: "Rhein-Zeitung",
             date: "12 September 2025",
-            title: "Bürgertreff Wissen: Ein neuer Ort der Begegnung",
+            title: "Bald heißt es in Wissen :'Komm ren'",
             image: presse1 
         },
         {
             publication: "Wochen-Kurier",
             date: "10 September 2025",
-            title: "Wie der Bürgertreff die Nachbarschaftshilfe neu belebt",
+            title: "Wohin die Finanzpritze aus dem 200 Millionen Geldtopf fließt",
             image: presse2
         },
         {
@@ -55,19 +55,19 @@ const Presse = () => {
         {
             publication: "Siegener Zeitung",
             date: "01 September 2025",
-            title: "Bürgertreff Unterwegs: Gemeinsam die Heimat entdecken",
+            title: "Neuer Offener Treff in Wissen geplant : Einladung zum Runden Tisch",
             image: presse4
         },
         {
             publication: "LokalAnzeiger",
             date: "28 August 2025",
-            title: "Ehrenamt im Fokus: Das Engagement im Bürgertreff",
+            title: "Weniger Leerstand, mehr Aufenthaltsqualität",
             image: presse5
         },
         {
             publication: "Rhein-Zeitung",
             date: "25 August 2025",
-            title: "Nachbarschaftsbörse verbindet Generationen",
+            title: "Mumm met! - Bürgertreff Wissen Unterwegs",
             image: presse6
         },
           {
