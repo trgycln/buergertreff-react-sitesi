@@ -21,7 +21,7 @@ module.exports = {
       
       // Kayan yazı animasyonu
       animation: {
-        'marquee': 'marquee 15s linear infinite',
+        'marquee': 'marquee 25s linear infinite',
       },
       
       // Animasyonun keyframe'leri
