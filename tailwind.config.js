@@ -9,7 +9,7 @@ module.exports = {
       colors: {
         // Not: Bu renk kodları varsayımsaldır. Kendi projenizdeki
         // doğru değerlerle değiştirebilirsiniz.
-        'rcBlue': '#182a5cff',        // Örnek Mavi
+        'rcBlue': '#1E3A8A',        // Örnek Mavi
         'rcRed': '#EF4444',         // Örnek Kırmızı
         'rcDarkGray': '#374151',    // Örnek Koyu Gri
         'rcLightBlue': '#BFDBFE',   // Örnek Açık Mavi
@@ -21,13 +21,13 @@ module.exports = {
       
       // Kayan yazı animasyonu
       animation: {
-        'marquee-slow': 'marquee 35s linear infinite',
+        'marquee': 'marquee 15s linear infinite',
       },
       
       // Animasyonun keyframe'leri
       keyframes: {
         marquee: {
-          '0%': { transform: 'translateX(100%)' },
+         '0%': { transform: 'translateX(100%)' },
           '100%': { transform: 'translateX(-100%)' },
         },
       },
