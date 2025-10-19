@@ -29,7 +29,6 @@ const Kontakt = () => {
                                             <h3 className="font-semibold text-gray-700">Anschrift</h3>
                                             <p className="text-gray-600">
                                                 Bürgertreff Wissen<br />
-                                                Beispielstraße 7<br />
                                                 57537 Wissen
                                             </p>
                                         </div>
@@ -54,20 +53,7 @@ const Kontakt = () => {
                             </div>
                             
                             {/* Sosyal Medya Bölümü */}
-                            <div className="pt-6 border-t border-gray-200">
-                                <h3 className="font-semibold text-gray-700 mb-3">Folgen Sie uns Online</h3>
-                                <div className="flex items-center gap-5">
-                                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-rcBlue hover:text-rcRed transition-colors">
-                                        <FaFacebookF size={28} />
-                                    </a>
-                                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-rcBlue hover:text-rcRed transition-colors">
-                                        <FaInstagram size={28} />
-                                    </a>
-                                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-rcBlue hover:text-rcRed transition-colors">
-                                        <FaTwitter size={28} />
-                                    </a>
-                                </div>
-                            </div>
+                           
 
                             {/* Harita Bölümü */}
                             <div>

@@ -55,7 +55,6 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Kontakt</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               {/* GÜNCELLENDİ: Adres geçici bir metinle değiştirildi */}
-              <li>Beispielstraße 1, 12345 Beispielstadt</li>
               <li><a href="tel:015165179082" className="hover:text-white">01516 5179082</a></li>
               <li><a href="mailto:buergertreff.wissen@gmail.com" className="hover:text-white">buergertreff.wissen@gmail.com</a></li>
             </ul>
@@ -65,11 +64,7 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Folgen Sie uns</h3>
             <div className="flex flex-wrap items-center gap-5">
               <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaYoutube size={24} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
               <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaTiktok size={16} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaXTwitter size={16} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaMastodon size={16} /></a>
               <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaWhatsapp size={16} /></a>
               <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><MdGroups size={16} /></a>
             </div>
