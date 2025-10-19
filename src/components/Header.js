@@ -20,9 +20,7 @@ const Header = () => {
 
     // Örnek duyurular. Gelecekte bu veriyi başka bir yerden alacağız.
     const announcements = [
-      "Nächster Ausflug: Wanderung zum Dreifelder See am 25. September!",
-      "Wir suchen ehrenamtliche Helfer für die Nachbarschaftsbörse.",
-      "Neuer Kurs 'Digitale Fotografie für Anfänger' beginnt im Oktober.",
+      "15.11.29: Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen",
     ];
 
     // ... Diğer fonksiyonlarınız (toggleSubmenu, vb.) burada yer alacak ...
