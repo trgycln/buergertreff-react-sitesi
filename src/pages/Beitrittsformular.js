@@ -1,5 +1,5 @@
 // src/pages/Beitrittsformular.js
-import React, { useState } from 'react'; // Gerekli olan useState'i import ediyoruz
+import React, { useState } from 'react';
 import {
   FaUser,
   FaEnvelope,
@@ -7,20 +7,16 @@ import {
   FaHeart,
   FaEuroSign,
   FaFilePdf,
-  FaQrcode, // Gerekli olan QR ikonunu import ediyoruz
+  FaQrcode,
 } from 'react-icons/fa';
 
-// Gerekli olan QR kodu resimlerini import ediyoruz
 import qrCode24 from '../assets/images/qr-code-24.png';
 import qrCode50 from '../assets/images/qr-code-50.png';
 
 const Beitrittsformular = () => {
   const emailSubject = "Neue Beitrittserklärung (von der Webseite)";
-  
-  // Gerekli olan state (hafıza) değişkenini burada tanımlıyoruz
   const [visibleQrCode, setVisibleQrCode] = useState(null);
 
-  // Gerekli olan QR kodunu aç/kapa fonksiyonu
   const toggleQrCode = (code) => {
     setVisibleQrCode(visibleQrCode === code ? null : code);
   };
@@ -45,11 +41,7 @@ const Beitrittsformular = () => {
             method="POST"
             className="space-y-8"
           >
-            <input
-              type="hidden"
-              name="_next"
-              value="https://buergertreffwissen.netlify.app/danke"
-            />
+            <input type="hidden" name="_next" value="https://buergertreffwissen.netlify.app/danke" />
             <input type="hidden" name="_language" value="de" />
             <input type="hidden" name="_subject" value={emailSubject} />
 
@@ -63,48 +55,30 @@ const Beitrittsformular = () => {
                   <label htmlFor="name" className="flex items-center text-gray-700 font-semibold">
                     <FaUser className="mr-2 text-rcRed" /> Vorname & Name
                   </label>
-                  <input
-                    type="text"
-                    name="Name"
-                    id="name"
-                    required
-                    className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                  />
+                  {/* GÜNCELLENDİ: name="Name" -> name="name" */}
+                  <input type="text" name="name" id="name" required className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed" />
                 </div>
                 <div>
                   <label htmlFor="anschrift" className="text-gray-700 font-semibold">
                     Anschrift (Straße, Hausnr., Ort)
                   </label>
-                  <input
-                    type="text"
-                    name="Anschrift"
-                    id="anschrift"
-                    required
-                    className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                  />
+                  {/* GÜNCELLENDİ: name="Anschrift" -> name="anschrift" */}
+                  <input type="text" name="anschrift" id="anschrift" required className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="email" className="flex items-center text-gray-700 font-semibold">
                       <FaEnvelope className="mr-2 text-rcRed" /> E-Mail
                     </label>
-                    <input
-                      type="email"
-                      name="Email"
-                      id="email"
-                      className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                    />
+                    {/* GÜNCELLENDİ: name="Email" -> name="email" */}
+                    <input type="email" name="email" id="email" className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed" />
                   </div>
                   <div>
                     <label htmlFor="handy" className="flex items-center text-gray-700 font-semibold">
                       <FaPhone className="mr-2 text-rcRed" /> Handy
                     </label>
-                    <input
-                      type="tel"
-                      name="Handy"
-                      id="handy"
-                      className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed"
-                    />
+                    {/* GÜNCELLENDİ: name="Handy" -> name="handy" */}
+                    <input type="tel" name="handy" id="handy" className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcRed focus:border-rcRed" />
                   </div>
                 </div>
               </div>
@@ -121,7 +95,8 @@ const Beitrittsformular = () => {
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
                   <label className="flex items-center cursor-pointer">
-                    <input type="radio" name="Beitrag" value="24 Euro (Mindestbeitrag)" className="h-5 w-5 text-rcRed focus:ring-rcRed" defaultChecked onClick={() => setVisibleQrCode(null)} />
+                    {/* GÜNCELLENDİ: name="Beitrag" -> name="beitrag", value basitleştirildi */}
+                    <input type="radio" name="beitrag" value="24" className="h-5 w-5 text-rcRed focus:ring-rcRed" defaultChecked onClick={() => setVisibleQrCode(null)} />
                     <span className="ml-4 text-gray-700">Ich bezahle den Mindest-Jahresbeitrag in Höhe von <strong>24,00 Euro</strong></span>
                   </label>
                   <button type="button" onClick={() => toggleQrCode('24')} className="mt-2 ml-8 flex items-center text-sm text-rcBlue font-semibold hover:underline">
@@ -130,7 +105,8 @@ const Beitrittsformular = () => {
                 </div>
                 <div className="p-4 border rounded-lg">
                   <label className="flex items-center cursor-pointer">
-                    <input type="radio" name="Beitrag" value="50 Euro (Erhöhter Beitrag)" className="h-5 w-5 text-rcRed focus:ring-rcRed" onClick={() => setVisibleQrCode(null)} />
+                    {/* GÜNCELLENDİ: name="Beitrag" -> name="beitrag", value basitleştirildi */}
+                    <input type="radio" name="beitrag" value="50" className="h-5 w-5 text-rcRed focus:ring-rcRed" onClick={() => setVisibleQrCode(null)} />
                     <span className="ml-4 text-gray-700">Ich unterstütze den Verein mit einem erhöhten Jahresbeitrag in Höhe von <strong>50,00 Euro</strong></span>
                   </label>
                   <button type="button" onClick={() => toggleQrCode('50')} className="mt-2 ml-8 flex items-center text-sm text-rcBlue font-semibold hover:underline">
@@ -138,8 +114,13 @@ const Beitrittsformular = () => {
                   </button>
                 </div>
                 <label className="flex items-center p-4 border rounded-lg hover:bg-rcLightBlue cursor-pointer">
-                  <input type="radio" name="Beitrag" value="Individueller Beitrag" className="h-5 w-5 text-rcRed focus:ring-rcRed" onClick={() => setVisibleQrCode(null)} />
-                  <span className="ml-4 flex items-center text-gray-700">Ich wähle einen individuellen Betrag:<input type="number" name="Individueller Betrag" placeholder="z.B. 100" className="ml-2 w-24 px-2 py-1 border-gray-300 rounded-md focus:ring-rcRed focus:border-rcRed" /><FaEuroSign className="ml-1 text-gray-500" /></span>
+                  {/* GÜNCELLENDİ: name="Beitrag" -> name="beitrag", value basitleştirildi */}
+                  <input type="radio" name="beitrag" value="individuell" className="h-5 w-5 text-rcRed focus:ring-rcRed" onClick={() => setVisibleQrCode(null)} />
+                  <span className="ml-4 flex items-center text-gray-700">Ich wähle einen individuellen Betrag:
+                    {/* GÜNCELLENDİ: name="Individueller Betrag" -> name="individueller_betrag" */}
+                    <input type="number" name="individueller_betrag" placeholder="z.B. 100" className="ml-2 w-24 px-2 py-1 border-gray-300 rounded-md focus:ring-rcRed focus:border-rcRed" />
+                    <FaEuroSign className="ml-1 text-gray-500" />
+                  </span>
                 </label>
               </div>
               <div className={`mt-6 text-center transition-all duration-500 ease-in-out overflow-hidden ${visibleQrCode ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
