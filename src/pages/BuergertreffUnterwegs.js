@@ -44,20 +44,23 @@ const BuergertreffUnterwegs = () => {
             {/* Gelecek Etkinlikler Bölümü */}
             <section className="py-12 md:py-16 bg-white">
                 <div className="container mx-auto px-6 max-w-4xl">
-                    <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-6 rounded-r-lg" role="alert">
+                    {/* Nächster Ausflug Bilgisi */}
+                    <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-6 rounded-r-lg shadow-md" role="alert">
                         <div className="flex items-center">
-                            <FaCalendarCheck className="text-3xl mr-4" />
+                            <FaCalendarCheck className="text-3xl mr-4 flex-shrink-0" />
                             <div>
                                 <h3 className="font-bold text-xl">Nächster Ausflug</h3>
-                                <p className="mt-2">
-                                    Unser nächster Ausflug ist bereits in Planung! Wir werden bald Details zum Ziel und zum Datum bekannt geben.
+                                {/* GÜNCELLENDİ: Yeni gezi bilgisi buraya eklendi */}
+                                <p className="mt-2 text-lg">
+                                    <strong>15.11.2029:</strong> Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen
                                 </p>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded-r-lg mt-6" role="alert">
+                    {/* Informationen & Anmeldung Bilgisi */}
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded-r-lg mt-6 shadow-md" role="alert">
                         <div className="flex items-center">
-                            <FaInfoCircle className="text-3xl mr-4" />
+                            <FaInfoCircle className="text-3xl mr-4 flex-shrink-0" />
                             <div>
                                 <h3 className="font-bold text-xl">Informationen & Anmeldung</h3>
                                 <p className="mt-2">
