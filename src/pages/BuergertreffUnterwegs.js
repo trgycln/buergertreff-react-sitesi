@@ -52,7 +52,7 @@ const BuergertreffUnterwegs = () => {
                                 <h3 className="font-bold text-xl">Nächster Ausflug</h3>
                                 {/* GÜNCELLENDİ: Yeni gezi bilgisi buraya eklendi */}
                                 <p className="mt-2 text-lg">
-                                    <strong>15.11.2029:</strong> Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen
+                                    <strong>15.11.2025:</strong> Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen
                                 </p>
                             </div>
                         </div>

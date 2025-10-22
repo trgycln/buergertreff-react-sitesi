@@ -20,7 +20,7 @@ const Header = () => {
 
     // Örnek duyurular. Gelecekte bu veriyi başka bir yerden alacağız.
     const announcements = [
-      "15.11.29: Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen",
+      "15.11.25: Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen",
     ];
 
     // ... Diğer fonksiyonlarınız (toggleSubmenu, vb.) burada yer alacak ...
