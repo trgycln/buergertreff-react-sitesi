@@ -67,7 +67,7 @@ const Presse = () => {
         {
             publication: "Rhein-Zeitung",
             date: "25 August 2025",
-            title: "Mumm met! - Bürgertreff Wissen Unterwegs",
+            title: "Kumm met! - Bürgertreff Wissen Unterwegs",
             image: presse6
         },
           {
