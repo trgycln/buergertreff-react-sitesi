@@ -69,61 +69,58 @@ const Nachbarschaftsboerse = () => {
 
                     {/* 4. BÖLÜM: KURALLARIN TAMAMI */}
                    {/* --- 4. BÖLÜM: GRUP KURALLARI (YENİ TASARIM) --- */}
-                    <div className="pt-12 border-t border-gray-300">
-                        <h2 className="text-3xl font-bold text-gray-800 text-center">Gruppenregeln & Grundsätze</h2>
+<div className="pt-12 border-t border-gray-300">
+                <h2 className="text-3xl font-bold text-gray-800 text-center">Gruppenregeln & Grundsätze</h2>
+                
+                <div className="max-w-5xl mx-auto mt-8 bg-white p-8 md:p-12 rounded-2xl shadow-xl text-gray-700 space-y-8">
+                    
+                    {/* AKTUALISIERT: Giriş ve Prensipler */}
+                    <div className="prose max-w-none text-justify">
+                        <p className="font-semibold text-center text-lg">WhatsApp-Gruppe Nachbarschaftsbörse Wissen – Bürgertreff Wissen e.V.</p>
+                        <p className="indent-4">Diese WhatsApp-Gruppe ist ein Projekt des Bürgertreff Wissen e.V. und fördert den Austausch und die gegenseitige Unterstützung der Teilnehmenden.</p>
+                        <p className="indent-4">Nach unserem Motto: „miteinander füreinander“ wollen wir uns gegenseitig unterstützen.</p>
+                        <p className="indent-4">In der Anfangsphase kann jeder und jede aus dem Großraum Wissen/Sieg teilnehmen. Danach werden wir Sie/euch bitten, den Verein durch Mitgliedschaft zu stärken.</p>
+                    </div>
+
+                    {/* İki Sütunlu "Yapılacaklar" ve "Yapılmayacaklar" Listesi */}
+                    <div className="grid md:grid-cols-2 gap-8 pt-8 border-t">
                         
-                        <div className="max-w-5xl mx-auto mt-8 bg-white p-8 md:p-12 rounded-2xl shadow-xl text-gray-700 space-y-8">
-                            
-                            {/* Giriş ve Prensipler */}
-                            <div className="prose max-w-none text-justify">
-                                <p className="indent-4">Diese WhatsApp-Gruppe ist ein Projekt des Bürgertreff Wissen e.V. und fördert den Austausch und die gegenseitige Unterstützung der Teilnehmenden.</p>
-                                <br/>
-                                <p className="indent-4">Mitmachen kann jeder und jede, die Mitglied im Verein „Bürgertreff Wissen“ sind.</p>
-                               <br/>
-                                <p className="indent-4"><strong>Die Beiträge sollen den Zielen des Bürgertreff Wissen e.V. entsprechen:</strong> Überwindung von Einsamkeit, Förderung von Toleranz und Solidarität, Völkerverständigung, gegenseitiger Respekt, Vermittlung demokratischer Werte und Teilhabe am öffentlichen Leben.</p>
-                               <br/>
-                                <p className="indent-4">Insbesondere unterstützen wir Jugendliche, Senioren und Migranten sowie Menschen, die sich bürgerschaftlich engagieren.</p>
-                            </div>
-
-                            {/* İki Sütunlu "Yapılacaklar" ve "Yapılmayacaklar" Listesi */}
-                            <div className="grid md:grid-cols-2 gap-8 pt-8 border-t">
-                                
-                                {/* "Yapılacaklar" Sütunu */}
-                                <div>
-                                    <h3 className="font-bold text-lg text-green-700 mb-4">Was kann angeboten oder angefragt werden?</h3>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Hilfe bei alltäglichen Aufgaben (z.B. Einkauf, Kinderbetreuung)</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Gemeinsame Freizeitgestaltung (z.B. Hobbys, Spaziergänge, Spiele)</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Weitergabe von gebrauchten Gegenständen oder Ernte aus dem Garten</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Mitfahrgelegenheiten</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Hinweise auf interessante Veranstaltungen oder soziale Angebote</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Einladungen zu (interkulturellem) Austausch</span></li>
-                                        <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Unterstützung beim Deutschlernen, Nachhilfe, Hausaufgaben.</span></li>
-                                    </ul>
-                                </div>
-
-                                {/* "Yapılmayacaklar" Sütunu */}
-                                <div>
-                                    <h3 className="font-bold text-lg text-red-700 mb-4">Wir behalten uns vor, Beiträge zu entfernen:</h3>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Kommerzielle Werbung und private Verkaufsangebote</span></li>
-                                        <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Beiträge mit respektlosem und diskriminierendem Ton</span></li>
-                                        <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Kettenbriefe; unbestätigte Nachrichten und Meinungsäußerungen</span></li>
-                                        <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Politische oder religiöse Diskussionen oder Aufrufe</span></li>
-                                        <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Bei Verstoß gegen Datenschutz und Persönlichkeitsrechte</span></li>
-                                    </ul>
-                                </div>
-                            </div>
+                        {/* AKTUALISIERT: "Yapılacaklar" Sütunu */}
+                        <div>
+                            <h3 className="font-bold text-lg text-green-700 mb-4">Was kann angeboten oder angefragt werden?</h3>
+                            <ul className="space-y-3">
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Hilfe bei alltäglichen Aufgaben (z.B. in Haus und Garten, einfache Reparaturen, Einkauf, Kinderbetreuung, Begleitung bei Arztbesuchen)</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Gemeinsame Freizeitgestaltung (z.B. Hobbys, Spaziergänge, Spiele, Kochen, Konzertbesuche)</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Weitergabe von gebrauchten Gegenständen (z.B. Kleidung, Hausrat) oder Ernte aus dem Garten</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Mitfahrgelegenheiten</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>(Begrenzte) Hinweise auf interessante Veranstaltungen oder soziale Angebote</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Einladungen zu (interkulturellem) Austausch (Gesprächsrunden; Kaffeetrinken)</span></li>
+                                <li className="flex items-start"><FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" /><span>Unterstützung beim Deutschlernen, Nachhilfe, Betreuung von Hausaufgaben.</span></li>
+                            </ul>
                         </div>
 
-                        {/* Sorumluluk Reddi */}
-                        <div className="text-center mt-12">
-                            <p className="text-sm text-gray-600 italic flex items-center justify-center">
-                                <FaExclamationTriangle className="mr-2" />
-                                Hinweis: Die Teilnahme und alle hieraus sich ergebenden Aktionen geschehen auf eigene Verantwortung.
-                            </p>
+                        {/* AKTUALISIERT: "Yapılmayacaklar" Sütunu */}
+                        <div>
+                            <h3 className="font-bold text-lg text-red-700 mb-4">Wir behalten uns vor, Beiträge zu entfernen. Unter anderem:</h3>
+                            <ul className="space-y-3">
+                                <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Kommerzielle Werbung und private Verkaufsangebote</span></li>
+                                <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Beiträge mit respektlosem und diskriminierendem Ton</span></li>
+                                <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Kettenbriefe; unbestätigte Nachrichten und Meinungsäußerungen</span></li>
+                                <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Politische oder religiöse Diskussionen oder Aufrufe</span></li>
+                                <li className="flex items-start"><FaTimesCircle className="text-red-500 mr-3 mt-1 flex-shrink-0" /><span>Verstoß gegen Datenschutz und Persönlichkeitsrechte</span></li>
+                            </ul>
                         </div>
                     </div>
+                </div>
+
+                {/* Sorumluluk Reddi (Hinweis) */}
+                <div className="text-center mt-12">
+                    <p className="text-sm text-gray-600 italic flex items-center justify-center">
+                        <FaExclamationTriangle className="mr-2" />
+                        Hinweis: Die Teilnahme und alle hieraus sich ergebenden Aktionen geschehen auf eigene Verantwortung.
+                    </p>
+                </div>
+            </div>
                 </div>
             </main>
         </div>
