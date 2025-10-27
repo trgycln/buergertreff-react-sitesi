@@ -94,32 +94,61 @@ const Nachbarschaftsboerse = () => {
                             </div>
 
                             {/* Google Groups Kartı (YENİ TASARIM) */}
-                           {/* Google Groups Kartı (DÜZELTİLMİŞ VERSİYON) */}
+{/* Google Groups Kartı (DÜZELTİLMİŞ VE ALTERNATİFLİ VERSİYON) */}
+{/* Google Groups Kartı (GÜNCELLENMİŞ VE ALTERNATİFLİ VERSİYON) */}
 <div className="bg-white p-8 rounded-2xl shadow-xl text-center flex flex-col items-center border-t-4 border-rcBlue">
     <MdGroups className="text-6xl text-rcBlue mb-4" />
     <h3 className="text-2xl font-bold text-gray-800">Über Google Groups teilnehmen</h3>
 
     <div className="flex-grow flex flex-col justify-center items-center p-6 bg-rcLightBlue rounded-lg w-full mt-4">
+        
+        {/* YÖNTEM 1: WEB SİTESİ ÜZERİNDEN KATILIM (ÖNERİLEN - En Kolay Yol) */}
+        <h4 className="text-xl font-bold text-gray-800 mb-3 border-b-2 border-rcBlue pb-2 w-full">
+            1. Direkt über die Google Groups Webseite (Empfohlen)
+        </h4>
         <p className="text-gray-700 mb-4">
-            Sie können mit jeder E-Mail-Adresse beitreten – ganz einfach per E-Mail!
+            Dies ist der einfachste Weg: Klicken Sie auf den Button und auf der Google-Seite auf **"Grube Beitreten"**.
+        </p>
+        
+        {/* WEB LİNKİ (En kolay ve güvenilir yöntem) */}
+        <a 
+            href="https://groups.google.com/g/nachbarschaftsborse" // Gruba özel linkinizi teyit ettik!
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="mt-2 mb-6 bg-rcBlue text-white font-bold py-3 px-8 rounded-full hover:bg-opacity-80 transition-colors shadow-lg text-lg"
+        >
+            Zur Google Groups Seite
+        </a>
+
+        
+        {/* YÖNTEM 2: E-POSTA İLE KATILIM (Alternatif) */}
+        <h4 className="text-xl font-bold text-gray-800 mb-3 border-b-2 border-gray-400 pt-4 w-full">
+            2. Alternativ: Per E-Mail beitreten
+        </h4>
+        <p className="text-gray-700 mb-4">
+            Sie können mit jeder E-Mail-Adresse beitreten (auch ohne Google-Konto).
         </p>
         <ol className="text-left text-gray-600 list-decimal list-inside space-y-1 mb-4">
-            <li>Klicken Sie auf den Button unten.</li>
-            <li>Ihr E-Mail-Programm öffnet sich automatisch.</li>
-            <li>Senden Sie die leere E-Mail – Sie erhalten anschließend eine Bestätigung von Google.</li>
+            <li>Klicken Sie auf den Button unten, um Ihre E-Mail-Anwendung zu öffnen.</li>
+            <li>Senden Sie die **leere** E-Mail ab.</li>
+            <li>**WICHTIG:** Bestätigen Sie die Mitgliedschaft in der **Bestätigungs-E-Mail**, die Sie von Google erhalten.</li>
         </ol>
+        
+        {/* MEVCUT E-POSTA LİNKİ */}
         <a 
-            href="mailto:nachbarschaftsborse+subscribe@googlegroups.com?subject=Beitrittsanfrage" 
-            className="mt-2 bg-rcBlue text-white font-bold py-3 px-8 rounded-full hover:bg-opacity-80 transition-colors"
+            href={googleGroupsJoinLink} // Yukarıda tanımlanan mailto linki
+            className="mt-2 bg-gray-500 text-white font-bold py-3 px-8 rounded-full hover:bg-gray-600 transition-colors"
         >
             E-Mail senden und beitreten
         </a>
     </div>
 
-    <p className="mt-4 text-sm text-gray-600 italic">
-        Kein Google-Konto erforderlich.<br/>
-        Falls der Button nicht funktioniert, senden Sie bitte eine leere E-Mail an:<br/>
-        <span className="font-mono text-rcBlue">nachbarschaftsborse+subscribe@googlegroups.com</span>
+    {/* E-POSTA BUTONUNUN ÇALIŞMAMA DURUMU İÇİN AÇIKLAMA (Çok Önemli!) */}
+    <p className="mt-6 text-sm text-red-600 italic">
+        <FaExclamationTriangle className="inline mr-2" />
+        **HINWEIS:** Falls der 'E-Mail senden'-Button auf Ihrem Gerät (z.B. im Browser) nicht funktioniert, 
+        senden Sie bitte eine **leere** E-Mail **manuell** an die Adresse: 
+        <span className="font-mono text-rcBlue font-semibold block mt-1">nachbarschaftsborse+subscribe@googlegroups.com</span>
     </p>
 </div>
 
