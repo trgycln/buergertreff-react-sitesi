@@ -1,29 +1,81 @@
 // src/components/Header.js
-import React, { useState } from 'react';
+// DÜZELTME: Kayan yazı (Ticker) artık Supabase'den dinamik olarak çekiliyor.
+
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { supabase } from '../supabaseClient'; // Supabase istemcisini import et
 import logoImage from '../assets/images/logo.jpg';
 import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaWhatsapp, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { MdGroups } from 'react-icons/md';
 
-// YENİ: Kayan yazı bileşenini import ediyoruz
+// Kayan yazı bileşenini import ediyoruz
 import AnnouncementTicker from './AnnouncementTicker';
+
+// YENİ: Tarihi formatlamak için yardımcı fonksiyon
+const formatTickerDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit', // 'yy' formatı için
+         });
+    } catch (e) {
+        return '';
+    }
+};
 
 const Header = () => {
     const navLinkStyles = ({ isActive }) => {
-        return `uppercase font-semibold tracking-wide pb-2 border-b-4 transition-colors duration-300 ${isActive ? 'border-rcRed text-rcBlue' : 'border-transparent text-rcDarkGray hover:border-red-200'}`;
+        return `uppercase font-semibold tracking-wide pb-2 border-b-4 transition-colors duration-300 ${isActive ? 'border-rcRed text-rcBlue' : 'border-transparent text-rcDarkGray hover:border-red-200'} whitespace-nowrap`;
     };
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openSubmenu, setOpenSubmenu] = useState(null);
 
-    // Örnek duyurular. Gelecekte bu veriyi başka bir yerden alacağız.
-    const announcements = [
-      "15.11.25: Bürgertreff unterwegs – Auf den Spuren von F.W. Raiffeisen",
-    ];
+    // --- DÜZELTME: Statik duyurular dinamik state'e dönüştü ---
+    const [announcements, setAnnouncements] = useState([]);
 
-    // ... Diğer fonksiyonlarınız (toggleSubmenu, vb.) burada yer alacak ...
+    useEffect(() => {
+        // YENİ: Öne çıkan gelecek etkinlikleri çek
+        const fetchFeaturedEvents = async () => {
+            const today = new Date().toISOString(); // Bugünün tarihi
+
+            const { data, error } = await supabase
+                .from('ereignisse')
+                .select('title, event_date, location')
+                .eq('is_public', true)      // 1. Herkese açık olmalı
+                .eq('is_featured', true)    // 2. Öne çıkan olarak işaretlenmiş olmalı
+                .gte('event_date', today)   // 3. Tarihi gelecekte olmalı
+                .order('event_date', { ascending: true }) // 4. En yakın tarihli olan önce
+                .limit(5); // 5. En fazla 5 tane al
+
+            if (error) {
+                console.error("Fehler beim Laden der Ticker-Ankündigungen:", error);
+                return;
+            }
+
+            // Veriyi istediğimiz kısa metin formatına dönüştür
+            const formattedAnnouncements = data.map(event => {
+                const date = formatTickerDate(event.event_date);
+                let text = `${date}: ${event.title}`;
+                if (event.location) {
+                    text += ` - ${event.location}`;
+                }
+                return text;
+            });
+
+            setAnnouncements(formattedAnnouncements);
+        };
+
+        fetchFeaturedEvents();
+    }, []); // Sayfa yüklendiğinde bir kez çalışır
+    // --- BİTİŞ: Dinamik Veri Çekme ---
+
+
     const toggleSubmenu = (menuName) => {
         setOpenSubmenu(openSubmenu === menuName ? null : menuName);
     };
@@ -37,7 +89,7 @@ const Header = () => {
 
     return (
         <>
-            {/* YENİ: Kayan yazı bandı en üste eklendi */}
+            {/* Kayan yazı bandı (Artık dinamik veriyi alıyor) */}
             <AnnouncementTicker items={announcements} />
             
             <header className="bg-white shadow-md sticky top-0 z-50">
@@ -94,7 +146,7 @@ const Header = () => {
                     </div>
                 </div>
 
-                {/* Mobil Menü */}
+                {/* Mobil Menü (Değişiklik yok) */}
                 <div className={`lg:hidden bg-white shadow-lg absolute w-full transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'transform translate-x-0' : 'transform -translate-x-full'}`}>
                     <ul className="flex flex-col items-center py-4">
                         <li className="py-2 w-full text-center uppercase"><NavLink to="/" onClick={handleMobileLinkClick}>Start</NavLink></li>

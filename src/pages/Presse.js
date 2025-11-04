@@ -1,26 +1,54 @@
 // src/pages/Presse.js
-import React, { useState } from 'react';
+// DÜZELTME: Sayfa artık statik verileri değil, Supabase'den dinamik verileri çekiyor.
+
+import React, { useState, useEffect } from 'react'; // useEffect eklendi
+import { supabase } from '../supabaseClient'; // Supabase eklendi
 import PageBanner from '../components/PageBanner';
 import ArticleCard from '../components/ArticleCard';
 import Modal from 'react-modal';
 
 // Resimleri import edelim
 import presseBannerImage from '../assets/images/presse-banner.png';
-import presse1 from '../assets/images/presse-1.jpg';
-import presse2 from '../assets/images/presse-2.jpg';
-import presse3 from '../assets/images/presse-3.jpg';
-import presse4 from '../assets/images/presse-4.jpg'; 
-import presse5 from '../assets/images/presse-5.jpg'; 
-import presse6 from '../assets/images/presse-6.jpg'; 
-import presse7 from '../assets/images/presse-7.jpg'; 
-import presse8 from '../assets/images/presse-8.jpg'; 
-
+// DÜZELTME: Statik resim importları kaldırıldı (presse1, presse2, vb.)
+// Resimler artık veritabanından 'image_url' olarak geliyor.
 
 Modal.setAppElement('#root');
 
 const Presse = () => {
     const [modalIsOpen, setModalIsOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState(null);
+
+    // --- YENİ: Dinamik veriler için state'ler ---
+    const [articles, setArticles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    // --- BİTİŞ: YENİ ---
+
+    // DÜZELTME: Statik 'articles' dizisi kaldırıldı.
+
+    // --- YENİ: Supabase'den verileri çekme ---
+    useEffect(() => {
+        const fetchArticles = async () => {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('presse_articles')
+                .select('*')
+                .eq('is_public', true) // Sadece 'public' olarak işaretlenenler
+                .order('article_date', { ascending: false }); // En yeni tarihli olan en üstte
+
+            if (error) {
+                console.error("Fehler beim Laden der Presseartikel:", error);
+                setError("Presseartikel konnten nicht geladen werden.");
+            } else {
+                setArticles(data);
+            }
+            setLoading(false);
+        };
+
+        fetchArticles();
+    }, []); // Sayfa yüklendiğinde bir kez çalışır
+    // --- BİTİŞ: YENİ ---
+
 
     const openModal = (image) => {
         setSelectedImage(image);
@@ -32,57 +60,37 @@ const Presse = () => {
         setSelectedImage(null);
     };
 
-    // Diziyi 6 habere çıkaralım
-    const articles = [
-        {
-            publication: "Rhein-Zeitung",
-            date: "12 September 2025",
-            title: "Bald heißt es in Wissen :'Komm ren'",
-            image: presse1 
-        },
-        {
-            publication: "Wochen-Kurier",
-            date: "10 September 2025",
-            title: "Wohin die Finanzpritze aus dem 200 Millionen Geldtopf fließt",
-            image: presse2
-        },
-        {
-            publication: "AK-Kurier",
-            date: "05 September 2025",
-            title: "Erfolgreicher Start für das 'Sprachtreffen'",
-            image: presse3
-        },
-        {
-            publication: "Siegener Zeitung",
-            date: "01 September 2025",
-            title: "Neuer Offener Treff in Wissen geplant : Einladung zum Runden Tisch",
-            image: presse4
-        },
-        {
-            publication: "LokalAnzeiger",
-            date: "28 August 2025",
-            title: "Weniger Leerstand, mehr Aufenthaltsqualität",
-            image: presse5
-        },
-        {
-            publication: "Rhein-Zeitung",
-            date: "25 August 2025",
-            title: "Kumm met! - Bürgertreff Wissen Unterwegs",
-            image: presse6
-        },
-          {
-            publication: "Rhein-Zeitung",
-            date: "20 September 2025",
-            title: "Erkennungszeichen für Wissener Bürgertreff - Komm ren",
-            image: presse7
-        },
-           {
-            publication: "Wissener",
-            date: "24 September 2025",
-            title: "Neues vom Bürgertreff Wissen Logo und E-Mail Adresse ",
-            image: presse8
+    // --- YENİ: Yüklenme ve Hata durumları için render fonksiyonları ---
+    const renderContent = () => {
+        if (loading) {
+            return <p className="text-center text-lg text-gray-500">Lade Presseartikel...</p>;
         }
-    ];
+
+        if (error) {
+            return <p className="text-center text-lg text-rcRed">{error}</p>;
+        }
+
+        if (articles.length === 0) {
+            return <p className="text-center text-lg text-gray-500">Aktuell sind keine Presseartikel vorhanden.</p>;
+        }
+
+        // Başarılı: Makaleleri render et
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {articles.map((article) => (
+                    <ArticleCard 
+                        key={article.id} // 'index' yerine 'id' kullanmak daha iyidir
+                        publication={article.publication}
+                        date={article.article_date} // Formatlama gerekirse ArticleCard içinde yapılabilir
+                        title={article.title}
+                        imageUrl={article.image_url} // Veritabanından gelen URL
+                        onClick={() => openModal(article.image_url)} // Tıklayınca veritabanı URL'sini aç
+                    />
+                ))}
+            </div>
+        );
+    };
+    // --- BİTİŞ: YENİ ---
 
     return (
         <div>
@@ -100,21 +108,13 @@ const Presse = () => {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {articles.map((article, index) => (
-                            <ArticleCard 
-                                key={index}
-                                publication={article.publication}
-                                date={article.date}
-                                title={article.title}
-                                imageUrl={article.image}
-                                onClick={() => openModal(article.image)}
-                            />
-                        ))}
-                    </div>
+                    {/* DÜZELTME: Statik grid yerine dinamik render fonksiyonu çağrılır */}
+                    {renderContent()}
+
                 </div>
             </main>
 
+            {/* Modal (Büyütme) bölümü aynı kaldı */}
             <Modal
                 isOpen={modalIsOpen}
                 onRequestClose={closeModal}

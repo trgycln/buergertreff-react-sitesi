@@ -1,101 +1,179 @@
-// src/pages/BuergertreffUnterwegs.js
-import React from 'react';
+// src/pages/BürgertreffUnterwegs.js
+// DÜZELTME: VideoPlayer bileşeni kaldırıldı, yerine doğrudan YouTube iframe'i eklendi.
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient'; // Supabase istemcisi
 import PageBanner from '../components/PageBanner';
-import { FaCalendarCheck, FaInfoCircle, FaMapMarkerAlt, FaUsers, FaClock, FaEuroSign } from 'react-icons/fa'; // Zusätzliche Icons importiert
+import ImageCarousel from '../components/ImageCarousel'; // Resim galerisi bileşeni
+import ScrollToTop from '../components/ScrollToTop';
 
-// Resimleri import edelim
-import unterwegsBanner from '../assets/images/unterwegs-banner.jpg';
-import unterwegs1 from '../assets/images/unterwegs-1.jpg';
-import unterwegs2 from '../assets/images/unterwegs-2.jpg';
+// DÜZELTME: VideoPlayer import'u kaldırıldı, artık gerekmiyor.
+// import VideoPlayer from '../components/VideoPlayer'; 
 
-const BuergertreffUnterwegs = () => {
+// Banner resmi
+import bannerImage from '../assets/images/idea-unterwegs.jpg'; 
+
+// Tarihi formatlamak için (örn: "November 2025")
+const formatArchiveDate = (dateString) => {
+    if (!dateString) return ""; 
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('de-DE', {
+            month: 'long',
+            year: 'numeric',
+         });
+    } catch (e) {
+        return "";
+    }
+};
+
+// YouTube URL'sinden Video ID'sini çıkaran fonksiyon
+const getYouTubeID = (url) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+
+    if (match && match[2].length === 11) {
+        return match[2];
+    }
+    if (url.length === 11) {
+        return url;
+    }
+    return null; 
+};
+
+const BürgertreffUnterwegs = () => {
+    const [pastEvents, setPastEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchPastEvents = async () => {
+            setLoading(true);
+            const today = new Date().toISOString(); 
+
+            const { data, error } = await supabase
+                .from('ereignisse')
+                .select('*')
+                .eq('is_public', true) 
+                .eq('category', 'Bürgertreff unterwegs') 
+                .lt('event_date', today) 
+                .order('event_date', { ascending: false }); 
+
+            if (error) {
+                console.error("Fehler beim Abrufen der Archiv-Ereignisse:", error);
+                setError("Archiv-Ereignisse konnten nicht geladen werden.");
+            } else {
+                // Filtreleme JS tarafında yapılıyor (en güvenlisi)
+                const validEvents = data.filter(e => 
+                    (e.archive_photos && e.archive_photos.length > 0) || 
+                    (e.youtube_url && e.youtube_url.trim() !== '')
+                );
+                setPastEvents(validEvents);
+            }
+            setLoading(false);
+        };
+
+        fetchPastEvents();
+    }, []); 
+
     return (
         <div>
-            <PageBanner 
-                title="Bürgertreff Unterwegs"
-                imageUrl={unterwegsBanner}
+            <ScrollToTop />
+            <PageBanner
+                title="Bürgertreff unterwegs"
+                imageUrl={bannerImage} 
             />
 
-            {/* Giriş Metni */}
-            <section className="py-12 md:py-16 bg-white">
-                <div className="container mx-auto px-6 max-w-4xl">
-                    <h2 className="text-3xl font-bold text-center text-gray-800">Wir entdecken gemeinsam die Region!</h2>
-                    <p className="mt-4 text-lg text-center text-gray-600">
-                        Mit "Bürgertreff Unterwegs" verlassen wir unsere Räumlichkeiten und erkunden gemeinsam interessante Orte in der Umgebung. Ob Museumsbesuche, Wanderungen in der Natur oder Besichtigungen von lokalen Betrieben – bei uns ist für jeden etwas dabei. Die Ausflüge sind eine tolle Gelegenheit, neue Eindrücke zu sammeln und miteinander ins Gespräch zu kommen.
-                    </p>
-                </div>
-            </section>
-
-            {/* Fotoğraf Galerisi Bölümü */}
-            <section className="py-12 md:py-16 bg-gray-50">
-                <div className="container mx-auto px-6">
-                    <h3 className="text-2xl font-bold text-center text-gray-800 mb-8">Einige Impressionen von unseren letzten Ausflügen</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="overflow-hidden rounded-lg shadow-lg">
-                            <img src={unterwegs1} alt="Ausflug 1" className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300" />
-                        </div>
-                        <div className="overflow-hidden rounded-lg shadow-lg">
-                            <img src={unterwegs2} alt="Ausflug 2" className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-300" />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Gelecek Etkinlikler Bölümü */}
-            <section className="py-12 md:py-16 bg-white">
-                <div className="container mx-auto px-6 max-w-4xl">
+            <main className="py-12 md:py-20 bg-white">
+                <div className="container mx-auto px-6 max-w-5xl">
                     
-                    {/* AKTUALISIERT: Nächster Ausflug Bilgisi */}
-                    <div className="bg-gradient-to-r from-blue-100 to-blue-50 border-l-4 border-blue-500 text-blue-800 p-6 rounded-r-lg shadow-lg mb-8" role="alert">
-                        <div className="flex items-center mb-4">
-                            <FaCalendarCheck className="text-3xl mr-3 flex-shrink-0 text-blue-600" />
-                            <h3 className="font-bold text-2xl text-blue-900">Nächster Ausflug: Auf den Spuren von F.W. Raiffeisen</h3>
-                        </div>
-                        
-                        <div className="space-y-3 pl-10 text-lg">
-                            <p className='font-semibold text-xl'>
-                                Besuch im Raiffeisen-Museum Hamm/Sieg
-                            </p>
-                             <p className='flex items-center font-bold'>
-                                <FaClock className="mr-2 text-blue-600"/> Samstag, 15. November 2025
-                            </p>
-                            <p>
-                                Wir laden ein, Leben und Werk des Genossenschaftsgründers Friedrich Wilhelm Raiffeisen kennen zu lernen.
-                            </p>
-                            
-                            <div className='mt-4 pt-3 border-t border-blue-200'>
-                                <p className='font-semibold'>Programm:</p>
-                                <ul className='list-disc list-inside ml-4 space-y-1 mt-1'>
-                                    <li><strong>13:30 Uhr:</strong> Einführung bei Kaffee und Keksen mit Helmut Schimkat und Erika Uber (Kath. Gemeindesaal, oberhalb des Eiscafés)</li>
-                                    <li><strong>14:30 Uhr:</strong> Besuch des Museums (Raiffeisenstr. 10, Eintritt frei)</li>
-                                </ul>
-                            </div>
-
-                            <p className='mt-4 pt-3 border-t border-blue-200'>
-                                Alle sind herzlich willkommen. Bitte anmelden bei: <a href="mailto:buergertreff.wissen@gmail.com" className="font-semibold text-blue-700 hover:underline">buergertreff.wissen@gmail.com</a>
-                            </p>
-                             <p className='text-sm text-blue-600'>
-                                Unterstützt von „Aktion Neue Nachbarn“. Spende willkommen. <FaEuroSign className="inline ml-1"/>
-                            </p>
-                        </div>
+                    {/* Statik Açıklama Metni */}
+                    <div className="prose lg:prose-lg max-w-none mb-16 text-gray-700 leading-relaxed">
+                        <p>
+                            Wir erkunden den Westerwald und Umgebung! Hier finden Sie einen Rückblick auf 
+                            vergangene Touren mit Fotos und Berichten.
+                        </p>
+                        <p>
+                            Die kommenden Ausflüge finden Sie im 
+                            <a href="/angebote" className="text-rcBlue hover:underline font-medium"> allgemeinen Kalender</a>.
+                            Haben Sie auch Ideen für einen Ausflug? 
+                            <a href="/ideenboerse#ideen-form" className="text-rcBlue hover:underline font-medium">
+                                Teilen Sie sie uns mit!
+                            </a>
+                        </p>
                     </div>
 
-                    {/* Informationen & Anmeldung Bilgisi */}
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-6 rounded-r-lg shadow-md" role="alert">
-                        <div className="flex items-center">
-                            <FaInfoCircle className="text-3xl mr-4 flex-shrink-0 text-yellow-600" />
-                            <div>
-                                <h3 className="font-bold text-xl">Allgemeine Informationen & Anmeldung</h3>
-                                <p className="mt-2">
-                                    Alle Informationen zu kommenden Ausflügen, wie Treffpunkt, Uhrzeit und eventuelle Kosten, finden Sie rechtzeitig hier auf unserer Webseite und als Aushang im Bürgertreff. Die Anmeldung erfolgt direkt bei uns (sofern nicht anders angegeben).
+                    {/* --- Dinamik Arşiv Galerisi --- */}
+                    {loading && (
+                        <p className="text-center text-lg text-rcDarkGray">Lade Archiv-Galerie...</p>
+                    )}
+                    {error && (
+                        <p className="text-center text-lg text-rcRed">{error}</p>
+                    )}
+                    
+                    {!loading && !error && (
+                        <div className="space-y-16">
+                            {pastEvents.length > 0 ? (
+                                pastEvents.map((event, index) => {
+                                    const videoId = getYouTubeID(event.youtube_url);
+                                    const archiveImageUrls = event.archive_photos || [];
+
+                                    return (
+                                        <section key={event.id} className={index > 0 ? "pt-12 border-t border-gray-200" : ""}>
+                                            
+                                            <div className="mb-6 text-center">
+                                                <h2 className="text-3xl font-bold text-rcDarkGray mb-2">
+                                                    {event.title}
+                                                </h2>
+                                                <p className="text-lg text-gray-500 font-medium">
+                                                    {formatArchiveDate(event.event_date)}
+                                                </p>
+                                            </div>
+
+                                            {event.archive_summary && (
+                                                <p className="text-lg text-gray-700 mb-8 whitespace-pre-wrap max-w-3xl mx-auto text-center">
+                                                    {event.archive_summary}
+                                                </p>
+                                            )}
+
+                                            {/* DÜZELTME: VideoPlayer yerine doğrudan iframe eklendi */}
+                                            {videoId && (
+                                                <div className="mb-6 rounded-lg overflow-hidden shadow-lg border border-gray-200">
+                                                    {/* Tailwind 'aspect-video' sınıfı 16:9 oranı sağlar */}
+                                                    <iframe
+                                                        className="w-full aspect-video" 
+                                                        src={`https://www.youtube.com/embed/${videoId}`}
+                                                        title={event.title || "YouTube video player"}
+                                                        frameBorder="0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    ></iframe>
+                                                </div>
+                                            )}
+
+                                            {/* Fotoğraf Galerisi */}
+                                            {archiveImageUrls.length > 0 && (
+                                                <div className="not-prose rounded-lg overflow-hidden shadow-xl border border-gray-200">
+                                                    <ImageCarousel 
+                                                        images={archiveImageUrls} 
+                                                    />
+                                                </div>
+                                            )}
+                                        </section>
+                                    )
+                                })
+                            ) : (
+                                <p className="text-center text-lg text-gray-500 italic">
+                                    Es gibt noch keine Archiv-Einträge mit Fotos oder Videos für diese Kategorie.
                                 </p>
-                            </div>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
-            </section>
+            </main>
         </div>
     );
 };
 
-export default BuergertreffUnterwegs;
+export default BürgertreffUnterwegs;
