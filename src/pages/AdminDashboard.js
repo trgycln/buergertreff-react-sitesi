@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              to="/admin/ereignisse/neu"
+              to="/admin/ereignisse/new"
               className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
             >
               <FaPlus className="mr-2" />
