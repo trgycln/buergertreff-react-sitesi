@@ -92,7 +92,7 @@ export default function EreignisForm() {
     const categoryOptions = [
         'Offene Stube', 'Frühstück', 'Sprachtreff', 'Ausstellungen', 'Spielen',
         'Singen', 'Handarbeiten', 'Schreibwerkstatt', 'Nachbarschaftsbörse',
-        'Sonntagsgespräch', 'Beratung', 'Nachhilfe', 'Bürgertreff unterwegs',
+        'Sonntagsgespräch', 'Beratung', 'Nachhilfe', 'Bürgertreff unterwegs', 'Sonstiges',
         'Intern'
     ];
 
