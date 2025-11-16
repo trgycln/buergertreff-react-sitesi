@@ -91,7 +91,7 @@ const BürgertreffUnterwegs = () => {
                     {/* Statik Açıklama Metni */}
                     <div className="prose lg:prose-lg max-w-none mb-16 text-gray-700 leading-relaxed">
                         <p>
-                            Wir erkunden den Westerwald und Umgebung! Hier finden Sie einen Rückblick auf 
+                            Wir erkunden den Wissen und Umgebung! Hier finden Sie einen Rückblick auf 
                             vergangene Touren mit Fotos und Berichten.
                         </p>
                         <p>
