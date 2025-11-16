@@ -99,7 +99,7 @@ const Ideenboerse = () => {
         },
         {
             title: "Bürgertreff unterwegs",
-            text: "Wir erkunden den Westerwald und Umgebung: z.B. 2-Strom-Land in Heimborn; Kloster Marienstatt; Landschaftsmuseum Hachenburg; Raiffeisenmuseum Hamm; Westerwälder Seenplatte; Wildpark/Kletterpark/Basaltpark.",
+            text: "Wir erkunden den Wissen und Umgebung: z.B. 2-Strom-Land in Heimborn; Kloster Marienstatt; Landschaftsmuseum Hachenburg; Raiffeisenmuseum Hamm; Westerwälder Seenplatte; Wildpark/Kletterpark/Basaltpark.",
             image: unterwegsImage,
             imageSide: "right"
         }
