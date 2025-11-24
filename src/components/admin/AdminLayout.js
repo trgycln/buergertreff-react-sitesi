@@ -9,7 +9,8 @@ import { supabase } from '../../supabaseClient';
 import { 
     FaTachometerAlt, FaUsersCog, FaSignOutAlt, FaCalendarAlt, FaRegNewspaper,
     FaBars, // Hamburger ikonu
-    FaTimes // Kapatma (X) ikonu
+    FaTimes, // Kapatma (X) ikonu
+    FaEuroSign // Muhasebe ikonu
 } from 'react-icons/fa'; 
 
 // Sidebar-Link-Komponente (Değişiklik yok)
@@ -62,6 +63,7 @@ const AdminLayout = () => {
   };
 
   const isSuperAdmin = role === 'super_admin';
+  const isTreasurer = role === 'treasurer' || role === 'super_admin';
 
   // Sayfa başlığı fonksiyonu (Dinamik)
   const getPageTitle = () => {
@@ -73,6 +75,7 @@ const AdminLayout = () => {
     if (path.startsWith('/admin/presse/neu')) return 'Neuen Presseartikel anlegen';
     if (path.startsWith('/admin/presse/')) return 'Presseartikel bearbeiten';
     if (path.startsWith('/admin/presse')) return 'Presse verwalten';
+    if (path.startsWith('/admin/buchhaltung')) return 'Buchhaltung';
     if (path.startsWith('/admin/berechtigungen')) return 'Berechtigungen verwalten';
     return 'Admin Panel';
   };
@@ -123,6 +126,15 @@ const AdminLayout = () => {
             icon={<FaRegNewspaper size={18} />}
             label="Presse Verwalten"
           />
+          
+          {isTreasurer && (
+            <SidebarLink
+              to="/admin/buchhaltung"
+              icon={<FaEuroSign size={18} />}
+              label="Buchhaltung"
+            />
+          )}
+
           {isSuperAdmin && (
             <SidebarLink
               to="/admin/berechtigungen"

@@ -34,6 +34,7 @@ import EreignisForm from './components/admin/EreignisForm'; // Das zentrale Erei
 import EreignisDetail from './pages/EreignisDetail';
 import PresseList from './pages/admin/PresseList';
 import PresseForm from './pages/admin/PresseForm';
+import Buchhaltung from './pages/admin/Buchhaltung';
 
 
 // Admin Sicherheit & Layout
@@ -105,6 +106,12 @@ function App() {
     <Route path="presse" element={<PresseList />} />
     <Route path="presse/neu" element={<PresseForm />} />
     <Route path="presse/:id" element={<PresseForm />} />
+
+          {/* MUHASEBE (Sadece Sayman) */}
+          <Route 
+            path="buchhaltung" 
+            element={ <ProtectedRoute level="treasurer"><Buchhaltung /></ProtectedRoute> } 
+          />
 
         </Route> {/* Ende /admin */}
 

@@ -1,0 +1,1 @@
+ALTER TABLE accounting_transactions ADD COLUMN receipt_no text;

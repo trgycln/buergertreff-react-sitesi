@@ -67,12 +67,20 @@ const ProtectedRoute = ({ children, level }) => {
   // 5. YETKİ KONTROLÜ
   // a) 'super_admin' gerektiren bir sayfa ise
   if (level === 'super_admin' && profile.role !== 'super_admin') {
-    // Kullanıcı 'super_admin' değilse, ana admin sayfasına at
     return <Navigate to="/admin" replace />;
   }
-  // b) 'admin' (herhangi bir admin) gerektiren bir sayfa ise
-  // (Rol 'super_admin' VEYA 'page_admin' ise izin verilir)
-  if (level === 'admin' && (profile.role !== 'super_admin' && profile.role !== 'page_admin')) {
+  
+  // b) 'treasurer' (Sayman) gerektiren bir sayfa ise
+  if (level === 'treasurer') {
+    // Sadece 'treasurer' veya 'super_admin' girebilir
+    if (profile.role !== 'treasurer' && profile.role !== 'super_admin') {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
+  // c) 'admin' (herhangi bir admin) gerektiren bir sayfa ise
+  // (Rol 'super_admin', 'treasurer' VEYA 'page_admin' ise izin verilir)
+  if (level === 'admin' && (profile.role !== 'super_admin' && profile.role !== 'page_admin' && profile.role !== 'treasurer')) {
      // Kullanıcı admin değilse, anasayfaya at
     return <Navigate to="/" replace />;
   }

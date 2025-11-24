@@ -1,0 +1,1 @@
+ALTER TABLE accounting_contacts ADD COLUMN member_since date;
