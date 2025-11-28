@@ -67,10 +67,19 @@ const Start = () => {
                 blobs={contentBlockBlobs}
             >
                 <p>
-                    Schön, dass Sie da sind! Der Bürgertreff Wissen ist ein offener Ort für alle Bürgerinnen und Bürger. Wir bieten Raum für Begegnungen, gemeinsame Aktivitäten und bürgerschaftliches Engagement.
+Schön, dass Sie da sind – zumindest virtuell.
                 </p>
                 <p>
-                    Bei uns können Sie neue Leute kennenlernen, sich austauschen, an Veranstaltungen teilnehmen oder eigene Ideen und Projekte einbringen. Schauen Sie doch mal vorbei!
+Noch gibt es den Bürgertreff nur als Verein und hier auf der Website oder Sie können uns bei unseren Ausflügen „Bürgertreff unterwegs“ kennen lernen.
+                </p>
+                <p>
+                  Wir sind immer noch auf der Suche nach einem geeigneten Lokal in der Wissener Innenstadt, sind aber zuversichtlich, dass sich Anfang des Jahres 2026 was tut und wir uns dann vor Ort begegnen können. Bis dahin melden Sie sich gerne bei uns, wir nehmen Sie in unseren E-Mail-Verteiler auf und Sie werden auf dem Laufenden gehalten.  
+                </p>
+                <p>
+                    Der Bürgertreff Wissen soll ein offener Ort für alle Bürgerinnen und Bürger sein. Wir wollen Raum für Begegnungen, gemeinsame Aktivitäten und bürgerschaftliches Engagement bieten:
+                </p>
+                <p>
+               neue Leute kennenlernen, sich austauschen, an Veranstaltungen teilnehmen oder eigene Ideen und Projekte einbringen.
                 </p>
             </ContentBlock>
 

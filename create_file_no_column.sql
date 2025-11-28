@@ -1,0 +1,1 @@
+ALTER TABLE accounting_transactions ADD COLUMN file_no text;

@@ -36,6 +36,7 @@ export default function BuchhaltungTransactions() {
     account_id: '',
     contact_id: '',
     receipt_no: '', // Fatura/Fiş No
+    file_no: '', // Dosya Sıra No (Ordner-Nr.)
     description: '',
     document_url: '' // Dosya yolu (path)
   });
@@ -496,6 +497,79 @@ export default function BuchhaltungTransactions() {
     printWindow.document.close();
   };
 
+  // --- LİSTE YAZDIRMA (LISTE DRUCKEN) ---
+  const printList = () => {
+    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+    if (!printWindow) return;
+
+    const dateStr = new Date().toLocaleDateString('de-DE');
+    
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Buchungsliste - ${dateStr}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .amount { text-align: right; }
+            .income { color: green; }
+            .expense { color: red; }
+            @media print {
+              body { padding: 0; }
+              table { page-break-inside: auto; }
+              tr { page-break-inside: avoid; page-break-after: auto; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Buchungsliste / Kassenbuch</h1>
+          <p>Gedruckt am: ${dateStr}</p>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Lfd. Nr.</th>
+                <th>Datum</th>
+                <th>Ordner-Nr.</th>
+                <th>Beleg-Nr.</th>
+                <th>Kategorie</th>
+                <th>Beschreibung</th>
+                <th>Konto / Kontakt</th>
+                <th class="amount">Einnahme</th>
+                <th class="amount">Ausgabe</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.map((trx, index) => {
+                const isIncome = trx.type === 'income';
+                const amount = parseFloat(trx.amount).toFixed(2).replace('.', ',');
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${new Date(trx.date).toLocaleDateString('de-DE')}</td>
+                    <td><strong>${trx.file_no || ''}</strong></td>
+                    <td>${trx.receipt_no || ''}</td>
+                    <td>${trx.accounting_categories?.name || ''}</td>
+                    <td>${trx.description || ''}</td>
+                    <td>${trx.accounting_accounts?.name || ''} ${trx.accounting_contacts ? ' / ' + trx.accounting_contacts.name : ''}</td>
+                    <td class="amount income">${isIncome ? amount + ' €' : ''}</td>
+                    <td class="amount expense">${!isIncome ? amount + ' €' : ''}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+          <script>window.onload = function() { window.print(); }</script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -545,6 +619,7 @@ export default function BuchhaltungTransactions() {
       account_id: trx.account_id,
       contact_id: trx.contact_id || '',
       receipt_no: trx.receipt_no || '',
+      file_no: trx.file_no || '',
       description: trx.description || '',
       document_url: trx.document_url || ''
     });
@@ -576,6 +651,7 @@ export default function BuchhaltungTransactions() {
       account_id: '',
       contact_id: '',
       receipt_no: '',
+      file_no: '',
       description: '',
       document_url: ''
     });
@@ -648,12 +724,21 @@ export default function BuchhaltungTransactions() {
           </div>
         </div>
 
-        <button 
-          onClick={() => { resetForm(); setIsFormOpen(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <FaPlus /> <span className="hidden md:inline">Neue Transaktion</span>
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={printList}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            title="Liste drucken"
+          >
+            <FaPrint /> <span className="hidden md:inline">Liste</span>
+          </button>
+          <button 
+            onClick={() => { resetForm(); setIsFormOpen(true); }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <FaPlus /> <span className="hidden md:inline">Neue Transaktion</span>
+          </button>
+        </div>
       </div>
 
       {/* FORM MODAL */}
@@ -692,7 +777,7 @@ export default function BuchhaltungTransactions() {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Datum *</label>
                     <input
@@ -705,7 +790,18 @@ export default function BuchhaltungTransactions() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Beleg-Nr. / Rechnungs-Nr.</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ordner-Nr.</label>
+                    <input
+                      type="text"
+                      name="file_no"
+                      placeholder="z.B. 125"
+                      className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                      value={formData.file_no}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Beleg-Nr.</label>
                     <input
                       type="text"
                       name="receipt_no"
@@ -842,7 +938,7 @@ export default function BuchhaltungTransactions() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Datum / Ordner</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie / Beschreibung</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Konto / Kontakt</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Betrag</th>
@@ -860,6 +956,9 @@ export default function BuchhaltungTransactions() {
                 <tr key={trx.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <div>{new Date(trx.date).toLocaleDateString('de-DE')}</div>
+                    {trx.file_no && (
+                      <div className="text-xs font-bold text-blue-600 mt-1" title="Ordner-Nr.">Ordner: {trx.file_no}</div>
+                    )}
                     {trx.receipt_no && (
                       <div className="text-xs text-gray-400 mt-1">#{trx.receipt_no}</div>
                     )}
