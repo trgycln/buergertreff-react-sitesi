@@ -10,7 +10,7 @@ import introImage from '../assets/images/intro-image.JPG';
 import wirUberUns2 from '../assets/images/wirUberUns-2.jpg'
 import wirUberUns3 from '../assets/images/wirUberUns-3.jpg'
 import wirUberUns4 from '../assets/images/wirUberUns-4.jpg'
-
+import { Helmet } from 'react-helmet-async';
 
 const WirUberUns = () => {
     // Bu sayfadaki ContentBlock için farklı bir blob listesi tanımlıyoruz
@@ -28,6 +28,16 @@ const WirUberUns = () => {
     ];
 
     return (
+<>
+
+<Helmet>
+    <title>Über uns: Ziele und Werte des Bürgertreff Wissen e.V.</title>
+    <meta 
+        name="description" 
+        content="Erfahren Sie mehr über unsere Mission, Ziele und bürgerschaftliches Engagement. Wir schaffen einen offenen Ort für Begegnungen und Miteinander in Wissen/Sieg."
+    />
+</Helmet>
+
         <div>
             <PageBanner 
                 title="Wir über uns" 
@@ -111,6 +121,7 @@ Solange wir keinen festen Raum haben, treffen wir uns privat, bei schönem Wette
                 </div>
             </section>
         </div>
+</>
     );
 };
 

@@ -5,11 +5,22 @@ import PageBanner from '../components/PageBanner';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa';
 
 import kontaktBannerImage from '../assets/images/kontakt-banner.png';
+import { Helmet } from 'react-helmet-async';
 
 const Kontakt = () => {
     const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d80721.7566184201!2d7.680883438719719!3d50.78382421242446!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea24535194805%3A0x422d4d510dacca0!2s57537%20Wissen!5e0!3m2!1sde!2sde!4v1758371651993!5m2!1sde!2sde";
 
     return (
+
+<>
+<Helmet>
+    <title>Kontakt & Anfahrt | Bürgertreff Wissen e.V.</title>
+    <meta 
+        name="description" 
+        content="Kontaktieren Sie den Bürgertreff Wissen e.V. Finden Sie unsere Adresse, Telefonnummer und E-Mail für Anfragen, Unterstützung oder allgemeine Informationen in Wissen/Sieg."
+    />
+</Helmet>
+
         <div>
             <PageBanner title="Kontakt & Impressum" imageUrl={kontaktBannerImage} />
 
@@ -90,6 +101,7 @@ const Kontakt = () => {
                 </div>
             </main>
         </div>
+</>
     );
 };
 

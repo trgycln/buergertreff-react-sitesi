@@ -10,6 +10,8 @@ import sprachtreffenImage from '../assets/images/sprachtreffen-image.jpg';
 import sprachtreffenBanner from '../assets/images/sprachtreffen-banner.jpg';
 import { FaCheckCircle, FaUser, FaRegCalendarAlt, FaMapMarkerAlt, FaArrowRight } from 'react-icons/fa';
 
+import { Helmet } from 'react-helmet-async';
+
 // --- Tarih Formatlama Fonksiyonları ---
 
 // "Wann" kartı için detaylı format
@@ -132,7 +134,15 @@ const Sprachtreffen = () => {
 
 
     return (
-        <div>
+        <>
+        <Helmet>
+    <title>Sprachtreffen: Deutsch Lernen & Austausch | Bürgertreff Wissen</title>
+    <meta 
+        name="description" 
+        content="Nehmen Sie an unseren offenen Sprachtreffen in Wissen teil. Ideal zum Deutschlernen, Üben und für interkulturellen Austausch in entspannter Atmosphäre."
+    />
+</Helmet>
+ <div>
             {/* PageBanner (Değişiklik yok) */}
             <PageBanner 
                 title="Sprachtreffen"
@@ -239,6 +249,8 @@ const Sprachtreffen = () => {
                 </div>
             </section>
         </div>
+        </>
+       
     );
 };
 

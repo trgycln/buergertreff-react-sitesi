@@ -21,6 +21,8 @@ import beratungImage from '../assets/images/idea-beratung.jpg';
 import nachhilfeImage from '../assets/images/idea-nachhilfe.jpg';
 import unterwegsImage from '../assets/images/idea-unterwegs.jpg';
 
+import { Helmet } from 'react-helmet-async';
+
 const Ideenboerse = () => {
     const formRef = useRef(null); 
     // PDF'teki tüm fikirleri içeren tam liste
@@ -115,6 +117,16 @@ const Ideenboerse = () => {
     }, []);
 
     return (
+       <>
+
+<Helmet>
+    <title>Ideenbörse: Neue Projekte & Vorschläge | Bürgertreff Wissen</title>
+    <meta 
+        name="description" 
+        content="Bringen Sie Ihre Ideen und Projekte für die Gemeinschaft im Großraum Wissen ein. Stimmen Sie ab und gestalten Sie die Zukunft des Bürgertreffs aktiv mit."
+    />
+</Helmet>
+
         <div>
             <PageBanner 
                 title="Ideenbörse"
@@ -150,6 +162,7 @@ const Ideenboerse = () => {
                 </div>
             </section>
         </div>
+        </>
     );
 };
 

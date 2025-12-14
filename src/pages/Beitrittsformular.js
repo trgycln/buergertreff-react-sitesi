@@ -13,6 +13,8 @@ import {
 import qrCode24 from '../assets/images/qr-code-24.png';
 import qrCode50 from '../assets/images/qr-code-50.png';
 
+import { Helmet } from 'react-helmet-async';
+
 const Beitrittsformular = () => {
   const emailSubject = "Neue Beitrittserklärung (von der Webseite)";
   const [visibleQrCode, setVisibleQrCode] = useState(null);
@@ -22,6 +24,16 @@ const Beitrittsformular = () => {
   };
 
   return (
+  <>
+
+<Helmet>
+    <title>Mitglied werden: Beitrittsformular | Bürgertreff Wissen</title>
+    <meta 
+        name="description" 
+        content="Füllen Sie das Beitrittsformular aus und werden Sie aktives Mitglied im Bürgertreff Wissen e.V. Unterstützen Sie unsere Projekte und stärken Sie das Miteinander."
+    />
+</Helmet>
+
     <div className="bg-rcGray py-12 md:py-20">
       <div className="container mx-auto px-6 max-w-3xl">
         <div className="bg-white p-8 rounded-2xl shadow-2xl">
@@ -147,6 +159,7 @@ const Beitrittsformular = () => {
         </div>
       </div>
     </div>
+  </>
   );
 };
 

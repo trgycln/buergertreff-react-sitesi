@@ -5,16 +5,27 @@ import {
     FaBook, FaExclamationTriangle, FaLightbulb, FaCheckCircle, FaTimesCircle 
 } from 'react-icons/fa';
 import { MdGroups } from 'react-icons/md';
+import Layout from '../components/Layout';
 
 import nachbarschaftBanner from '../assets/images/nachbarschaft-banner.jpg';
 import whatsappQrCode from '../assets/images/whatsapp-qr-code.png';
+import { Helmet } from 'react-helmet-async';
 
 const Nachbarschaftsboerse = () => {
     // Google Groups katılım e-posta adresi
     const googleGroupsJoinLink = "mailto:nachbarschaftsborse+subscribe@googlegroups.com?subject=Beitrittsanfrage";
 
     return (
-        <div>
+        <>
+<Helmet>
+    <title>Nachbarschaftshilfe & Tauschbörse Wissen | Bürgertreff</title>
+    <meta 
+        name="description" 
+        content="Die zentrale Nachbarschaftsbörse in Wissen/Sieg: Kostenlose Hilfe, Tausch und Unterstützung bei Alltagsaufgaben (Einkauf, Garten, Betreuung) über WhatsApp oder Google Groups."
+    />
+</Helmet>
+
+               <div>
             <PageBanner 
                 title="Nachbarschaftsbörse"
                 imageUrl={nachbarschaftBanner}
@@ -165,6 +176,10 @@ const Nachbarschaftsboerse = () => {
                 </div>
             </main>
         </div>
+        </>
+ 
+       
+
     );
 };
 

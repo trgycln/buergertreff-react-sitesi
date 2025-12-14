@@ -19,8 +19,20 @@ import {
 // Banner resmini import edelim
 import mitBannerImage from "../assets/images/machen-sie-mit-banner.jpg";
 
+import { Helmet } from 'react-helmet-async';
+
 const MachenSieMit = () => {
   return (
+   <>
+<Helmet>
+    <title>Machen Sie mit: Ehrenamt & Unterstützung | Bürgertreff Wissen</title>
+    <meta 
+        name="description" 
+        content="Werden Sie aktiv im Bürgertreff Wissen e.V.! Entdecken Sie ehrenamtliche Tätigkeiten, unterstützen Sie uns mit Spenden oder bringen Sie eigene Projektideen ein."
+    />
+</Helmet>
+
+
     <div>
       <PageBanner title="Machen Sie mit" imageUrl={mitBannerImage} />
 
@@ -138,6 +150,8 @@ const MachenSieMit = () => {
         </div>
       </main>
     </div>
+   </>
+
   );
 };
 

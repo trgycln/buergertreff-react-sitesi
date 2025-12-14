@@ -12,6 +12,8 @@ import presseBannerImage from '../assets/images/presse-banner.png';
 // DÜZELTME: Statik resim importları kaldırıldı (presse1, presse2, vb.)
 // Resimler artık veritabanından 'image_url' olarak geliyor.
 
+import { Helmet } from 'react-helmet-async';
+
 Modal.setAppElement('#root');
 
 const Presse = () => {
@@ -93,6 +95,17 @@ const Presse = () => {
     // --- BİTİŞ: YENİ ---
 
     return (
+    <>
+
+<Helmet>
+    <title>Presse & Medienberichte | Bürgertreff Wissen e.V.</title>
+    <meta 
+        name="description" 
+        content="Aktuelle Presseberichte, Meldungen und Medienveröffentlichungen über die Arbeit und Projekte des Bürgertreff Wissen e.V. im Großraum Wissen/Sieg."
+    />
+</Helmet>
+
+
         <div>
             <PageBanner 
                 title="Presse über uns"
@@ -126,6 +139,7 @@ const Presse = () => {
                 <img src={selectedImage} alt="Presseartikel in Großansicht" className="w-full h-full object-contain" />
             </Modal>
         </div>
+    </>
     );
 };
 

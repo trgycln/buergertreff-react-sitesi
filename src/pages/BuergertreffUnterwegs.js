@@ -13,6 +13,8 @@ import ScrollToTop from '../components/ScrollToTop';
 // Banner resmi
 import bannerImage from '../assets/images/idea-unterwegs.jpg'; 
 
+import { Helmet } from 'react-helmet-async';
+
 // Tarihi formatlamak için (örn: "November 2025")
 const formatArchiveDate = (dateString) => {
     if (!dateString) return ""; 
@@ -78,7 +80,18 @@ const BürgertreffUnterwegs = () => {
     }, []); 
 
     return (
+       <>
+
+
+       <Helmet>
+    <title>Bürgertreff Unterwegs: Unsere Ausflüge & Impressionen</title>
+    <meta 
+        name="description" 
+        content="Sehen Sie Fotos und Berichte unserer letzten gemeinsamen Ausflüge und Exkursionen. Entdecken Sie die Erlebnisse und die lebendige Gemeinschaft des Bürgertreff Wissen e.V."
+    />
+</Helmet>
         <div>
+    
             <ScrollToTop />
             <PageBanner
                 title="Bürgertreff unterwegs"
@@ -173,6 +186,7 @@ const BürgertreffUnterwegs = () => {
                 </div>
             </main>
         </div>
+       </>
     );
 };
 

@@ -6,6 +6,7 @@ import PageBanner from '../components/PageBanner';
 import EventList from '../components/EventList'; 
 
 import angeboteBannerImage from '../assets/images/angebote-banner.jpg';
+import { Helmet } from 'react-helmet-async';
 
 const categoryOptions = [
     'Alle',
@@ -29,6 +30,16 @@ const Angebote = () => {
     const [selectedCategory, setSelectedCategory] = useState('Alle'); 
 
     return (
+       <>
+<Helmet>
+    <title>Angebote & Dienste | Bürgertreff Wissen</title>
+    <meta 
+        name="description" 
+        content="Entdecken Sie unsere regelmäßigen Treffen, Sprachkurse, Hilfeleistungen und sozialen Angebote. Wir bieten vielfältige Möglichkeiten für Begegnung und Austausch in Wissen/Sieg."
+    />
+</Helmet>
+
+
         <div>
             <PageBanner
                 title="Angebote & Veranstaltungen"
@@ -70,6 +81,7 @@ const Angebote = () => {
                 </div>
             </main>
         </div>
+       </>
     );
 };
 

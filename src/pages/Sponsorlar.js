@@ -8,6 +8,8 @@ import sponsorBanner from '../assets/images/sponsorenbanner.png';
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
 import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
 
+import { Helmet } from 'react-helmet-async';
+
 const sponsors = [
   {
     name: 'Kölschbach Heizung Klima Sanitär',
@@ -42,6 +44,14 @@ const SponsorCircle = ({ name, logo, url }) => (
 const Sponsorlar = () => {
   return (
     <>
+<Helmet>
+    <title>Unsere Sponsoren & Unterstützer | Bürgertreff Wissen e.V.</title>
+    <meta 
+        name="description" 
+        content="Vielen Dank an unsere großzügigen Sponsoren und Partner, die die Arbeit des Bürgertreff Wissen e.V. ermöglichen und unser Engagement in der Gemeinschaft unterstützen."
+    />
+</Helmet>
+
       <PageBanner
         title="Sponsoren & Partner"
         imageUrl={sponsorBanner}

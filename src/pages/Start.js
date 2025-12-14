@@ -8,6 +8,7 @@ import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 
 import heroVideo from '../assets/images/hero-background.mp4'; 
 import foto1 from '../assets/images/startSeite.png';
+import { Helmet } from 'react-helmet-async';
 
 const Start = () => {
     const welcomeMessages = useMemo(() => [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا","Serdecznie witamy","Hûn bi xêr hatinî"],[]);
@@ -32,6 +33,15 @@ const Start = () => {
     ];
 
     return (
+        <>
+        {/* SEO ETİKETLERİ: Başlığınızın ve açıklamanızın Google'da görünmesini sağlar */}
+            <Helmet>
+                <title>Startseite: Bürgertreff Wissen e.V.</title>
+                <meta 
+                    name="description" 
+                    content="Willkommen beim Bürgertreff Wissen e.V. Wir fördern Gemeinschaft, bürgerschaftliches Engagement und Miteinander im Großraum Wissen/Sieg. Entdecken Sie unsere Angebote und Projekte."
+                />
+            </Helmet>
         <div>
             <Hero videoUrl={heroVideo}>
                 {/* GÜNCELLENDİ: Metin yapısı ve fontlar isteğinize göre düzeltildi */}
@@ -99,6 +109,8 @@ Noch gibt es den Bürgertreff nur als Verein und hier auf der Website oder Sie k
                 </div>
             </section>
         </div>
+        </>
+
     );
 };
 
