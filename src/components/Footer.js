@@ -6,11 +6,9 @@ import {
   FaInstagram,
   FaTiktok,
   FaMastodon,
-  FaWhatsapp,
   FaYoutube,
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
-import { MdGroups } from "react-icons/md";
 
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
 import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
@@ -63,10 +61,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Folgen Sie uns</h3>
             <div className="flex flex-wrap items-center gap-5">
+              <a href="https://www.facebook.com/profile.php?id=61585385846803" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
               <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaYoutube size={24} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaWhatsapp size={16} /></a>
-              <a href="/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><MdGroups size={16} /></a>
+              <a href="https://www.instagram.com/buergertreff.wissen/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
+              <a href="mailto:buergertreff.wissen@gmail.com" className="text-gray-300 hover:text-white transition-colors">@</a>
             </div>
           </div>
         </div>
