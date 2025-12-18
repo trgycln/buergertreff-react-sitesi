@@ -86,10 +86,18 @@ const Header = () => {
         toggleSubmenu('angebote');
     };
 
+    // Ana sayfa için özel ticker mesajı
+    const staticTickerMessage = [
+        "Wir wünschen allen eine Zeit voller guter Begegnungen und hoffen, Sie und euch im nächsten Jahr persönlich zu treffen."
+    ];
+
+    // Sadece Start sayfasında özel mesajı göster
+    const isStartPage = window.location.pathname === "/";
+
     return (
         <>
-            {/* Kayan yazı bandı (Artık dinamik veriyi alıyor) */}
-            <AnnouncementTicker items={announcements} />
+            {/* Kayan yazı bandı (Start sayfasında özel mesaj, diğer sayfalarda dinamik) */}
+            <AnnouncementTicker items={isStartPage ? staticTickerMessage : announcements} />
             
             <header className="bg-white shadow-md sticky top-0 z-50">
                 <div className="bg-rcBlue text-gray-300 py-2">
