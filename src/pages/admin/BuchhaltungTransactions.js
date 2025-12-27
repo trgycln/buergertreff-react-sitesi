@@ -533,20 +533,23 @@ export default function BuchhaltungTransactions() {
       {/* Tablo */}
       <style>{`
         @media (max-width: 768px) {
-          .responsive-table thead { display: none; }
-          .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
-          .responsive-table tr { margin-bottom: 1rem; border-bottom: 1px solid #eee; }
-          .responsive-table td { text-align: left !important; padding-left: 40%; position: relative; min-height: 40px; }
-          .responsive-table td:before {
-            position: absolute;
-            left: 1rem;
-            top: 0.75rem;
-            width: 35%;
-            white-space: nowrap;
-            font-weight: bold;
-            color: #888;
+          .responsive-table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-spacing: 0;
           }
-          .responsive-table td[data-label]:before { content: attr(data-label); }
+          .responsive-table thead {
+            display: table-header-group;
+          }
+          .responsive-table tr {
+            display: table-row;
+          }
+          .responsive-table td, .responsive-table th {
+            min-width: 120px;
+            white-space: nowrap;
+          }
         }
         .amount-cell { white-space: nowrap; }
         .amount-euro { margin-left: 2px; }
