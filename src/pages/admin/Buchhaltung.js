@@ -5,6 +5,8 @@ import BuchhaltungContacts from './BuchhaltungContacts';
 import BuchhaltungTransactions from './BuchhaltungTransactions';
 import BuchhaltungDashboard from './BuchhaltungDashboard';
 import BuchhaltungMembers from './BuchhaltungMembers';
+// YENİ: Rapor bileşenini import ediyoruz
+import BuchhaltungReports from './BuchhaltungReports'; 
 
 export default function Buchhaltung() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -12,6 +14,7 @@ export default function Buchhaltung() {
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
     { id: 'transactions', label: 'Transaktionen' },
+    { id: 'reports', label: 'Berichte' }, // YENİ: Raporlar sekmesi
     { id: 'members', label: 'Mitglieder' },
     { id: 'contacts', label: 'Kontakte' },
     { id: 'settings', label: 'Einstellungen' },
@@ -27,12 +30,12 @@ export default function Buchhaltung() {
       </div>
 
       {/* Sekmeler (Tabs) */}
-      <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg mb-6 w-fit">
+      <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg mb-6 w-fit overflow-x-auto">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
               activeTab === tab.id
                 ? 'bg-white text-blue-600 shadow'
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-300'
@@ -47,6 +50,7 @@ export default function Buchhaltung() {
       <div className="mt-4">
         {activeTab === 'dashboard' && <BuchhaltungDashboard />}
         {activeTab === 'transactions' && <BuchhaltungTransactions />}
+        {activeTab === 'reports' && <BuchhaltungReports />} {/* YENİ: Rapor içeriği */}
         {activeTab === 'members' && <BuchhaltungMembers />}
         {activeTab === 'contacts' && <BuchhaltungContacts />}
         {activeTab === 'settings' && <BuchhaltungSettings />}

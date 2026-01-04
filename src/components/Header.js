@@ -96,8 +96,8 @@ const Header = () => {
 
     return (
         <>
-            {/* Kayan yazı bandı (Start sayfasında özel mesaj, diğer sayfalarda dinamik) */}
-            <AnnouncementTicker items={isStartPage ? staticTickerMessage : announcements} />
+            {/* Kayan yazı bandı (Her sayfada admin tarafından girilen duyurular) */}
+            <AnnouncementTicker items={announcements} />
             
             <header className="bg-white shadow-md sticky top-0 z-50">
                 <div className="bg-rcBlue text-gray-300 py-2">
