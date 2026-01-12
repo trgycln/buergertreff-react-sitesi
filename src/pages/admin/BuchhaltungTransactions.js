@@ -155,7 +155,7 @@ export default function BuchhaltungTransactions() {
     const { data } = await supabase
       .from('site_settings')
       .select('key, value')
-      .in('key', ['org_name', 'org_address', 'org_tax_id', 'exemption_date', 'exemption_office']);
+      .in('key', ['org_name', 'org_address', 'org_tax_id', 'exemption_date', 'exemption_office', 'treasurer_name']);
     
     const settings = {};
     if (data) {
@@ -228,7 +228,7 @@ export default function BuchhaltungTransactions() {
 
   // --- YAZDIRMA FONKSİYONLARI ---
 
-  // 1. LİSTE YAZDIRMA (TAM DÜZELTİLMİŞ)
+  // 1. LİSTE YAZDIRMA (YENIDEN TASARLANDI)
   const printList = () => {
     const printWindow = window.open('', '_blank', 'width=1100,height=800');
     if (!printWindow) return;
@@ -281,7 +281,7 @@ export default function BuchhaltungTransactions() {
       tableRows += `
         <tr style="background:#e6e6e6;font-weight:bold;"><td colspan="${showIncome && showExpense ? 6 : 5}">${cat}</td></tr>
         ${catRows}
-        <tr class="total-row"><td colspan="4" style="text-align:right;">${cat} Summe:</td>
+        <tr class="cat-total"><td colspan="4" style="text-align:right;">${cat} Summe:</td>
           ${showIncome ? `<td class="amount income">${catTotalIncome ? catTotalIncome.toFixed(2).replace('.', ',') + ' €' : ''}</td>` : ''}
           ${showExpense ? `<td class="amount expense">${catTotalExpense ? catTotalExpense.toFixed(2).replace('.', ',') + ' €' : ''}</td>` : ''}
         </tr>
@@ -289,106 +289,180 @@ export default function BuchhaltungTransactions() {
     });
 
     const htmlContent = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="UTF-8">
           <title>Buchungsliste</title>
           <style>
-            @page {
-              size: A4;
-              margin: 1.5cm 2cm 1.5cm 1cm;
-            }
-            body {
-              font-family: Arial, sans-serif;
-              font-size: 10pt;
-              color: #000;
+            * {
               margin: 0;
               padding: 0;
+              box-sizing: border-box;
             }
-            .header-container {
-              text-align: center;
-              margin-bottom: 10px;
-              border-bottom: 2px solid #333;
-              padding-bottom: 6px;
+            
+            @page {
+              size: A4;
+              margin: 20mm 20mm 20mm 20mm;
             }
-            .logo-img { height: 60px; display: block; margin: 0 auto 4px auto; }
-            h1 { font-size: 16pt; margin: 0 0 2px 0; text-transform: uppercase; }
-            p.subtitle { margin: 0; font-size: 10pt; color: #555; }
-            table {
-              max-width: calc(100vw - 3cm);
-              width: auto;
-              border-collapse: collapse;
-              margin-bottom: 10px;
-              margin-left: auto;
-              margin-right: auto;
+            
+            @media print {
+              body {
+                margin: 0;
+                padding: 0;
+              }
             }
-            thead { display: table-header-group; }
-            tfoot { display: table-footer-group; }
-            tr { page-break-inside: avoid; }
-            th, td {
-              border: 1px solid #ccc;
-              padding: 5px;
-              text-align: left;
-              vertical-align: top;
+            
+            body {
+              font-family: Arial, Helvetica, sans-serif;
               font-size: 9pt;
+              line-height: 1.4;
+              color: #000;
+              margin: 20mm;
+              padding: 0;
             }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            .amount { text-align: right; white-space: nowrap; }
-            .income { color: green; }
-            .expense { color: red; }
-            .total-row td {
+            
+            .document-header {
+              text-align: center;
+              margin-bottom: 8px;
+              padding-bottom: 4px;
+              border-bottom: 2px solid #333;
+              page-break-after: avoid;
+            }
+            
+            .document-header img {
+              max-height: 50px;
+              margin-bottom: 2px;
+            }
+            
+            .document-header h1 {
+              font-size: 14pt;
+              font-weight: bold;
+              margin: 0;
+              text-transform: uppercase;
+            }
+            
+            .document-header p {
+              font-size: 9pt;
+              color: #555;
+              margin: 2px 0;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 8px;
+            }
+            
+            thead {
+              display: table-header-group;
+            }
+            
+            tbody {
+              display: table-row-group;
+            }
+            
+            tfoot {
+              display: table-footer-group;
+            }
+            
+            tr {
+              page-break-inside: avoid;
+            }
+            
+            th {
+              background-color: #f0f0f0;
+              border: 1px solid #999;
+              padding: 6px 4px;
+              text-align: left;
+              font-weight: bold;
+              font-size: 8.5pt;
+            }
+            
+            td {
+              border: 1px solid #ccc;
+              padding: 4px;
+              text-align: left;
+              font-size: 8.5pt;
+            }
+            
+            .amount-col {
+              text-align: right;
+              white-space: nowrap;
+              width: 70px;
+            }
+            
+            .income {
+              color: green;
+              font-weight: bold;
+            }
+            
+            .expense {
+              color: red;
+              font-weight: bold;
+            }
+            
+            tr[style*="background:#e6e6e6"] {
+              page-break-after: avoid;
+            }
+            
+            .cat-total td {
               border-top: 2px solid #000;
               background-color: #f9f9f9;
               font-weight: bold;
-              font-size: 10pt;
+              page-break-after: avoid;
             }
-            .footer-space { height: 0; }
+            
+            .final-totals td {
+              border-top: 2px solid #000;
+              background-color: #f0f0f0;
+              font-weight: bold;
+              padding: 6px 4px;
+            }
           </style>
         </head>
         <body>
-          <div class="header-container">
-            <img src="/logo.png" alt="Logo" class="logo-img" onerror="this.style.display='none'" />
+          <div class="document-header">
+            <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
             <h1>Buchungsliste / Journal</h1>
-            <p class="subtitle">${orgSettings.org_name || 'Bürgertreff Wissen e.V.'}</p>
-            <p class="subtitle">Zeitraum: ${periodStr}</p>
+            <p>${orgSettings.org_name || 'Bürgertreff Wissen e.V.'}</p>
+            <p>Zeitraum: ${periodStr}</p>
           </div>
+          
           <table>
             <thead>
               <tr>
-                <th style="width: 70px;">Datum</th>
-                <th style="width: 50px;">Beleg</th>
-                <th>Beschreibung</th>
-                <th>Konto / Kontakt</th>
-                ${showIncome ? '<th class="amount" style="width: 80px;">Einnahme</th>' : ''}
-                ${showExpense ? '<th class="amount" style="width: 80px;">Ausgabe</th>' : ''}
+                <th style="width: 60px;">Datum</th>
+                <th style="width: 45px;">Beleg</th>
+                <th style="flex: 1;">Beschreibung</th>
+                <th style="width: 120px;">Konto / Kontakt</th>
+                ${showIncome ? '<th class="amount-col">Einnahme</th>' : ''}
+                ${showExpense ? '<th class="amount-col">Ausgabe</th>' : ''}
               </tr>
             </thead>
             <tbody>
               ${tableRows}
-              <tr class="total-row">
-                <td colspan="4" style="text-align: right; padding-right: 15px;">GESAMTSUMME:</td>
-                ${showIncome ? `<td class="amount income">${totalIncome.toFixed(2).replace('.', ',')} €</td>` : ''}
-                ${showExpense ? `<td class="amount expense">${totalExpense.toFixed(2).replace('.', ',')} €</td>` : ''}
-              </tr>
-              <tr class="total-row">
-                 <td colspan="4" style="text-align: right; padding-right: 15px;">SALDO (Einnahmen - Ausgaben):</td>
-                 <td colspan="2" class="amount" style="text-align: center; color: ${netBalance >= 0 ? 'black' : 'red'}; font-size: 11pt;">
-                   ${netBalance.toFixed(2).replace('.', ',')} €
-                 </td>
-              </tr>
             </tbody>
             <tfoot>
-              <tr>
-                <td colspan="${showIncome && showExpense ? 6 : 5}" style="border:none;">
-                  <div class="footer-space"></div>
+              <tr class="final-totals">
+                <td colspan="4" style="text-align: right; padding-right: 10px;">GESAMTSUMME:</td>
+                ${showIncome ? `<td class="amount-col">${totalIncome.toFixed(2).replace('.', ',')} €</td>` : ''}
+                ${showExpense ? `<td class="amount-col">${totalExpense.toFixed(2).replace('.', ',')} €</td>` : ''}
+              </tr>
+              <tr class="final-totals">
+                <td colspan="4" style="text-align: right; padding-right: 10px;">SALDO (Einnahmen - Ausgaben):</td>
+                <td colspan="2" class="amount-col" style="color: ${netBalance >= 0 ? '#000' : '#f00'};">
+                  ${netBalance.toFixed(2).replace('.', ',')} €
                 </td>
               </tr>
             </tfoot>
           </table>
-          <script>window.onload = function() { window.print(); }</script>
-        </body>
-      </html>
-           <!-- Sayfa numarası kaldırıldı -->
-          <script>window.onload = function() { window.print(); }</script>
+          
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 250);
+            });
+          </script>
         </body>
       </html>
     `;
@@ -461,31 +535,31 @@ export default function BuchhaltungTransactions() {
             @page { size: A4; margin: 0; }
             body { 
               font-family: Arial, Helvetica, sans-serif; 
-              font-size: 11pt; 
-              line-height: 1.3; 
+              font-size: 10pt; 
+              line-height: 1.2; 
               color: #000; 
-              padding: 25mm 25mm 20mm 25mm; 
+              padding: 18mm 25mm 15mm 25mm; 
               margin: 0; 
             }
             .container { width: 100%; margin: 0 auto; }
-            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .logo-img { max-width: 200px; height: auto; }
-            h1 { font-size: 18pt; font-weight: bold; text-align: left; margin: 10px 0 20px 0; }
-            .issuer { font-weight: bold; margin-bottom: 15px; }
-            .legal-text { font-size: 10pt; text-align: justify; margin-bottom: 15px; }
-            .box-section { border: 1px solid #000; padding: 10px; margin-bottom: 15px; background-color: #fcfcfc; }
-            .data-grid { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 10px; margin-bottom: 15px; border: 1px solid #000; padding: 10px; }
-            .grid-item strong { display: block; font-size: 9pt; margin-bottom: 5px; }
-            .checkbox-row { display: flex; justify-content: space-between; align-items: center; border: 1px solid #000; padding: 10px; margin-bottom: 15px; }
-            .tax-info { font-size: 9pt; margin-bottom: 15px; line-height: 1.4; text-align: justify; }
-            .tax-info ul { list-style: none; padding-left: 0; }
-            .tax-info li { margin-bottom: 5px; padding-left: 15px; position: relative; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+            .logo-img { max-width: 180px; height: auto; }
+            h1 { font-size: 16pt; font-weight: bold; text-align: left; margin: 8px 0 12px 0; }
+            .issuer { font-weight: bold; margin-bottom: 10px; font-size: 10pt; }
+            .legal-text { font-size: 9pt; text-align: justify; margin-bottom: 10px; line-height: 1.25; hyphens: auto; word-spacing: -0.04em; }
+            .box-section { border: 1px solid #000; padding: 8px; margin-bottom: 10px; background-color: #fcfcfc; }
+            .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 10px; border: 1px solid #000; padding: 5px; align-items: start; }
+            .grid-item strong { display: block; font-size: 7pt; margin-bottom: 2px; line-height: 1.0; }
+            .checkbox-row { display: flex; justify-content: space-between; align-items: center; border: 1px solid #000; padding: 8px; margin-bottom: 10px; font-size: 9pt; }
+            .tax-info { font-size: 8.5pt; margin-bottom: 10px; line-height: 1.3; text-align: justify; }
+            .tax-info ul { list-style: none; padding-left: 0; margin: 5px 0; }
+            .tax-info li { margin-bottom: 3px; padding-left: 15px; position: relative; }
             .tax-info li::before { content: "•"; position: absolute; left: 0; }
-            .signature-box { margin-top: 60px; margin-bottom: 40px; }
+            .signature-box { margin-top: 25px; margin-bottom: 20px; }
             .page-footer {
-              position: fixed; bottom: 15mm; left: 25mm; right: 25mm;
-              text-align: center; font-size: 8pt; color: #444;
-              border-top: 1px solid #ccc; padding-top: 5px; background-color: #fff; line-height: 1.3;
+              position: fixed; bottom: 12mm; left: 25mm; right: 25mm;
+              text-align: center; font-size: 7.5pt; color: #444;
+              border-top: 1px solid #ccc; padding-top: 4px; background-color: #fff; line-height: 1.25;
             }
             @media print { body { -webkit-print-color-adjust: exact; } .box-section, .data-grid, .checkbox-row { border: 1px solid #000 !important; } }
           </style>
@@ -502,27 +576,31 @@ export default function BuchhaltungTransactions() {
             </table>
             <h1>Spendenbescheinigung</h1>
             <div class="issuer">Aussteller: ${orgName}</div>
-            <div class="legal-text">Bestätigung über Geldzuwendungen im Sinne des § 10b des Einkommensteuergesetzes an eine der in § 5 Abs. 1 Nr. 9 des Körperschaftsteuergesetzes bezeichneten Körperschaften, Personen&shy;ver&shy;einigungen oder Vermögensmassen.</div>
+            <div class="legal-text">Bestätigung über Geldzuwendungen im Sinne des § 10b des Einkommen&shy;steuergesetzes an eine der in § 5 Abs. 1 Nr. 9 des Körperschaftsteuer&shy;gesetzes bezeichneten Körper&shy;schaften, Personen&shy;vereinigungen oder Vermögens&shy;massen.</div>
             <div class="box-section">
               <div><strong>Name und Anschrift des Zuwendenden:</strong></div>
-              <div style="margin-top: 10px; font-size: 12pt;">${contact.name}<br>${contact.address}</div>
+              <div style="margin-top: 8px; font-size: 10.5pt;">${contact.name}<br>${contact.address}</div>
             </div>
             <div class="data-grid">
-              <div class="grid-item"><strong>Betrag der Zuwendung in Ziffern:</strong><span style="font-size: 12pt;">${amountStr} €</span></div>
-              <div class="grid-item"><strong>Betrag der Zuwendung in Buchstaben:</strong><span style="font-size: 11pt; font-style: italic;">${amountInWords}</span></div>
-              <div class="grid-item"><strong>Tag der Zuwendung:</strong><span style="font-size: 12pt;">${dateStr}</span></div>
+              <div class="grid-item"><strong>Betrag der Zuwendung in Ziffern:</strong><span style="font-size: 10.5pt;">${amountStr} €</span></div>
+              <div class="grid-item"><strong>Betrag der Zuwendung in Buchstaben:</strong><span style="font-size: 9.5pt; font-style: italic;">${amountInWords}</span></div>
+              <div class="grid-item"><strong>Tag der Zuwendung:</strong><span style="font-size: 10.5pt;">${dateStr}</span></div>
             </div>
             <div class="checkbox-row"><div class="cb-label">Es handelt sich um den Verzicht auf Erstattung von Aufwendungen</div><div class="cb-options"><span>( ) Ja</span> &nbsp;&nbsp; <span>(X) Nein</span></div></div>
             <div class="tax-info">
               <div><strong>Wir sind wegen Förderung</strong></div>
               <ul><li>der Jugend- und Altenhilfe</li><li>internationaler Gesinnung, der Toleranz auf allen Gebieten der Kultur und des Völker&shy;ver&shy;ständi&shy;gungs&shy;gedankens</li><li>des bürgerschaftlichen Engagements zugunsten gemeinnütziger, mildtätiger und kirchlicher Zwecke</li></ul>
-              <div style="margin-top: 10px;">nach dem Freistellungsbescheid des <strong>${faName}</strong>, Steuernummer <strong>${stNr}</strong>, vom <strong>${exemptionDate}</strong> für den letzten Veranlagungszeitraum nach § 5 Abs. 1 Nr. 9 des Körperschaftsteuergesetzes von der Körperschaftsteuer und nach § 3 Nr. 6 des Gewerbesteuergesetzes von der Gewerbesteuer befreit.</div>
+              <div style="margin-top: 8px;">nach dem Freistellungsbescheid des <strong>${faName}</strong>, Steuernummer <strong>${stNr}</strong>, vom <strong>${exemptionDate}</strong> für den letzten Veranlagungszeitraum nach § 5 Abs. 1 Nr. 9 des Körperschaftsteuergesetzes von der Körperschaftsteuer und nach § 3 Nr. 6 des Gewerbesteuergesetzes von der Gewerbesteuer befreit.</div>
             </div>
-            <div style="margin: 20px 0; font-weight: bold;">Die Zuwendung wird von uns unmittelbar für den angegebenen Zweck verwendet.</div>
+            <div style="margin: 12px 0; font-weight: bold; font-size: 9.5pt;">Die Zuwendung wird von uns unmittelbar für den angegebenen Zweck verwendet.</div>
             <div class="signature-box">
-              <div style="padding-top: 5px; display: flex; justify-content: flex-start;">
-                <span>Wissen, den ${formatDateDE(new Date())}</span>
-                <span style="margin-left:100px;">Unterschrift</span>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 10pt;">
+                <span>Wissen, ${formatDateDE(new Date())}</span>
+                <span style="margin-right: 80px;">${orgSettings.treasurer_name || 'Schatzmeister'}</span>
+              </div>
+              <div style="margin-top: 50px; border-top: 1px solid #000; padding-top: 5px; display: flex; justify-content: space-between;">
+                <span style="font-size: 8pt; color: #666;">Ort, Datum</span>
+                <span style="font-size: 8pt; color: #666; margin-right: 80px;">Unterschrift</span>
               </div>
             </div>
           </div>
@@ -619,10 +697,33 @@ export default function BuchhaltungTransactions() {
             <button onClick={() => setFilterType('expense')} className={`px-3 py-1 rounded-md text-sm ${filterType === 'expense' ? 'bg-white shadow text-red-600' : 'text-gray-600'}`}>Ausgaben</button>
           </div>
           <select value={dateFilter.preset} onChange={handlePresetChange} className="bg-gray-50 border p-1 rounded text-sm cursor-pointer">
+            <option value="this_month">Dieser Monat</option>
+            <option value="last_month">Letzter Monat</option>
             <option value="this_year">Dieses Jahr</option>
-            <option value="last_month">Letzten Monat</option>
+            <option value="last_year">Letztes Jahr</option>
             <option value="custom">Benutzerdefiniert</option>
           </select>
+          {dateFilter.preset === 'custom' && (
+            <div className="flex gap-2 items-center">
+              <input 
+                type="date" 
+                name="start" 
+                value={dateFilter.start} 
+                onChange={handleDateChange}
+                className="bg-white border border-gray-300 p-1 rounded text-sm"
+                placeholder="Von"
+              />
+              <span className="text-gray-500">-</span>
+              <input 
+                type="date" 
+                name="end" 
+                value={dateFilter.end} 
+                onChange={handleDateChange}
+                className="bg-white border border-gray-300 p-1 rounded text-sm"
+                placeholder="Bis"
+              />
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <button onClick={printList} className="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Liste</button>

@@ -18,7 +18,8 @@ export default function BuchhaltungSettings() {
     org_address: '',
     org_tax_id: '',
     exemption_date: '',
-    exemption_office: ''
+    exemption_office: '',
+    treasurer_name: ''
   });
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function BuchhaltungSettings() {
     const { data: settingsData } = await supabase
       .from('site_settings')
       .select('key, value')
-      .in('key', ['org_name', 'org_address', 'org_tax_id', 'exemption_date', 'exemption_office']);
+      .in('key', ['org_name', 'org_address', 'org_tax_id', 'exemption_date', 'exemption_office', 'treasurer_name']);
 
     if (catData) setCategories(catData);
     if (accData) setAccounts(accData);
@@ -213,6 +214,18 @@ export default function BuchhaltungSettings() {
               value={orgSettings.exemption_office}
               onChange={handleOrgSettingChange}
               placeholder="z.B. Finanzamt Altenkirchen-Hachenburg"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Schatzmeister (für Unterschrift)</label>
+            <input
+              type="text"
+              name="treasurer_name"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.treasurer_name}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. Turgay Celen"
             />
           </div>
 
