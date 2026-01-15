@@ -502,7 +502,7 @@ export default function BuchhaltungTransactions() {
   const printDonationReceipt = (trx) => {
     if (trx.type !== 'income') return;
     const contact = contacts.find(c => c.id === trx.contact_id);
-    if (!contact || !contact.address) { alert('Kontakt oder Adresse fehlt!'); return; }
+    if (!contact) { alert('Kontakt fehlt!'); return; }
 
     const printWindow = window.open('', '_blank', 'width=900,height=1000');
     if (!printWindow) return;
@@ -521,6 +521,11 @@ export default function BuchhaltungTransactions() {
     } else {
       amountInWords = `${euroText} Euro ${centText} Cent`;
     }
+
+    // Behandlung mit oder ohne Adresse
+    const donorInfo = contact.address 
+      ? `${contact.name}<br>${contact.address}`
+      : contact.name;
 
     const orgName = "Bürgertreff Wissen e.V.";
     const stNr = orgSettings.org_tax_id || "02/650/36212";
@@ -579,14 +584,13 @@ export default function BuchhaltungTransactions() {
             <div class="legal-text">Bestätigung über Geldzuwendungen im Sinne des § 10b des Einkommen&shy;steuergesetzes an eine der in § 5 Abs. 1 Nr. 9 des Körperschaftsteuer&shy;gesetzes bezeichneten Körper&shy;schaften, Personen&shy;vereinigungen oder Vermögens&shy;massen.</div>
             <div class="box-section">
               <div><strong>Name und Anschrift des Zuwendenden:</strong></div>
-              <div style="margin-top: 8px; font-size: 10.5pt;">${contact.name}<br>${contact.address}</div>
+              <div style="margin-top: 8px; font-size: 10.5pt;">${donorInfo}</div>
             </div>
             <div class="data-grid">
               <div class="grid-item"><strong>Betrag der Zuwendung in Ziffern:</strong><span style="font-size: 10.5pt;">${amountStr} €</span></div>
               <div class="grid-item"><strong>Betrag der Zuwendung in Buchstaben:</strong><span style="font-size: 9.5pt; font-style: italic;">${amountInWords}</span></div>
               <div class="grid-item"><strong>Tag der Zuwendung:</strong><span style="font-size: 10.5pt;">${dateStr}</span></div>
             </div>
-            <div class="checkbox-row"><div class="cb-label">Es handelt sich um den Verzicht auf Erstattung von Aufwendungen</div><div class="cb-options"><span>( ) Ja</span> &nbsp;&nbsp; <span>(X) Nein</span></div></div>
             <div class="tax-info">
               <div><strong>Wir sind wegen Förderung</strong></div>
               <ul><li>der Jugend- und Altenhilfe</li><li>internationaler Gesinnung, der Toleranz auf allen Gebieten der Kultur und des Völker&shy;ver&shy;ständi&shy;gungs&shy;gedankens</li><li>des bürgerschaftlichen Engagements zugunsten gemeinnütziger, mildtätiger und kirchlicher Zwecke</li></ul>
