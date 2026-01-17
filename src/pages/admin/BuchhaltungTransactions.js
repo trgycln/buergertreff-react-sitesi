@@ -236,11 +236,14 @@ export default function BuchhaltungTransactions() {
     let showIncome = filterType === 'income' || filterType === 'all';
     let showExpense = filterType === 'expense' || filterType === 'all';
 
-    // Toplamları hesapla
+    // Toplamları hesapla (0 olan değerleri hariç tut)
     let totalIncome = 0;
     let totalExpense = 0;
     transactions.forEach(t => {
       const val = parseFloat(t.amount);
+      // 0 olan transaksiyonları hariç tut
+      if (val === 0) return;
+      
       if (t.type === 'income') totalIncome += val;
       else totalExpense += val;
     });
@@ -251,22 +254,28 @@ export default function BuchhaltungTransactions() {
       ? `${formatDateDE(dateFilter.start)} - ${formatDateDE(dateFilter.end)}`
       : 'Gesamtübersicht';
 
-    // Kategorilere göre grupla
+    // Kategorilere göre grupla ve 0 olan değerleri filtrele
     const grouped = {};
     transactions.forEach(t => {
+      const amount = parseFloat(t.amount);
+      // 0 olan transaksiyonları hariç tut
+      if (amount === 0) return;
+      
       const cat = t.accounting_categories?.name || 'Unbekannt';
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(t);
     });
 
     let tableRows = '';
+    let rowNumber = 1; // Sıra numarası için sayaç
     Object.keys(grouped).forEach(cat => {
       const catRows = grouped[cat]
         .map(trx => {
           const isIncome = trx.type === 'income';
           const amount = parseFloat(trx.amount).toFixed(2).replace('.', ',');
-          return `
+          const row = `
             <tr>
+              <td>${rowNumber}</td>
               <td>${formatDateDE(trx.date)}</td>
               <td>${trx.receipt_no || trx.file_no || '-'}</td>
               <td><span style="color:#555; font-size:8pt;">${trx.description || ''}</span></td>
@@ -274,14 +283,16 @@ export default function BuchhaltungTransactions() {
               ${showIncome ? `<td class="amount income">${isIncome ? amount + ' €' : ''}</td>` : ''}
               ${showExpense ? `<td class="amount expense">${!isIncome ? amount + ' €' : ''}</td>` : ''}
             </tr>`;
+          rowNumber++; // Her satırdan sonra numarayı arttır
+          return row;
         })
         .join('');
       const catTotalIncome = grouped[cat].filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
       const catTotalExpense = grouped[cat].filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
       tableRows += `
-        <tr style="background:#e6e6e6;font-weight:bold;"><td colspan="${showIncome && showExpense ? 6 : 5}">${cat}</td></tr>
+        <tr style="background:#e6e6e6;font-weight:bold;"><td colspan="${showIncome && showExpense ? 7 : 6}">${cat}</td></tr>
         ${catRows}
-        <tr class="cat-total"><td colspan="4" style="text-align:right;">${cat} Summe:</td>
+        <tr class="cat-total"><td colspan="5" style="text-align:right;">${cat} Summe:</td>
           ${showIncome ? `<td class="amount income">${catTotalIncome ? catTotalIncome.toFixed(2).replace('.', ',') + ' €' : ''}</td>` : ''}
           ${showExpense ? `<td class="amount expense">${catTotalExpense ? catTotalExpense.toFixed(2).replace('.', ',') + ' €' : ''}</td>` : ''}
         </tr>
@@ -432,6 +443,7 @@ export default function BuchhaltungTransactions() {
           <table>
             <thead>
               <tr>
+                <th style="width: 40px;">Nr.</th>
                 <th style="width: 60px;">Datum</th>
                 <th style="width: 45px;">Beleg</th>
                 <th style="flex: 1;">Beschreibung</th>
@@ -445,17 +457,211 @@ export default function BuchhaltungTransactions() {
             </tbody>
             <tfoot>
               <tr class="final-totals">
-                <td colspan="4" style="text-align: right; padding-right: 10px;">GESAMTSUMME:</td>
+                <td colspan="5" style="text-align: right; padding-right: 10px;">GESAMTSUMME:</td>
                 ${showIncome ? `<td class="amount-col">${totalIncome.toFixed(2).replace('.', ',')} €</td>` : ''}
                 ${showExpense ? `<td class="amount-col">${totalExpense.toFixed(2).replace('.', ',')} €</td>` : ''}
               </tr>
               <tr class="final-totals">
-                <td colspan="4" style="text-align: right; padding-right: 10px;">SALDO (Einnahmen - Ausgaben):</td>
+                <td colspan="5" style="text-align: right; padding-right: 10px;">SALDO (Einnahmen - Ausgaben):</td>
                 <td colspan="2" class="amount-col" style="color: ${netBalance >= 0 ? '#000' : '#f00'};">
                   ${netBalance.toFixed(2).replace('.', ',')} €
                 </td>
               </tr>
             </tfoot>
+          </table>
+          
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 250);
+            });
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  // 1b. EVRAK FİHRİSTESİ YAZDIRMA (Denetleme ve Kontrol İçin)
+  const printIndex = () => {
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) return;
+
+    let showIncome = filterType === 'income' || filterType === 'all';
+    let showExpense = filterType === 'expense' || filterType === 'all';
+
+    // 0 olan transaksiyonları filtrele ve tarihe göre sırala
+    const filteredTrx = transactions
+      .filter(t => parseFloat(t.amount) !== 0)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Başlık belirle
+    let headerTitle = 'Belegverzeichnis';
+    if (filterType === 'income') headerTitle = 'Einnahmen-Verzeichnis';
+    else if (filterType === 'expense') headerTitle = 'Ausgaben-Verzeichnis';
+
+    // Tablo satırlarını oluştur
+    let tableRows = '';
+    filteredTrx.forEach((trx, index) => {
+      const isIncome = trx.type === 'income';
+      const amount = parseFloat(trx.amount).toFixed(2).replace('.', ',');
+      const shouldShow = (isIncome && showIncome) || (!isIncome && showExpense);
+      
+      if (!shouldShow) return;
+
+      tableRows += `
+        <tr>
+          <td style="text-align: center; vertical-align: middle; width: 35px;">${index + 1}</td>
+          <td style="text-align: center; vertical-align: middle; width: 75px;">${formatDateDE(trx.date)}</td>
+          <td style="text-align: center; vertical-align: middle; width: 90px;">${trx.receipt_no || trx.file_no || '-'}</td>
+          <td style="text-align: left; vertical-align: middle; flex: 1;"><span style="color:#555; font-size:9pt;">${trx.description || ''}</span></td>
+          <td style="text-align: center; vertical-align: middle; width: 110px;">${trx.accounting_accounts?.name || ''}${trx.accounting_contacts ? '<br><span style="font-size:8pt; color:#444;">' + trx.accounting_contacts.name + '</span>' : ''}</td>
+          <td style="text-align: right; vertical-align: middle; width: 75px;">${amount} €</td>
+        </tr>`;
+    });
+
+    const dateStr = formatDateDE(new Date());
+    const periodStr = (dateFilter.start && dateFilter.end) 
+      ? `${formatDateDE(dateFilter.start)} - ${formatDateDE(dateFilter.end)}`
+      : 'Gesamtübersicht';
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${headerTitle}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 0;
+            }
+            
+            @media print {
+              * {
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+              body {
+                margin: 0 !important;
+                padding: 25mm 15mm 25mm 20mm !important;
+              }
+              .document-header {
+                margin-top: 0 !important;
+                margin-bottom: 15px !important;
+                padding-bottom: 10px !important;
+              }
+              table {
+                margin-top: 12px !important;
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+              }
+              tr {
+                page-break-inside: avoid !important;
+              }
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 10pt;
+              line-height: 1.5;
+              color: #000;
+              margin: 0;
+              padding: 0;
+            }
+            
+            .document-header {
+              text-align: center;
+              margin-bottom: 15px;
+              margin-top: 0;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #333;
+            }
+            
+            .document-header h1 {
+              font-size: 16pt;
+              font-weight: bold;
+              margin: 4px 0;
+              text-transform: uppercase;
+            }
+            
+            .document-header p {
+              font-size: 10pt;
+              color: #555;
+              margin: 2px 0;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 12px;
+            }
+            
+            thead {
+              display: table-header-group;
+              page-break-after: auto;
+            }
+            
+            tbody {
+              display: table-row-group;
+            }
+            
+            tr {
+              page-break-inside: avoid;
+            }
+            
+            th {
+              background-color: #333;
+              color: white;
+              border: 1px solid #999;
+              padding: 10px 6px;
+              text-align: left;
+              font-weight: bold;
+              font-size: 9.5pt;
+              vertical-align: middle;
+              word-wrap: break-word;
+              word-break: break-word;
+            }
+            
+            td {
+              border: 1px solid #ccc;
+              padding: 8px 6px;
+              text-align: left;
+              font-size: 9.5pt;
+              vertical-align: top;
+              word-wrap: break-word;
+              word-break: break-word;
+              line-height: 1.3;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="document-header">
+            <h1>${headerTitle}</h1>
+            <p>${orgSettings.org_name || 'Bürgertreff Wissen e.V.'}</p>
+            <p>Zeitraum: ${periodStr}</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 35px; text-align: center;">Nr.</th>
+                <th style="width: 75px;">Datum</th>
+                <th style="width: 90px;">Beleg</th>
+                <th style="flex: 1;">Beschreibung</th>
+                <th style="width: 110px;">Konto / Kontakt</th>
+                <th style="width: 75px; text-align: right;">Betrag</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
           </table>
           
           <script>
@@ -731,6 +937,7 @@ export default function BuchhaltungTransactions() {
         </div>
         <div className="flex gap-2">
           <button onClick={printList} className="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Liste</button>
+          <button onClick={printIndex} className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Verzeichnis</button>
           <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
         </div>
       </div>

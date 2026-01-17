@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaUser, FaBuilding, FaHandHoldingHeart } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaUser, FaBuilding, FaHandHoldingHeart, FaPrint } from 'react-icons/fa';
 
 export default function BuchhaltungContacts() {
   const [contacts, setContacts] = useState([]);
@@ -118,6 +118,226 @@ export default function BuchhaltungContacts() {
     setIsFormOpen(false);
   };
 
+  // Yazdırma Fonksiyonları
+  const formatDateDE = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const printMembersList = async () => {
+    const members = contacts.filter(c => c.type === 'member').sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Her üye için ilk ödeme tarihini al
+    const membersWithFirstPayment = await Promise.all(
+      members.map(async (member) => {
+        const { data } = await supabase
+          .from('accounting_transactions')
+          .select('date')
+          .eq('contact_id', member.id)
+          .eq('type', 'income')
+          .order('date', { ascending: true })
+          .limit(1);
+        
+        return {
+          ...member,
+          first_payment_date: data && data.length > 0 ? data[0].date : null
+        };
+      })
+    );
+    
+    printContactList(membersWithFirstPayment, 'Mitgliederliste', true);
+  };
+
+  const printSponsorsList = async () => {
+    const sponsors = contacts.filter(c => c.type === 'sponsor').sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Her sponsor için ilk bağış tarihini al
+    const sponsorsWithFirstPayment = await Promise.all(
+      sponsors.map(async (sponsor) => {
+        const { data } = await supabase
+          .from('accounting_transactions')
+          .select('date')
+          .eq('contact_id', sponsor.id)
+          .eq('type', 'income')
+          .order('date', { ascending: true })
+          .limit(1);
+        
+        return {
+          ...sponsor,
+          first_payment_date: data && data.length > 0 ? data[0].date : null
+        };
+      })
+    );
+    
+    printContactList(sponsorsWithFirstPayment, 'Spenderliste / Sponsorenliste', false);
+  };
+
+  const printContactList = (contactList, title, showFirstPayment = true) => {
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) return;
+
+    let tableRows = '';
+    contactList.forEach((contact, index) => {
+      const seitDate = showFirstPayment && contact.first_payment_date 
+        ? formatDateDE(contact.first_payment_date)
+        : (contact.member_since ? formatDateDE(contact.member_since) : '-');
+      
+      tableRows += `
+        <tr>
+          <td style="text-align: center; width: 40px;">${index + 1}</td>
+          <td style="flex: 1;">${contact.name}</td>
+          <td style="width: 200px;">${contact.email || '-'}</td>
+          <td style="width: 100px;">${seitDate}</td>
+        </tr>`;
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${title}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            @page {
+              size: A4;
+              margin: 15mm 15mm 15mm 15mm;
+            }
+            
+            @media print {
+              body {
+                margin: 0;
+                padding: 0;
+              }
+            }
+            
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 10pt;
+              line-height: 1.5;
+              color: #000;
+              margin: 15mm;
+              padding: 0;
+            }
+            
+            .document-header {
+              text-align: center;
+              margin-bottom: 12px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #333;
+              page-break-after: avoid;
+            }
+            
+            .document-header img {
+              max-height: 40px;
+              margin-bottom: 4px;
+            }
+            
+            .document-header h1 {
+              font-size: 16pt;
+              font-weight: bold;
+              margin: 4px 0;
+              text-transform: uppercase;
+            }
+            
+            .document-header p {
+              font-size: 10pt;
+              color: #555;
+              margin: 2px 0;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+            }
+            
+            thead {
+              display: table-header-group;
+            }
+            
+            tbody {
+              display: table-row-group;
+            }
+            
+            tr {
+              page-break-inside: avoid;
+            }
+            
+            th {
+              background-color: #333;
+              color: white;
+              border: 1px solid #999;
+              padding: 8px 4px;
+              text-align: left;
+              font-weight: bold;
+              font-size: 9.5pt;
+            }
+            
+            td {
+              border: 1px solid #ccc;
+              padding: 6px 4px;
+              text-align: left;
+              font-size: 9.5pt;
+            }
+
+            .footer {
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #ccc;
+              text-align: center;
+              font-size: 9pt;
+              color: #666;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="document-header">
+            <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
+            <h1>${title}</h1>
+            <p>Bürgertreff Wissen e.V.</p>
+            <p>Stand: ${formatDateDE(new Date().toISOString().slice(0, 10))}</p>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">Nr.</th>
+                <th style="flex: 1;">Name</th>
+                <th style="width: 200px;">E-Mail</th>
+                <th style="width: 100px;">Seit</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <p>Gesamt: ${contactList.length} ${title === 'Mitgliederliste' ? 'Mitglieder' : 'Spender/Sponsoren'}</p>
+          </div>
+          
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 250);
+            });
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   // Filter contacts
   const filteredContacts = contacts.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,7 +360,7 @@ export default function BuchhaltungContacts() {
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-xl font-bold text-gray-800">Kontaktverwaltung</h2>
         
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto flex-wrap">
           <div className="relative flex-1 md:w-64">
             <input
               type="text"
@@ -151,6 +371,18 @@ export default function BuchhaltungContacts() {
             />
             <FaSearch className="absolute left-3 top-3 text-gray-400" />
           </div>
+          <button 
+            onClick={printMembersList}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <FaPrint /> <span className="hidden sm:inline">Mitglieder</span>
+          </button>
+          <button 
+            onClick={printSponsorsList}
+            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 flex items-center gap-2"
+          >
+            <FaPrint /> <span className="hidden sm:inline">Spender</span>
+          </button>
           <button 
             onClick={() => { resetForm(); setIsFormOpen(true); }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"

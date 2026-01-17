@@ -4,7 +4,6 @@ import BuchhaltungSettings from './BuchhaltungSettings';
 import BuchhaltungContacts from './BuchhaltungContacts';
 import BuchhaltungTransactions from './BuchhaltungTransactions';
 import BuchhaltungDashboard from './BuchhaltungDashboard';
-import BuchhaltungMembers from './BuchhaltungMembers';
 // YENİ: Rapor bileşenini import ediyoruz
 import BuchhaltungReports from './BuchhaltungReports'; 
 
@@ -14,8 +13,7 @@ export default function Buchhaltung() {
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
     { id: 'transactions', label: 'Transaktionen' },
-    { id: 'reports', label: 'Berichte' }, // YENİ: Raporlar sekmesi
-    { id: 'members', label: 'Mitglieder' },
+    { id: 'reports', label: 'Berichte' },
     { id: 'contacts', label: 'Kontakte' },
     { id: 'settings', label: 'Einstellungen' },
   ];
@@ -50,8 +48,7 @@ export default function Buchhaltung() {
       <div className="mt-4">
         {activeTab === 'dashboard' && <BuchhaltungDashboard />}
         {activeTab === 'transactions' && <BuchhaltungTransactions />}
-        {activeTab === 'reports' && <BuchhaltungReports />} {/* YENİ: Rapor içeriği */}
-        {activeTab === 'members' && <BuchhaltungMembers />}
+        {activeTab === 'reports' && <BuchhaltungReports />}
         {activeTab === 'contacts' && <BuchhaltungContacts />}
         {activeTab === 'settings' && <BuchhaltungSettings />}
       </div>
