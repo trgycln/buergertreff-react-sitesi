@@ -38,10 +38,9 @@ let heartbeatTimer = null;
 
 const sendHeartbeat = async () => {
   try {
-    // Herhangi bir tablodan basit bir sorgu yaparak veritabanını aktif tut
-    // Burada 'events' tablosunu kullanıyorum, sizde var olan bir tablo kullanabilirsiniz
+    // health_check tablosundan basit bir sorgu yaparak veritabanını aktif tut
     const { data, error } = await supabase
-      .from('events')
+      .from('health_check')
       .select('id')
       .limit(1)
       .maybeSingle();
@@ -85,7 +84,7 @@ export const stopHeartbeat = () => {
 export const checkConnection = async () => {
   try {
     const { data, error } = await supabase
-      .from('events')
+      .from('health_check')
       .select('id')
       .limit(1)
       .maybeSingle();

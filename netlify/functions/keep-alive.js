@@ -19,9 +19,9 @@ exports.handler = async (event, context) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Basit bir sorgu yaparak database'i uyandır
-    // events tablosundan 1 kayıt çek (veya var olan herhangi bir tablonuz)
+    // health_check tablosundan 1 kayıt çek
     const { data, error } = await supabase
-      .from('events')
+      .from('health_check')
       .select('id')
       .limit(1)
       .maybeSingle();
