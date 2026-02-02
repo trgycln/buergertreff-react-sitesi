@@ -1,0 +1,19 @@
+# Netlify Configuration
+
+[build]
+  command = "npm run build"
+  publish = "build"
+
+# Netlify Functions ayarları
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect ayarları (SPA için)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
