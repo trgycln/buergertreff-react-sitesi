@@ -25,7 +25,7 @@ Netlify otomatik deploy edecek.
 
 Deploy tamamlandığında, function şu adreste olacak:
 ```
-https://SITENIZ.netlify.app/.netlify/functions/keep-alive
+https://buergertreff-wissen.de/.netlify/functions/keep-alive
 ```
 
 Bu URL'i test edin - böyle bir sonuç görmeli:
@@ -49,13 +49,11 @@ Bu URL'i test edin - böyle bir sonuç görmeli:
 2. **"Create Cronjob" tıklayın**
 3. **Ayarları girin**:
    - **Title**: `Supabase Keep-Alive`
-   - **URL**: `https://SITENIZ.netlify.app/.netlify/functions/keep-alive`
+   - **URL**: `https://buergertreff-wissen.de/.netlify/functions/keep-alive`
    - **Schedule**: 
      - Execution: `Every 5 minutes` VEYA `Every 4 minutes`
    - **Enable**: ✅ İşaretli
 4. **Save**
-
-**DİKKAT**: "SITENIZ" yerine gerçek Netlify domain'inizi yazın!
 
 ---
 
@@ -63,7 +61,7 @@ Bu URL'i test edin - böyle bir sonuç görmeli:
 
 1. Function'ı tarayıcıda açın: `https://SITENIZ.netlify.app/.netlify/functions/keep-alive`
 2. Başarılı mesaj görmelisiniz
-3. cron-job.org'da "Execution History" bölümünden çalışmaları takip edin
+3. cron-job.org'da "Execution History" bbuergertreff-wissen.derı takip edin
 
 ---
 
@@ -96,7 +94,7 @@ Bu URL'i test edin - böyle bir sonuç görmeli:
 ### Seçenek 2: UptimeRobot (Ücretsiz)
 1. https://uptimerobot.com/ hesap oluştur
 2. "Add New Monitor" → HTTP(s)
-3. URL: `https://SITENIZ.netlify.app/.netlify/functions/keep-alive`
+3. URL: `https://buergertreff-wissen.de/.netlify/functions/keep-alive`
 4. Interval: 5 minutes
 
 ### Seçenek 3: EasyCron (Ücretsiz)
