@@ -1,9 +1,12 @@
 // App.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // YENİ: SEO için HelmetProvider ekliyoruz
 import { HelmetProvider } from 'react-helmet-async';
+
+// Supabase heartbeat mekanizmasını import et
+import { startHeartbeat } from './supabaseClient';
 
 // --- Public Components & Pages ---
 import Header from './components/Header';
@@ -46,6 +49,17 @@ const MainLayout = ({ children }) => (
 );
 
 function App() {
+  // Uygulama başladığında Supabase heartbeat'i başlat
+  useEffect(() => {
+    startHeartbeat();
+    console.log('Supabase keep-alive mekanizması aktif edildi');
+    
+    // Cleanup function - component unmount olduğunda
+    return () => {
+      // stopHeartbeat(); // İstenirse kapatılabilir ama genelde açık kalmalı
+    };
+  }, []);
+
   return (
     // YENİ: Tüm uygulamayı HelmetProvider ile sarmalıyoruz
     <HelmetProvider>
