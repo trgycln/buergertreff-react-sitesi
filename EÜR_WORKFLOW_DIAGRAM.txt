@@ -1,0 +1,233 @@
+# EÜR MIGRATION WORKFLOW - VİZÜEL
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  EÜR MIGRATION SISTEMI                          │
+│           (Mevcut Verilerden Otomatik Dönüştürme)               │
+└─────────────────────────────────────────────────────────────────┘
+
+KAYNAKLAR (INPUT)
+═════════════════════════════════════════════════════════════════
+
+    💾 accounting_transactions          📊 accounting_categories
+    ┌──────────────────────┐           ┌──────────────────────┐
+    │ id      | 1, 2, 3... │           │ id   | name          │
+    │ date    | 2026-01-15 │           │ 1    | Üye Aidatı    │
+    │ type    | income     │           │ 2    | Banka Faizi   │
+    │ amount  | 500.00     │           │ 3    | Seminar       │
+    │ cat_id  | 1          │────┐      │ 4    | Kaffee Satışı │
+    │ receipt | R001       │    │      └──────────────────────┘
+    │ file_no | F001       │    │
+    └──────────────────────┘    │
+          ▲                      │
+          │                      │
+      250+ Kayıt                 └─────┬────────────────────────┐
+                                       │                        │
+                                       ▼                        ▼
+                            "Üye Aidatı" → IDEELLER
+                            "Banka Faizi" → VERMÖGENSV
+                            "Seminar" → ZWECKBETRIEB
+                            "Kaffee Satışı" → WIRTSCHAFTLICH
+
+
+TRANSFORMATION (DÖNÜŞTÜRME)
+═════════════════════════════════════════════════════════════════
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │  eurInitializer.js :: migrateFromTransactions()             │
+    │                                                              │
+    │  Her Transaction için:                                      │
+    │  ┌───────────────────────────────────────────────────────┐  │
+    │  │ 1. Buchungsnummer Oluştur: EÜR-2026-00001           │  │
+    │  │ 2. Kategori Adını Oku: "Üye Aidatı"                │  │
+    │  │ 3. Sphäre Belirle: Ideeller                         │  │
+    │  │ 4. Vorgang Oluştur: "Gelir: Üye Aidatı - Notlar"   │  │
+    │  │ 5. Tutarları Dönüştür:                              │  │
+    │  │    - amount_gross: 500.00                           │  │
+    │  │    - amount_net: 500.00                             │  │
+    │  │    - amount_vat: 0.00                               │  │
+    │  │    - vat_rate: 0%                                   │  │
+    │  └───────────────────────────────────────────────────────┘  │
+    │                                                              │
+    │  Batch Insert: 1000 kayıt / batch                           │
+    │  Status: ✅ Başarılı                                        │
+    │                                                              │
+    └─────────────────────────────────────────────────────────────┘
+                              ▼
+
+
+HEDEF (OUTPUT)
+═════════════════════════════════════════════════════════════════
+
+    📊 accounting_eur_records (YENİ TABLO)
+    ┌──────────────────────────────────────────────────────────┐
+    │ id  │ fiscal │ entry_date │ buchungsnummer               │
+    │     │ year   │ 2026-01-15 │ EÜR-2026-00001               │
+    ├─────┼────────┼────────────┼──────────────────────────────┤
+    │ 1   │ 2026   │ 2026-01-15 │ EÜR-2026-00001               │
+    │     │ vorgang: "Gelir: Üye Aidatı - Ocak ödemeleri"     │
+    │     │ amount_gross: 500.00 │ sphaere: ideeller           │
+    │     │ transaction_type: income │ sub_category: Üye Aidatı│
+    │     │ belegnummer: R001 │ stored_location: F001         │
+    ├─────┼────────┼────────────┼──────────────────────────────┤
+    │ 2   │ 2026   │ 2026-01-17 │ EÜR-2026-00002               │
+    │     │ vorgang: "Gelir: Banka Faizi - Ocak"              │
+    │     │ amount_gross: 25.50 │ sphaere: vermögensv         │
+    ├─────┴────────┴────────────┴──────────────────────────────┤
+    │ ... ve 248 kayıt daha ...                               │
+    └──────────────────────────────────────────────────────────┘
+            ▲
+            │ 250 Kayıt
+            │
+
+
+WEB ARAYÜZÜ (PRESENTATION)
+═════════════════════════════════════════════════════════════════
+
+    http://localhost:3000/admin/buchhaltung
+            │
+            ▼
+    ┌─────────────────────────────────────────────────────────┐
+    │ [Üz.] [Transaktiyonlar] [📄 RESMİ BELGELER] [R.] [K.] [A...]
+    └─────────────────────────────────────────────────────────┘
+            │
+            ▼
+    ┌─────────────────────────────────────────────────────────┐
+    │          Resmi Muhasebe Belgeleri                        │
+    │                                                           │
+    │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐    │
+    │  │   EÜR    │ │Kassenbuch│ │ Belege   │ │ Bağışlar │    │
+    │  │   (✅)   │ │  (✅)    │ │ (⏳)     │ │  (⏳)    │    │
+    │  └────┬─────┘ └──────────┘ └──────────┘ └──────────┘    │
+    │       ▼                                                   │
+    │  ┌──────────────────────────────────────────────────┐   │
+    │  │ [İşlem Kayıtları] [Özet ve Raporlar]            │   │
+    │  └──────────────────────────────────────────────────┘   │
+    │       ▼                                                   │
+    │  ┌──────────────────────────────────────────────────┐   │
+    │  │ Filtreler: Mali Yıl [2026▼] Sphäre [Tümü▼]     │   │
+    │  │                                                   │   │
+    │  │ eid┌──────────────────────────────────────────┐  │   │
+    │  │   │ EÜR-2026-00001  2026-01-15  İdeyel    │  │   │
+    │  │   │ Gelir: Üye Aidatı - Ocak      +500€   │  │   │
+    │  │   │ [Düzenle] [Sil]                        │  │   │
+    │  │   ├──────────────────────────────────────────┤  │   │
+    │  │   │ EÜR-2026-00002  2026-01-17  Vermög    │  │   │
+    │  │   │ Gelir: Banka Faizi - Ocak      +25€   │  │   │
+    │  │   │ [Düzenle] [Sil]                        │  │   │
+    │  │   └──────────────────────────────────────────┘  │   │
+    │  │                                                   │   │
+    │  └──────────────────────────────────────────────────┘   │
+    └─────────────────────────────────────────────────────────┘
+
+
+DÖRT SPHÄRE RAPORLAMASI
+═════════════════════════════════════════════════════════════════
+
+    Mali Yıl 2026 - Sphären Özeti
+
+    ┌─────────────────────────────────────────────────────────┐
+    │ 🔹 İDEYEL ALAN (Ideeller Bereich)                      │
+    │    Aidatlar, Bağışlar, Teşvikler                       │
+    │    ◀ Gelir: 15.000€  ▸  Gider: 8.000€  ═ Net: 7.000€  │
+    ├─────────────────────────────────────────────────────────┤
+    │ 🔹 MAL VARLIĞI (Vermögensv.)                            │
+    │    Banka Faizleri, Kira Gelirleri                       │
+    │    ◀ Gelir: 250€  ▸  Gider: 50€  ═ Net: 200€          │
+    ├─────────────────────────────────────────────────────────┤
+    │ 🔹 AMAÇ İŞLETMESİ (Zweckbetrieb)                        │
+    │    Etkinlikler, Kurslar (Kar amacı yok)                │
+    │    ◀ Gelir: 3.000€  ▸  Gider: 1.500€  ═ Net: 1.500€   │
+    ├─────────────────────────────────────────────────────────┤
+    │ 🔹 İKTİSADİ İŞLETME (Wirtschaftlich)                   │
+    │    Kraf Amacıyla Faaliyetler                           │
+    │    ◀ Gelir: 2.000€  ▸  Gider: 800€  ═ Net: 1.200€    │
+    └─────────────────────────────────────────────────────────┘
+                        
+    ════════════════════════════════════════════════════════════
+    TOPLAM:    Gelir: 20.250€  ▸  Gider: 10.350€  
+               ═══════════════════════════════════
+               NET SONUÇ: 9.900€ (KONTROL NOKTASI)
+    ════════════════════════════════════════════════════════════
+
+
+OTOMATIK FİLTRELEME KURALLARI
+═════════════════════════════════════════════════════════════════
+
+Kategori Adı                    → Atanan Sphäre
+────────────────────────────────────────────────────────────
+"Üye Aidatı"                    → IDEELLER
+"Bağış"                         → IDEELLER
+"Devlet Teşviki"                → IDEELLER
+"Personel Gideri"               → IDEELLER
+────────────────────────────────────────────────────────────
+"Banka Faizi" (match: zins)     → VERMÖGENSV
+"Yıllık Konto Ücret"            → VERMÖGENSV
+"Kredi İşlem"                   → VERMÖGENSV
+────────────────────────────────────────────────────────────
+"Seminer Geliri" (match: kurs)  → ZWECKBETRIEB
+"Spor Aktivitesi"               → ZWECKBETRIEB
+"Sanat Etkinliği"               → ZWECKBETRIEB
+────────────────────────────────────────────────────────────
+"Kaffee Satışı" (match: shop)   → WIRTSCHAFTLICH
+"Reklam Gelirleri"              → WIRTSCHAFTLICH
+"Ürün Satışı"                   → WIRTSCHAFTLICH
+
+
+GÜVENLIĞ VE VERI İYİLİĞİ
+═════════════════════════════════════════════════════════════════
+
+✅ Orijinal Veriler: KORUNMAKTADIR (silinmiyor)
+✅ Belgelendirme: created_by: 'system' ile işaretlenir
+✅ Batch Insert: Veri tutarlılığını sağlar
+✅ İndeksler: Hızlı sorgu performansı
+✅ Views: Raporlama için önceden hesaplanmış verileri
+✅ RLS (Opsiyonel): Kullanıcı erişim kontrolü
+
+
+BAŞARILI KURULUM GÖSTERGELERİ
+═════════════════════════════════════════════════════════════════
+
+✅ Browser Console:
+   "✅ EÜR kaydı başarılı: 250 kayıt başarıyla migre edildi"
+
+✅ Supabase SQL:
+   SELECT COUNT(*) FROM accounting_eur_records;
+   Result: 250
+
+✅ Web Arayüzü:
+   - EÜR sayfasında veriler gösterilir
+   - Buchungsnummer'ler otomatik formatta
+   - Sphäre kategorileri atanmış
+   - Gelir-Gider toplamları hesaplanmış
+
+═════════════════════════════════════════════════════════════════
+```
+
+## 🎯 SONUÇ
+
+```
+INPUT (Mevcut Veriler)
+    250x accounting_transactions
+         │
+    [eurInitializer.js]
+         │
+         ▼
+PROCESSING (Dönüştürme)
+    - Buchungsnummer oluştur
+    - Kategori → Sphäre eşle
+    - Tutarları dönüştür
+    - Batch insert
+         │
+         ▼
+OUTPUT (Yeni Format)
+    250x accounting_eur_records
+         │
+    [WEB ARAYÜZÜ]
+         │
+         ▼
+RESULT (Raporlama)
+    Dört sphäre bazında detaylı muhasebe
+```
+
+**Hepsi otomatik ve Alman e.V. standartlarına uygun!** ✨

@@ -218,7 +218,7 @@ export default function BuchhaltungSettings() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Schatzmeister (für Unterschrift)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in (für Unterschrift)</label>
             <input
               type="text"
               name="treasurer_name"

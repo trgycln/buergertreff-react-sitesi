@@ -806,7 +806,7 @@ export default function BuchhaltungTransactions() {
             <div class="signature-box">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 10pt;">
                 <span>Wissen, ${formatDateDE(new Date())}</span>
-                <span style="margin-right: 80px;">${orgSettings.treasurer_name || 'Schatzmeister'}</span>
+                <span style="margin-right: 80px;">${orgSettings.treasurer_name || 'Kassierer/in'}</span>
               </div>
               <div style="margin-top: 50px; border-top: 1px solid #000; padding-top: 5px; display: flex; justify-content: space-between;">
                 <span style="font-size: 8pt; color: #666;">Ort, Datum</span>

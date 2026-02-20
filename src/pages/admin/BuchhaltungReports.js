@@ -248,10 +248,19 @@ export default function BuchhaltungReports() {
 
           <div style="margin-top: 70px; padding: 0 40px;">
             <p>Ort, Datum: Wissen, den ${dateStr}</p>
-            <br><br><br><br>
-            <div style="display: flex; justify-content: space-between;">
-              <span style="padding-left:30px;">Unterschrift Schatzmeister</span>
-              <span style="padding-right:30px;">Unterschrift Kassenprüfer</span>
+            <div style="margin-top: 55px; display: flex; justify-content: center; align-items: flex-start; gap: 60px;">
+              <div style="text-align: center; min-width: 150px;">
+                <div style="height: 28px; border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
+                <div style="font-size: 9pt;">Unterschrift Kassierer</div>
+              </div>
+              <div style="text-align: center; min-width: 150px;">
+                <div style="height: 28px; border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
+                <div style="font-size: 9pt;">Unterschrift Kassenprüfer</div>
+              </div>
+              <div style="text-align: center; min-width: 150px;">
+                <div style="height: 28px; border-bottom: 1px solid #333; margin-bottom: 8px;"></div>
+                <div style="font-size: 9pt;">Unterschrift Kassenprüfer</div>
+              </div>
             </div>
           </div>
 

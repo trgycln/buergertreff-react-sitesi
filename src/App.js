@@ -8,6 +8,9 @@ import { HelmetProvider } from 'react-helmet-async';
 // Supabase heartbeat mekanizmasını import et
 import { startHeartbeat } from './supabaseClient';
 
+// YENİ: EÜR initialization fonksiyonunu import et
+import { initializeEURRecords } from './utils/eurInitializer';
+
 // --- Public Components & Pages ---
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -53,6 +56,15 @@ function App() {
   useEffect(() => {
     startHeartbeat();
     console.log('Supabase keep-alive mekanizması aktif edildi');
+    
+    // YENİ: EÜR kayıtlarını otomatik initialize et
+    initializeEURRecords().then(result => {
+      if (result.success) {
+        console.log('✅ EÜR kaydı başarılı:', result.message);
+      } else {
+        console.warn('⚠️ EÜR kaydı uyarı:', result.message);
+      }
+    });
     
     // Cleanup function - component unmount olduğunda
     return () => {

@@ -8,8 +8,8 @@ export default function BuchhaltungDashboard() {
     totalBalance: 0,
     totalIncome: 0,
     totalExpense: 0,
-    monthIncome: 0,
-    monthExpense: 0
+    yearIncome: 0,
+    yearExpense: 0
   });
   const [accountBalances, setAccountBalances] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
@@ -51,25 +51,25 @@ export default function BuchhaltungDashboard() {
     // 3. İstatistikleri Hesapla
     let totalInc = 0;
     let totalExp = 0;
-    let monthInc = 0;
-    let monthExp = 0;
+    let yearInc = 0;
+    let yearExp = 0;
     
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const currentYear = new Date().getFullYear().toString(); // "2026"
     const accMap = {}; // Hesap bazlı toplamlar için
 
     allTrx.forEach(t => {
       const amount = parseFloat(t.amount);
       const isIncome = t.type === 'income';
-      const isCurrentMonth = t.date.startsWith(currentMonth);
+      const isCurrentYear = t.date.startsWith(currentYear);
 
       // Genel Toplamlar
       if (isIncome) totalInc += amount;
       else totalExp += amount;
 
-      // Ay Toplamları
-      if (isCurrentMonth) {
-        if (isIncome) monthInc += amount;
-        else monthExp += amount;
+      // Yıl Toplamları
+      if (isCurrentYear) {
+        if (isIncome) yearInc += amount;
+        else yearExp += amount;
       }
 
       // Hesap Bakiyeleri
@@ -89,8 +89,8 @@ export default function BuchhaltungDashboard() {
       totalBalance: totalInc - totalExp,
       totalIncome: totalInc,
       totalExpense: totalExp,
-      monthIncome: monthInc,
-      monthExpense: monthExp
+      yearIncome: yearInc,
+      yearExpense: yearExp
     });
 
     setAccountBalances(Object.values(accMap));
@@ -126,9 +126,9 @@ export default function BuchhaltungDashboard() {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500">Einnahmen (Dieser Monat)</p>
+              <p className="text-sm font-medium text-gray-500">Einnahmen (Dieses Jahr)</p>
               <h3 className="text-2xl font-bold mt-1 text-green-600">
-                + {stats.monthIncome.toFixed(2)} €
+                + {stats.yearIncome.toFixed(2)} €
               </h3>
             </div>
             <div className="p-3 bg-green-100 rounded-full text-green-600">
@@ -144,9 +144,9 @@ export default function BuchhaltungDashboard() {
         <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm font-medium text-gray-500">Ausgaben (Dieser Monat)</p>
+              <p className="text-sm font-medium text-gray-500">Ausgaben (Dieses Jahr)</p>
               <h3 className="text-2xl font-bold mt-1 text-red-600">
-                - {stats.monthExpense.toFixed(2)} €
+                - {stats.yearExpense.toFixed(2)} €
               </h3>
             </div>
             <div className="p-3 bg-red-100 rounded-full text-red-600">

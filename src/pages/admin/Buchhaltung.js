@@ -5,7 +5,9 @@ import BuchhaltungContacts from './BuchhaltungContacts';
 import BuchhaltungTransactions from './BuchhaltungTransactions';
 import BuchhaltungDashboard from './BuchhaltungDashboard';
 // YENİ: Rapor bileşenini import ediyoruz
-import BuchhaltungReports from './BuchhaltungReports'; 
+import BuchhaltungReports from './BuchhaltungReports';
+// YENİ: Resmi belgeler bileşenini import ediyoruz
+import BuchhaltungDocuments from './BuchhaltungDocuments'; 
 
 export default function Buchhaltung() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -13,6 +15,7 @@ export default function Buchhaltung() {
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
     { id: 'transactions', label: 'Transaktionen' },
+    { id: 'documents', label: 'Resmi Belgeler' },
     { id: 'reports', label: 'Berichte' },
     { id: 'contacts', label: 'Kontakte' },
     { id: 'settings', label: 'Einstellungen' },
@@ -23,7 +26,7 @@ export default function Buchhaltung() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Buchhaltung</h1>
         <div className="text-sm text-gray-500">
-          Verwaltung für den Schatzmeister
+          Verwaltung für den Kassierer/in
         </div>
       </div>
 
@@ -48,6 +51,7 @@ export default function Buchhaltung() {
       <div className="mt-4">
         {activeTab === 'dashboard' && <BuchhaltungDashboard />}
         {activeTab === 'transactions' && <BuchhaltungTransactions />}
+        {activeTab === 'documents' && <BuchhaltungDocuments />}
         {activeTab === 'reports' && <BuchhaltungReports />}
         {activeTab === 'contacts' && <BuchhaltungContacts />}
         {activeTab === 'settings' && <BuchhaltungSettings />}
