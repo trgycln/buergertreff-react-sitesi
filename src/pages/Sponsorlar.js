@@ -7,6 +7,7 @@ import sponsorBanner from '../assets/images/sponsorenbanner.png';
 
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
 import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
+import sponsorLogo3 from '../assets/images/sponsor3.jpg';
 
 import { Helmet } from 'react-helmet-async';
 
@@ -20,6 +21,11 @@ const sponsors = [
     name: 'Sparkasse',
     logo: sponsorLogoSparkasse,
     url: 'https://www.sk-westerwald-sieg.de/de/home.html'
+  },
+  {
+    name: 'KS Druck Schneider',
+    logo: sponsorLogo3,
+    url: 'https://ks-druck-schneider.de/'
   }
 ];
 

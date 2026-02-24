@@ -12,10 +12,12 @@ import { FaXTwitter } from "react-icons/fa6";
 
 import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
 import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
+import sponsorLogo3 from '../assets/images/sponsor3.jpg';
 
 const footerSponsors = [
     { name: 'Kölschbach Heizung Klima Sanitär', logo: sponsorLogoKoelschbach, url: 'https://www.koelschbach.de/' },
     { name: 'Sparkasse', logo: sponsorLogoSparkasse, url: 'https://www.sk-westerwald-sieg.de/de/home.html' },
+    { name: 'KS Druck Schneider', logo: sponsorLogo3, url: 'https://ks-druck-schneider.de/' },
 ];
 
 const Footer = () => {
