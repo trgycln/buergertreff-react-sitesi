@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaTimes } from 'react-icons/fa';
 
-const ImageCarousel = ({ images }) => {
+const ImageCarousel = ({ images, objectFit = "cover" }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -50,7 +50,7 @@ const ImageCarousel = ({ images }) => {
                 <img 
                     src={images[currentIndex]} 
                     alt={`Carousel Image ${currentIndex + 1}`} 
-                    className="w-full h-full object-cover cursor-pointer" 
+                    className={`w-full h-full object-${objectFit} cursor-pointer`} 
                     onClick={() => openLightbox(images[currentIndex])}
                 />
                 

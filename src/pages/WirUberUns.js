@@ -10,6 +10,10 @@ import introImage from '../assets/images/intro-image.JPG';
 import wirUberUns2 from '../assets/images/wirUberUns-2.jpg'
 import wirUberUns3 from '../assets/images/wirUberUns-3.jpg'
 import wirUberUns4 from '../assets/images/wirUberUns-4.jpg'
+import flyer1 from '../assets/images/flyer1.jpg';
+import flyer2 from '../assets/images/flyer2.jpg';
+import ImageCarousel from '../components/ImageCarousel';
+import JSZip from 'jszip';
 import { Helmet } from 'react-helmet-async';
 
 const WirUberUns = () => {
@@ -28,59 +32,50 @@ const WirUberUns = () => {
     ];
 
     return (
-<>
-
-<Helmet>
-    <title>Über uns: Ziele und Werte des Bürgertreff Wissen e.V.</title>
-    <meta 
-        name="description" 
-        content="Erfahren Sie mehr über unsere Mission, Ziele und bürgerschaftliches Engagement. Wir schaffen einen offenen Ort für Begegnungen und Miteinander in Wissen/Sieg."
-    />
-</Helmet>
-
-        <div>
+        <>
+            <Helmet>
+                <title>Über uns: Ziele und Werte des Bürgertreff Wissen e.V.</title>
+                <meta 
+                    name="description" 
+                    content="Erfahren Sie mehr über unsere Mission, Ziele und bürgerschaftliches Engagement. Wir schaffen einen offenen Ort für Begegnungen und Miteinander in Wissen/Sieg."
+                />
+            </Helmet>
             <PageBanner 
                 title="Wir über uns" 
                 imageUrl={aboutBannerImage} 
             />
-
-            {/* ContentBlock'a yeni blob listemizi iletiyoruz */}
-            <ContentBlock 
-                title="Der Bürgertreff Wissen – ein Ort für alle" 
-                imageUrl={introImage}
-                imageSide="left"
-                blobs={wirUeberUnsBlobs}
-            >
-                <p className="text-justify indent-8">
-                    Wir – der Verein „Bürgertreff Wissen“ – wollen einen niedrigschwelligen Ort ohne Konsumzwang schaffen, in dem sich Menschen aller Generationen, Herkunftsländer, Einkommen, Bildungsgrade, verschiedener Weltanschauungen begegnen können: Einsamkeit überwinden, Verständnis füreinander entwickeln, beitragen zu mehr Integration und Inklusion. Angesichts der zahlreichen Probleme und Bedrohungen nah und fern ist es wichtig, gute, resiliente Gemeinschaften aufzubauen
-                </p>
-              
-            </ContentBlock>
-             <ContentBlock 
-                title="Miteinander reden statt übereinander – handeln statt lamentieren" 
-                imageUrl={wirUberUns2}
-                imageSide="right"
-                blobs={wirUeberUnsBlobs}
-            >
-                <p className="text-justify indent-8">
-Der Bürgertreff soll ein Ort im Zentrum der Verbandsgemeinde Wissen sein, an dem man sich zwanglos bei Kaffee oder Tee zu einem Schwätzchen treffen kann; wo Ideen entwickelt und Initiativen entstehen können. Ein Ort, an dem demokratische Teilhabe und Wirksamkeit ermöglicht werden. Miteinander statt übereinander reden; handeln statt lamentieren. Platz für: Kreativität, Kunst und Kultur, Sprach- und andere Kurse; eigene Initiativen; Vorträge und Beratung.                </p>
-                 <p className="text-justify indent-8">
-Der Bürgertreff soll andere Hilfs- und Beratungsangebote in der VG nicht ersetzen oder gar in Konkurrenz treten; vielmehr wird eine enge Zusammenarbeit angestrebt, so dass ein umfassendes Unterstützungsnetzwerk entsteht, das soziale Isolation verringert und langfristige Perspektiven schafft. Der niedrigschwellige Zugang soll den Bürgertreff zu einem wichtigen Anlaufpunkt für die Menschen vor Ort machen.
-                </p>
-            
-            </ContentBlock>
-               <ContentBlock 
-                title="Jede lange Reise beginnt mit dem ersten Schritt." 
-                imageUrl={wirUberUns3}
-                imageSide="left"
-                blobs={wirUeberUnsBlobs}
-            >
-                <p className="text-justify indent-8">
-Da sich alle MitstreiterInnen ehrenamtlich einsetzen und an eine bezahlte Kraft vorerst nicht zu denken ist, soll der Bürgertreff zunächst zwei- bis dreimal in der Woche geöffnet werden und nach und nach ausgebaut werden – bis hin zu täglichen Öffnungszeiten. Schon jetzt haben viele Menschen ihre Bereitschaft erklärt, z.B. für drei Stunden pro Woche Gastgeber zu sein und Kaffee auszuschenken. Eine strikte (Rollen-)Trennung zwischen Kümmerern und Betreuten soll vermieden werden; vielmehr werden BesucherInnen eingeladen und ermutigt, im Rahmen ihrer Möglichkeiten Aufgaben zu übernehmen und „ihren“ Treff räumlich und inhaltlich mitzugestalten.
- </p>
-                
-            
-            </ContentBlock>
+            {/* Flyer Slider ve Download Butonu */}
+            <section className="bg-white py-8">
+                <div className="container mx-auto px-6 text-center">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Unsere Flyer</h2>
+                    <div className="max-w-2xl mx-auto mb-4">
+                        <ImageCarousel images={[flyer1, flyer2]} objectFit="contain" />
+                    </div>
+                    <div className="flex flex-col gap-4 justify-center items-center">
+                        <button
+                            onClick={async () => {
+                                // İki resmi sırayla indiren fonksiyon
+                                const download = async (url, filename) => {
+                                    const response = await fetch(url);
+                                    const blob = await response.blob();
+                                    const link = document.createElement('a');
+                                    link.href = URL.createObjectURL(blob);
+                                    link.download = filename;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                                };
+                                await download(flyer1, 'flyer1.jpg');
+                                await download(flyer2, 'flyer2.jpg');
+                            }}
+                            className="inline-block px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition-colors font-semibold"
+                        >
+                            Flyer herunterladen
+                        </button>
+                    </div>
+                </div>
+            </section>
                   <ContentBlock 
                 title="Die nächsten Schritte (August 2025): Raumsuche, Finanzierung " 
                 imageUrl={wirUberUns4}
@@ -120,9 +115,8 @@ Solange wir keinen festen Raum haben, treffen wir uns privat, bei schönem Wette
                     </div>
                 </div>
             </section>
-        </div>
-</>
+        </>
     );
-};
+}
 
 export default WirUberUns;
