@@ -121,6 +121,11 @@ const MachenSieMit = () => {
               <p>
                 Natürlich sind Sie auch willkommen, wenn Sie kein Mitglied sind.
               </p>
+              <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
+                <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
+                <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
+              </div>
               {/* Link/Buton, paragraftan SONRA ve kendi div'i içinde olmalı */}
               <div className="text-center mt-6">
                 {" "}

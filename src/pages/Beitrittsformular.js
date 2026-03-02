@@ -140,7 +140,11 @@ const Beitrittsformular = () => {
                 {visibleQrCode === '50' && (<img src={qrCode50} alt="QR Code für 50 Euro" className="mx-auto shadow-lg rounded-lg w-64 h-64" />)}
                 <p className="text-sm text-gray-600 mt-2">Scannen Sie den Code mit Ihrer Banking-App.</p>
               </div>
-              <p className="text-xs text-gray-500 mt-4">Der Beitrag kann bar bezahlt oder überwiesen werden: Sparkasse Westerwald-Sieg, DE27 5735 1030 0055 0844 38</p>
+              <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
+                <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
+                <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
+              </div>
             </div>
 
             <button type="submit" className="w-full bg-rcRed text-white font-bold text-xl py-4 px-6 rounded-lg hover:bg-opacity-80 transition-transform hover:scale-105">
