@@ -7,7 +7,7 @@ import FeatureCard from '../components/FeatureCard';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 
 import heroVideo from '../assets/images/hero-background.mp4'; 
-import foto1 from '../assets/images/startSeite.png';
+import foto1 from '../assets/images/laden-foto.jpg';
 import { Helmet } from 'react-helmet-async';
 
 const Start = () => {
@@ -71,26 +71,28 @@ const Start = () => {
             </Hero>
 
             <ContentBlock 
-                title="Herzlich willkommen im Bürgertreff Wissen" 
+                title="Schön, dass Sie da sind!" 
                 imageUrl={foto1}
                 imageSide="right"
                 blobs={contentBlockBlobs}
             >
-                <p>
-Schön, dass Sie da sind – zumindest virtuell.
+                <p className="text-lg font-semibold text-rcGreen mb-4">
+Es ist soweit: Im März 2026 öffnet der Bürgertreff Wissen seine Pforten.
                 </p>
-                <p>
-Noch gibt es den Bürgertreff nur als Verein und hier auf der Website oder Sie können uns bei unseren Ausflügen „Bürgertreff unterwegs“ kennen lernen.
+                <p className="text-justify indent-8 mb-4">
+In einem schönen geräumigen Ladenlokal in der Innenstadt von Wissen liegt unser Bürgertreff – ein Ort für alle Menschen, die Lust auf Begegnung, auf Aktivitäten, ehrenamtliches Engagement oder nur auf ein Schwätzchen bei Kaffee oder Tee haben.
                 </p>
-                <p>
-                  Wir sind immer noch auf der Suche nach einem geeigneten Lokal in der Wissener Innenstadt, sind aber zuversichtlich, dass sich Anfang des Jahres 2026 was tut und wir uns dann vor Ort begegnen können. Bis dahin melden Sie sich gerne bei uns, wir nehmen Sie in unseren E-Mail-Verteiler auf und Sie werden auf dem Laufenden gehalten.  
+                <p className="text-justify indent-8 font-semibold text-lg mb-2">
+                  Kommen Sie herein, machen Sie mit, bringen Sie Ihre Ideen ein!
                 </p>
-                <p>
-                    Der Bürgertreff Wissen soll ein offener Ort für alle Bürgerinnen und Bürger sein. Wir wollen Raum für Begegnungen, gemeinsame Aktivitäten und bürgerschaftliches Engagement bieten:
+                <p className="text-center italic text-rcOrange font-bold text-xl">
+Ganz nach unserem Motto: miteinander füreinander.
                 </p>
-                <p>
-               neue Leute kennenlernen, sich austauschen, an Veranstaltungen teilnehmen oder eigene Ideen und Projekte einbringen.
-                </p>
+                <div className="mt-8 p-4 bg-blue-50 rounded-lg border-l-4 border-rcGreen">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">📍 Unser Standort:</p>
+                    <p className="text-gray-800 font-bold text-lg">Marktstr. 8</p>
+                    <p className="text-gray-800 font-bold text-lg">57537 Wissen</p>
+                </div>
             </ContentBlock>
 
             <section className="bg-gray-50 py-12 md:py-20">

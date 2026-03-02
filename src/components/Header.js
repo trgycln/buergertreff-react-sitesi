@@ -67,7 +67,13 @@ const Header = () => {
                 return text;
             });
 
-            setAnnouncements(formattedAnnouncements);
+            // Davet bilgilerini başa ekle
+            const allAnnouncements = [
+                "📢 Mitgliederversammlung: Freitag, 06.03.2026 um 16:00 Uhr in Marktstr. 8, Wissen",
+                ...formattedAnnouncements
+            ];
+
+            setAnnouncements(allAnnouncements);
         };
 
         fetchFeaturedEvents();

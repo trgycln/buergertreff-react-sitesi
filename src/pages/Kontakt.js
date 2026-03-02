@@ -8,7 +8,7 @@ import kontaktBannerImage from '../assets/images/kontakt-banner.png';
 import { Helmet } from 'react-helmet-async';
 
 const Kontakt = () => {
-    const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d80721.7566184201!2d7.680883438719719!3d50.78382421242446!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea24535194805%3A0x422d4d510dacca0!2s57537%20Wissen!5e0!3m2!1sde!2sde!4v1758371651993!5m2!1sde!2sde";
+    const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2598.8647!2d7.7329841!3d50.7820911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea2ee081cae1f%3A0xf18edd7f856004fa!2sMarktstra%C3%9Fe%208%2C%2057537%20Wissen!5e0!3m2!1sde!2sde!4v1740999999999";
 
     return (
 
@@ -39,7 +39,8 @@ const Kontakt = () => {
                                         <div>
                                             <h3 className="font-semibold text-gray-700">Anschrift</h3>
                                             <p className="text-gray-600">
-                                                Bürgertreff Wissen<br />
+                                                Bürgertreff Wissen e.V.<br />
+                                                Marktstr. 8<br />
                                                 57537 Wissen
                                             </p>
                                         </div>
@@ -48,7 +49,7 @@ const Kontakt = () => {
                                         <FaPhone className="text-red-600 text-xl mr-4 mt-1" />
                                         <div>
                                             <h3 className="font-semibold text-gray-700">Telefon</h3>
-                                            <p className="text-gray-600">01516 5179082</p>
+                                            <p className="text-gray-600"><a href="tel:+4916369995513" className="hover:text-red-600 transition">0163 6999513</a></p>
                                         </div>
                                     </div>
                                     <div className="flex items-start">
@@ -91,10 +92,12 @@ const Kontakt = () => {
                         <div className="bg-white p-8 rounded-lg shadow-md">
                             <h2 className="text-3xl font-bold text-gray-800 mb-6">Impressum</h2>
                             <div className="text-gray-600 space-y-4">
-                                <h3 className="font-semibold text-gray-700">1.Vorsitzende</h3>
-                                <p>Erika Uber</p>
+                                <h3 className="font-semibold text-gray-700">1. Vorsitzende</h3>
+                                <p>Erika Uber<br/><a href="mailto:buergertreff.wissen@gmail.com" className="text-red-600 hover:underline">buergertreff.wissen@gmail.com</a></p>
                                 <h3 className="font-semibold text-gray-700">Webmaster</h3>
                                 <p>Turgay Celen</p>
+                                <h3 className="font-semibold text-gray-700 mt-6">Bankverbindung</h3>
+                                <p>IBAN: DE27 5735 1030 0055 0844 38<br/>Kontoinhaber: Bürgertreff Wissen e.V.</p>
                             </div>
                         </div>
                     </div>
