@@ -202,7 +202,7 @@ export default function BuchhaltungMembers() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Mitglied Seit</th>
               {trackedYears.map(year => (
-                <th key={year} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">{year}</th>
+                <th key={year} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Beitrag {year}</th>
               ))}
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Details</th>
             </tr>

@@ -131,10 +131,11 @@ export default function BuchhaltungContacts() {
   const printMembersList = async () => {
     const members = contacts.filter(c => c.type === 'member').sort((a, b) => a.name.localeCompare(b.name));
     
-    // Her üye için ilk ödeme tarihini al
+    // Her üye için ilk ödeme tarihini ve yıllık aidatları al
     const membersWithFirstPayment = await Promise.all(
       members.map(async (member) => {
-        const { data } = await supabase
+        // İlk ödeme tarihi
+        const { data: firstPaymentData } = await supabase
           .from('accounting_transactions')
           .select('date')
           .eq('contact_id', member.id)
@@ -142,9 +143,38 @@ export default function BuchhaltungContacts() {
           .order('date', { ascending: true })
           .limit(1);
         
+        // Tüm işlemleri al (2025 ve 2026 için)
+        const { data: allTransactions } = await supabase
+          .from('accounting_transactions')
+          .select('amount, date, description, accounting_categories(name)')
+          .eq('contact_id', member.id)
+          .eq('type', 'income');
+        
+        // 2025 ve 2026 aidatlarını hesapla
+        const calculateYearPayment = (year) => {
+          if (!allTransactions) return 0;
+          
+          return allTransactions
+            .filter(t => {
+              const catName = t.accounting_categories?.name?.toLowerCase() || '';
+              const desc = t.description?.toLowerCase() || '';
+              return catName.includes('mitglied') || catName.includes('beitrag') || desc.includes('beitrag');
+            })
+            .filter(t => {
+              const trxDateYear = new Date(t.date).getFullYear();
+              const desc = t.description || '';
+              const yearMatch = desc.match(/202[0-9]/);
+              const effectiveYear = yearMatch ? parseInt(yearMatch[0]) : trxDateYear;
+              return effectiveYear === year;
+            })
+            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        };
+        
         return {
           ...member,
-          first_payment_date: data && data.length > 0 ? data[0].date : null
+          first_payment_date: firstPaymentData && firstPaymentData.length > 0 ? firstPaymentData[0].date : null,
+          payment_2025: calculateYearPayment(2025),
+          payment_2026: calculateYearPayment(2026)
         };
       })
     );
@@ -186,12 +216,20 @@ export default function BuchhaltungContacts() {
         ? formatDateDE(contact.first_payment_date)
         : (contact.member_since ? formatDateDE(contact.member_since) : '-');
       
+      // 2025 ve 2026 aidatları (sadece üye listesinde göster)
+      const payment2025 = contact.payment_2025 ? `${contact.payment_2025.toFixed(0)} €` : '-';
+      const payment2026 = contact.payment_2026 ? `${contact.payment_2026.toFixed(0)} €` : '-';
+      
       tableRows += `
         <tr>
           <td style="text-align: center; width: 40px;">${index + 1}</td>
           <td style="flex: 1;">${contact.name}</td>
           <td style="width: 200px;">${contact.email || '-'}</td>
-          <td style="width: 100px;">${seitDate}</td>
+          <td style="width: 100px; text-align: center;">${seitDate}</td>
+          ${title === 'Mitgliederliste' ? `
+          <td style="width: 80px; text-align: center; font-weight: bold;">${payment2025}</td>
+          <td style="width: 80px; text-align: center; font-weight: bold;">${payment2026}</td>
+          ` : ''}
         </tr>`;
     });
 
@@ -314,7 +352,11 @@ export default function BuchhaltungContacts() {
                 <th style="width: 40px; text-align: center;">Nr.</th>
                 <th style="flex: 1;">Name</th>
                 <th style="width: 200px;">E-Mail</th>
-                <th style="width: 100px;">Seit</th>
+                <th style="width: 100px; text-align: center;">Seit</th>
+                ${title === 'Mitgliederliste' ? `
+                <th style="width: 80px; text-align: center;">Beitrag 2025</th>
+                <th style="width: 80px; text-align: center;">Beitrag 2026</th>
+                ` : ''}
               </tr>
             </thead>
             <tbody>
