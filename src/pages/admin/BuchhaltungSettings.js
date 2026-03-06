@@ -14,12 +14,32 @@ export default function BuchhaltungSettings() {
 
   // Organizasyon Ayarları
   const [orgSettings, setOrgSettings] = useState({
+    // Temel Bilgiler
     org_name: '',
     org_address: '',
+    org_postal_code: '',
+    org_city: '',
+    
+    // İletişim
+    org_phone: '',
+    org_email: '',
+    org_website: '',
+    
+    // Sosyal Medya
+    org_facebook: '',
+    org_instagram: '',
+    org_twitter: '',
+    
+    // Vergi & Muhasebe
     org_tax_id: '',
     exemption_date: '',
     exemption_office: '',
-    treasurer_name: ''
+    
+    // Sorumlu Kişi
+    treasurer_name: '',
+    
+    // Amaçlar
+    org_purpose: ''
   });
 
   useEffect(() => {
@@ -45,7 +65,13 @@ export default function BuchhaltungSettings() {
     const { data: settingsData } = await supabase
       .from('site_settings')
       .select('key, value')
-      .in('key', ['org_name', 'org_address', 'org_tax_id', 'exemption_date', 'exemption_office', 'treasurer_name']);
+      .in('key', [
+        'org_name', 'org_address', 'org_postal_code', 'org_city',
+        'org_phone', 'org_email', 'org_website',
+        'org_facebook', 'org_instagram', 'org_twitter',
+        'org_tax_id', 'exemption_date', 'exemption_office',
+        'treasurer_name', 'org_purpose'
+      ]);
 
     if (catData) setCategories(catData);
     if (accData) setAccounts(accData);
@@ -148,16 +174,22 @@ export default function BuchhaltungSettings() {
   return (
     <div className="space-y-8">
       
-      {/* ORGANİZASYON AYARLARI (SPENDENBESCHEINIGUNG İÇİN) */}
+      {/* ORGANİZASYON AYARLARI */}
       <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
-          <FaSave className="text-blue-500" /> Vereinsdaten für Spendenbescheinigungen
+        <h2 className="text-xl font-bold text-gray-800 mb-2 border-b pb-2 flex items-center gap-2">
+          <FaSave className="text-blue-500" /> Vereinsinformationen
         </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Diese Daten werden automatisch in die Spendenbescheinigungen (bis 300 €) eingefügt.
+        <p className="text-sm text-gray-500 mb-6">
+          Diese Daten werden in alle offiziellen Dokumente (Spendenbescheinigungen, Sachspenden-Bescheinigungen, Berichte) automatisch eingefügt.
         </p>
         
         <form onSubmit={saveOrgSettings} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* --- BASIT BİLGİLER --- */}
+          <div className="md:col-span-2 mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📋 Basit Bilgiler</h3>
+          </div>
+
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Vereinsname (Offiziell)</label>
             <input
@@ -169,17 +201,128 @@ export default function BuchhaltungSettings() {
               placeholder="z.B. Bürgertreff Wissen e.V."
             />
           </div>
-          
+
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Anschrift</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Straße / Hausnummer</label>
             <input
               type="text"
               name="org_address"
               className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
               value={orgSettings.org_address}
               onChange={handleOrgSettingChange}
-              placeholder="Straße, PLZ, Ort"
+              placeholder="z.B. Hauptstr. 42"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Postleitzahl</label>
+            <input
+              type="text"
+              name="org_postal_code"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_postal_code}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. 57612"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Stadt</label>
+            <input
+              type="text"
+              name="org_city"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_city}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. Altenkirchen"
+            />
+          </div>
+
+          {/* --- KONTAKTBİLGİLERİ --- */}
+          <div className="md:col-span-2 mb-4 mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📞 Kontaktbilgiler</h3>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
+            <input
+              type="tel"
+              name="org_phone"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_phone}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. +49 2681 123456"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email-Adresse</label>
+            <input
+              type="email"
+              name="org_email"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_email}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. info@example.de"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <input
+              type="url"
+              name="org_website"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_website}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. https://www.example.de"
+            />
+          </div>
+
+          {/* --- SOSYAL MEDYA --- */}
+          <div className="md:col-span-2 mb-4 mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📱 Sosyal Medya</h3>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Facebook-Seite</label>
+            <input
+              type="url"
+              name="org_facebook"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_facebook}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. https://facebook.com/example"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instagram-Profil</label>
+            <input
+              type="url"
+              name="org_instagram"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_instagram}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. https://instagram.com/example"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Twitter/X-Profil</label>
+            <input
+              type="url"
+              name="org_twitter"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_twitter}
+              onChange={handleOrgSettingChange}
+              placeholder="z.B. https://twitter.com/example"
+            />
+          </div>
+
+          {/* --- VERGI & MUHASEBE --- */}
+          <div className="md:col-span-2 mb-4 mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">💼 Vergi- und Muhasebeinformationen</h3>
           </div>
 
           <div>
@@ -190,7 +333,7 @@ export default function BuchhaltungSettings() {
               className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
               value={orgSettings.org_tax_id}
               onChange={handleOrgSettingChange}
-              placeholder="z.B. 12/345/67890"
+              placeholder="z.B. 02/650/2316/4"
             />
           </div>
 
@@ -206,7 +349,7 @@ export default function BuchhaltungSettings() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Finanzamt (Optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Finanzamt</label>
             <input
               type="text"
               name="exemption_office"
@@ -217,8 +360,13 @@ export default function BuchhaltungSettings() {
             />
           </div>
 
+          {/* --- SORUMLULAR --- */}
+          <div className="md:col-span-2 mb-4 mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">👤 Sorumlu Kişiler</h3>
+          </div>
+
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in (für Unterschrift)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in (für Unterschrif auf Dokumenten)</label>
             <input
               type="text"
               name="treasurer_name"
@@ -229,7 +377,28 @@ export default function BuchhaltungSettings() {
             />
           </div>
 
-          <div className="md:col-span-2 flex justify-end">
+          {/* --- VEREINSZWECK --- */}
+          <div className="md:col-span-2 mb-4 mt-6">
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">🎯 Vereinszweck / Verwendungszweck (Satzungszweck)</h3>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Zweck-Beschreibung</label>
+            <textarea
+              name="org_purpose"
+              rows="4"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+              value={orgSettings.org_purpose}
+              onChange={handleOrgSettingChange}
+              placeholder="Förderung der Jugend- und Altenhilfe, Förderung internationaler Gesinnung..."
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Dieser Text wird in Spendenbescheinigungen, Sachspenden-Bescheinigungen und anderen offiziellen Dokumenten verwendet.
+            </p>
+          </div>
+
+          {/* --- SPEICHERN --- */}
+          <div className="md:col-span-2 flex justify-end gap-2 mt-6 pt-4 border-t">
             <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
               <FaSave /> Speichern
             </button>

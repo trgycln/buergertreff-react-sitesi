@@ -4,12 +4,24 @@ import { FaWallet, FaArrowUp, FaArrowDown, FaLandmark, FaMoneyBillWave } from 'r
 
 export default function BuchhaltungDashboard() {
   const [loading, setLoading] = useState(true);
+  const normalizeCategoryName = (name = '') =>
+    name
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/ß/g, 'ss')
+      .replace(/[\s\-_]/g, '');
+
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalIncome: 0,
     totalExpense: 0,
     yearIncome: 0,
-    yearExpense: 0
+    yearExpense: 0,
+    loanBalance: 0,
+    totalLoanIncome: 0,
+    totalLoanRepayment: 0
   });
   const [accountBalances, setAccountBalances] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
@@ -26,7 +38,7 @@ export default function BuchhaltungDashboard() {
     // Ancak şimdilik basitlik adına React tarafında topluyoruz.
     const { data: allTrx, error } = await supabase
       .from('accounting_transactions')
-      .select('amount, type, date, account_id, accounting_accounts(name)');
+      .select('amount, type, date, account_id, accounting_accounts(name), accounting_categories(name)');
 
     if (error) {
       console.error('Error fetching transactions:', error);
@@ -53,6 +65,8 @@ export default function BuchhaltungDashboard() {
     let totalExp = 0;
     let yearInc = 0;
     let yearExp = 0;
+    let totalLoanIncome = 0;
+    let totalLoanRepayment = 0;
     
     const currentYear = new Date().getFullYear().toString(); // "2026"
     const accMap = {}; // Hesap bazlı toplamlar için
@@ -70,6 +84,12 @@ export default function BuchhaltungDashboard() {
       if (isCurrentYear) {
         if (isIncome) yearInc += amount;
         else yearExp += amount;
+      }
+
+      const normalizedCategoryName = normalizeCategoryName(t.accounting_categories?.name || '');
+      if (normalizedCategoryName.includes('darlehen')) {
+        if (isIncome) totalLoanIncome += amount;
+        else totalLoanRepayment += amount;
       }
 
       // Hesap Bakiyeleri
@@ -90,7 +110,10 @@ export default function BuchhaltungDashboard() {
       totalIncome: totalInc,
       totalExpense: totalExp,
       yearIncome: yearInc,
-      yearExpense: yearExp
+      yearExpense: yearExp,
+      loanBalance: totalLoanIncome - totalLoanRepayment,
+      totalLoanIncome,
+      totalLoanRepayment
     });
 
     setAccountBalances(Object.values(accMap));
@@ -164,6 +187,23 @@ export default function BuchhaltungDashboard() {
         {/* HESAP DURUMLARI */}
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Kontostände</h3>
+          
+          {/* Darlehen Bilgisi - Kompakt */}
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FaLandmark className="text-amber-600" />
+                <span className="text-sm font-medium text-gray-700">Offenes Darlehen</span>
+              </div>
+              <span className={`text-lg font-bold ${stats.loanBalance >= 0 ? 'text-amber-700' : 'text-red-600'}`}>
+                {stats.loanBalance.toFixed(2)} €
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-gray-600 pl-6">
+              Aufnahme: {stats.totalLoanIncome.toFixed(2)} € • Rückzahlung: {stats.totalLoanRepayment.toFixed(2)} €
+            </div>
+          </div>
+
           <div className="space-y-4">
             {accountBalances.length === 0 ? (
               <p className="text-gray-500 text-sm">Keine Kontodaten verfügbar.</p>

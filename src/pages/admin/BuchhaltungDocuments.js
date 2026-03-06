@@ -21,107 +21,114 @@ import Decisions from '../../components/admin/documents/Decisions';
 export default function BuchhaltungDocuments() {
   const [activeDocument, setActiveDocument] = useState(null);
 
-  const documents = [
+  // Automatisch aus Transaktionen erstellte Belege (Oberer Bereich)
+  const transactionBasedDocuments = [
     {
       id: 'eur',
       label: 'EÜR',
       title: 'Einnahmen-Überschuss-Rechnung',
-      subtitle: 'Gelir-Gider Hesaplaması Kayıtları',
+      subtitle: 'Jahresübersicht',
       icon: FaFileAlt,
       color: 'blue',
-      description: 'Yıllık gelir ve gider özetleri'
+      description: 'Jährliche Übersichten von Einnahmen und Ausgaben (automatisch)'
     },
     {
       id: 'cash_journal',
       label: 'Kassenbuch',
-      title: 'Kasa Defteri',
+      title: 'Kassenführung',
       subtitle: 'Tägliche Kassenführung',
       icon: FaBook,
       color: 'green',
-      description: 'Günlük nakit giriş ve çıkışlar'
+      description: 'Tägliche Bargeldvorgänge (automatisch)'
     },
     {
       id: 'vouchers',
       label: 'Belege',
       title: 'Buchungsbelege',
-      subtitle: 'Muhasebe Fişleri ve Dayanak Belgeler',
+      subtitle: 'Originalrechnungen und Belege',
       icon: FaReceipt,
       color: 'purple',
-      description: 'Faturalar, makbuzlar, banka dekontları'
+      description: 'Rechnungen, Quittungen, Bankauszüge (automatische Liste + hochgeladene Belege)'
     },
     {
       id: 'donations',
-      label: 'Spenden',
-      title: 'Zuwendungsbestätigungen',
-      subtitle: 'Bağış Teyit Belgeleri',
+      label: 'Spendenbescheinigung',
+      title: 'Zuwendungsbescheinigungen',
+      subtitle: 'Spendenquittungen',
       icon: FaHeart,
       color: 'red',
-      description: 'Bağış makbuzları ve teyitler'
+      description: 'Spendenquittungen (automatische Liste + Belege + Druck)'
     },
     {
       id: 'donation_registry',
-      label: 'Spendenverwaltung',
+      label: 'Spendenübersicht',
       title: 'Spendenverwaltungsblatt',
-      subtitle: 'Bağış Yönetim Çizelgesi',
+      subtitle: 'Spendenstatistik',
       icon: FaBook,
       color: 'pink',
-      description: 'Tüm bağışların yönetim özeti'
-    },
-    {
-      id: 'noncash_donations',
-      label: 'Sachspenden',
-      title: 'Sachspende-Belege',
-      subtitle: 'Ayni Bağış Değerleme Belgeleri',
-      icon: FaGift,
-      color: 'amber',
-      description: 'Eşya bağışlarının değer tespiti'
+      description: 'Übersicht aller Spenden (jährliche Summe, automatisch)'
     },
     {
       id: 'members',
       label: 'Mitglieder',
-      title: 'Mitglieder- und Beitragsverwaltung',
-      subtitle: 'Üye ve Aidat Takip Listesi',
+      title: 'Mitgliederliste',
+      subtitle: 'Mitglieder und Beitragszahlungen',
       icon: FaUsers,
       color: 'cyan',
-      description: 'Üyeler ve aidat ödemeleri'
+      description: 'Mitgliederliste (automatisch aus Kontakte)'
+    }
+  ];
+
+  // Weitere Geschäftsunterlagen (Unterer Bereich)
+  const otherDocuments = [
+    {
+      id: 'noncash_donations',
+      label: 'Sachspenden',
+      title: 'Sachspende-Belege',
+      subtitle: 'Sachspendenbewertung',
+      icon: FaGift,
+      color: 'amber',
+      description: 'Bewertung von Sachspenden'
     },
     {
       id: 'tax_exemptions',
       label: 'Freistellung',
       title: 'Freistellungsbescheid',
-      subtitle: 'Vergi Muafiyet Belgeleri',
+      subtitle: 'Steuervergünstigungsbescheid',
       icon: FaBuilding,
       color: 'indigo',
-      description: 'Vergi muafiyeti belgeleri'
+      description: 'Steuervergünstigungsbescheide'
     },
     {
       id: 'reserves',
       label: 'Rücklagen',
       title: 'Rücklagen und Reserven',
-      subtitle: 'Yedek Akçe ve Rezerv Kayıtları',
+      subtitle: 'Reservenfonds',
       icon: FaPiggyBank,
       color: 'teal',
-      description: 'Rezerv ve yedek akçe'
+      description: 'Rücklagen und Reserven'
     },
     {
       id: 'payroll',
       label: 'Lohnkonten',
       title: 'Lohnkonten',
-      subtitle: 'Ücret Kayıtları',
+      subtitle: 'Gehälter und Honorare',
       icon: FaMoneyBillWave,
       color: 'grass',
-      description: 'Çalışan ve eğitmen ücretleri'
+      description: 'Löhne für Mitarbeiter und Trainer'
     },
     {
       id: 'decisions',
       label: 'Beschlüsse',
       title: 'Entscheidungsprotokolle',
-      subtitle: 'Karar Defteri ve Protokoller',
+      subtitle: 'Geschäftsbeschlüsse',
       icon: FaGavel,
       color: 'slate',
-      description: 'Mali kararlar ve toplantı protokolleri'
+      description: 'Finanzielle Beschlüsse und Sitzungsprotokolle'
     }
   ];
+
+  const allDocuments = [...transactionBasedDocuments, ...otherDocuments];
 
   const getColorClasses = (color) => {
     const colorMap = {
@@ -141,7 +148,7 @@ export default function BuchhaltungDocuments() {
   };
 
   if (activeDocument) {
-    const docConfig = documents.find(d => d.id === activeDocument);
+    const docConfig = allDocuments.find(d => d.id === activeDocument);
     
     return (
       <div>
@@ -191,36 +198,82 @@ export default function BuchhaltungDocuments() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {documents.map((doc) => {
-          const colors = getColorClasses(doc.color);
-          const IconComponent = doc.icon;
-          
-          return (
-            <button
-              key={doc.id}
-              onClick={() => setActiveDocument(doc.id)}
-              className={`${colors.bg} border-2 ${colors.border} rounded-lg p-5 transition-all hover:shadow-lg hover:scale-105 text-left`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-3 rounded-lg text-2xl ${colors.label}`}>
-                  <IconComponent />
+      {/* Geschäftsunterlagen aus Transaktionen */}
+      <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-300">
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-green-200">
+          <FaFileAlt className="text-2xl text-green-600" />
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">Geschäftsunterlagen aus Transaktionen</h3>
+            <p className="text-sm text-gray-600">Automatisch aus Transaktionsdaten erstellte Belege</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {transactionBasedDocuments.map((doc) => {
+            const colors = getColorClasses(doc.color);
+            const IconComponent = doc.icon;
+            
+            return (
+              <button
+                key={doc.id}
+                onClick={() => setActiveDocument(doc.id)}
+                className={`${colors.bg} border-2 ${colors.border} rounded-lg p-5 transition-all hover:shadow-lg hover:scale-105 text-left`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`p-3 rounded-lg text-2xl ${colors.label}`}>
+                    <IconComponent />
+                  </div>
+                  <FaChevronRight className={`text-xl ${colors.icon}`} />
                 </div>
-                <FaChevronRight className={`text-xl ${colors.icon}`} />
-              </div>
-              
-              <h3 className="font-bold text-gray-800 mb-1">{doc.label}</h3>
-              <p className="text-sm text-gray-600 mb-2">{doc.title}</p>
-              <p className="text-xs text-gray-500">{doc.description}</p>
-            </button>
-          );
-        })}
+                
+                <h3 className="font-bold text-gray-800 mb-1">{doc.label}</h3>
+                <p className="text-sm text-gray-600 mb-2">{doc.title}</p>
+                <p className="text-xs text-gray-500">{doc.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Weitere Geschäftsunterlagen */}
+      <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-indigo-300">
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-indigo-200">
+          <FaBook className="text-2xl text-indigo-600" />
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">Weitere Geschäftsunterlagen</h3>
+            <p className="text-sm text-gray-600">Manuelle Einträge und spezielle Belege</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {otherDocuments.map((doc) => {
+            const colors = getColorClasses(doc.color);
+            const IconComponent = doc.icon;
+            
+            return (
+              <button
+                key={doc.id}
+                onClick={() => setActiveDocument(doc.id)}
+                className={`${colors.bg} border-2 ${colors.border} rounded-lg p-5 transition-all hover:shadow-lg hover:scale-105 text-left`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`p-3 rounded-lg text-2xl ${colors.label}`}>
+                    <IconComponent />
+                  </div>
+                  <FaChevronRight className={`text-xl ${colors.icon}`} />
+                </div>
+                
+                <h3 className="font-bold text-gray-800 mb-1">{doc.label}</h3>
+                <p className="text-sm text-gray-600 mb-2">{doc.title}</p>
+                <p className="text-xs text-gray-500">{doc.description}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
         <p className="text-sm text-amber-800">
-          <strong>Not:</strong> Tüm belgeler Alman e.V. muhasebe standartlarına göre organize edilmiştir.
-          Yönetim kurulu kararları ile mali kararlar bu sistemde izlenir.
+          <strong>Hinweis:</strong> Alle Belege werden gemäß deutschen Buchhaltungsstandards für e.V. Vereine organisiert. 
+          Verwaltungsratsbeschlüsse und finanzielle Entscheidungen werden in diesem System verfolgbar dokumentiert.
         </p>
       </div>
     </div>

@@ -45,11 +45,17 @@ export default function BuchhaltungContacts() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Clean empty date fields - convert empty strings to null
+    const dataToSave = {
+      ...formData,
+      member_since: formData.member_since || null
+    };
+
     if (editingId) {
       // Update
       const { error } = await supabase
         .from('accounting_contacts')
-        .update(formData)
+        .update(dataToSave)
         .eq('id', editingId);
         
       if (!error) {
@@ -62,7 +68,7 @@ export default function BuchhaltungContacts() {
       // Insert
       const { error } = await supabase
         .from('accounting_contacts')
-        .insert([formData]);
+        .insert([dataToSave]);
         
       if (!error) {
         fetchContacts();
@@ -526,6 +532,7 @@ export default function BuchhaltungContacts() {
                       className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                       value={formData.member_since}
                       onChange={handleInputChange}
+                      placeholder="YYYY-MM-DD"
                     />
                   </div>
                   <div>

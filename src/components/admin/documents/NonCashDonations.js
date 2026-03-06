@@ -1,16 +1,860 @@
-import React from 'react';
-import { FaLock } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../../supabaseClient';
+import { FaPlus, FaTrash, FaPrint, FaSpinner, FaUpload, FaEye } from 'react-icons/fa';
 
 export default function NonCashDonations() {
+  // Dernek Bilgileri (Settings'ten çekilecek)
+  const [orgSettings, setOrgSettings] = useState({
+    name: 'Bürgertreff Wissen e.V.',
+    address: '',
+    postalCode: '',
+    city: '',
+    phone: '',
+    email: '',
+    website: '',
+    taxNumber: '',
+    taxExemptionDate: '',
+    exemptionOffice: '',
+    purpose: ''
+  });
+
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [years, setYears] = useState([]);
+  const [contacts, setContacts] = useState([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    donor_contact_id: '',
+    description: '',
+    acquisition_details: '',
+    estimated_value: '',
+    source: 'privatvermogen',
+    valuation_proof: false,
+    purpose: '', // Will be filled from settings
+    status: 'accepted',
+    notes: '',
+    document_url: ''
+  });
+
+  const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    setYears([currentYear - 2, currentYear - 1, currentYear, currentYear + 1]);
+    fetchOrgSettings();
+    fetchDonations();
+    fetchContacts();
+  }, [filterYear]);
+
+  const fetchOrgSettings = async () => {
+    try {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .in('key', [
+          'org_name', 'org_address', 'org_postal_code', 'org_city',
+          'org_phone', 'org_email', 'org_website',
+          'org_tax_id', 'exemption_date', 'exemption_office',
+          'org_purpose'
+        ]);
+
+      if (data) {
+        const settings = {};
+        data.forEach(item => {
+          settings[item.key] = item.value;
+        });
+        
+        setOrgSettings(prev => ({
+          ...prev,
+          name: settings.org_name || prev.name,
+          address: settings.org_address || '',
+          postalCode: settings.org_postal_code || '',
+          city: settings.org_city || '',
+          phone: settings.org_phone || '',
+          email: settings.org_email || '',
+          website: settings.org_website || '',
+          taxNumber: settings.org_tax_id || '',
+          taxExemptionDate: settings.exemption_date || '',
+          exemptionOffice: settings.exemption_office || '',
+          purpose: settings.org_purpose || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching org settings:', error);
+    }
+  };
+
+  const fetchContacts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('accounting_contacts')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      setContacts(data || []);
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    }
+  };
+
+  const fetchDonations = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('accounting_noncash_donations')
+        .select('*, accounting_contacts!donor_contact_id(id, name)')
+        .gte('donation_date', `${filterYear}-01-01`)
+        .lte('donation_date', `${filterYear}-12-31`)
+        .order('donation_date', { ascending: false });
+
+      if (error) throw error;
+      setDonations(data || []);
+    } catch (error) {
+      console.error('Error fetching donations:', error);
+    }
+    setLoading(false);
+  };
+
+  const formatDateDE = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileName = `sachspenden/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+      setFormData(prev => ({ ...prev, document_url: fileName }));
+    } catch (error) {
+      alert('Upload-Fehler: ' + error.message);
+    }
+    setUploading(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.donor_contact_id || !formData.description || !formData.estimated_value) {
+      alert('Bitte füllen Sie alle erforderlichen Felder aus');
+      return;
+    }
+
+    try {
+      // Prepare data without donation_number (will be auto-generated by trigger)
+      // Map form fields to database column names
+      const dataToSave = {
+        donation_date: formData.date,
+        donor_contact_id: formData.donor_contact_id,
+        item_description: formData.description, // Maps to item_description in DB
+        acquisition_details: formData.acquisition_details,
+        estimated_value: parseFloat(formData.estimated_value),
+        source: formData.source,
+        valuation_proof: formData.valuation_proof,
+        purpose: formData.purpose,
+        status: formData.status,
+        notes: formData.notes || null,
+        document_url: formData.document_url || null
+      };
+
+      if (editingId) {
+        const { error } = await supabase
+          .from('accounting_noncash_donations')
+          .update(dataToSave)
+          .eq('id', editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('accounting_noncash_donations')
+          .insert([dataToSave]);
+        if (error) throw error;
+      }
+      resetForm();
+      fetchDonations();
+    } catch (error) {
+      alert('Fehler beim Speichern: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Sind Sie sicher?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('accounting_noncash_donations')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      fetchDonations();
+    } catch (error) {
+      alert('Fehler beim Löschen: ' + error.message);
+    }
+  };
+
+  const handleEdit = (donation) => {
+    setFormData({
+      date: donation.donation_date,
+      donor_contact_id: donation.donor_contact_id,
+      description: donation.item_description, // Maps from item_description in DB
+      acquisition_details: donation.acquisition_details,
+      estimated_value: donation.estimated_value,
+      source: donation.source,
+      valuation_proof: donation.valuation_proof,
+      purpose: donation.purpose,
+      status: donation.status,
+      notes: donation.notes,
+      document_url: donation.document_url
+    });
+    setEditingId(donation.id);
+    setIsFormOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      date: new Date().toISOString().slice(0, 10),
+      donor_contact_id: '',
+      description: '',
+      acquisition_details: '',
+      estimated_value: '',
+      source: 'privatvermogen',
+      valuation_proof: false,
+      purpose: orgSettings.purpose || '',
+      status: 'accepted',
+      notes: '',
+      document_url: ''
+    });
+    setEditingId(null);
+    setIsFormOpen(false);
+  };
+
+  const openDocument = async (path) => {
+    if (!path) return;
+    try {
+      const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      alert('Fehler beim Öffnen: ' + error.message);
+    }
+  };
+
+  const numberToGermanWords = (n) => {
+    if (n === 0) return "null";
+    const units = ["", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
+    const teens = ["zehn", "elf", "zwölf", "dreizehn", "vierzehn", "fünfzehn", "sechzehn", "siebzehn", "achtzehn", "neunzehn"];
+    const tens = ["", "", "zwanzig", "dreißig", "vierzig", "fünfzig", "sechzig", "siebzig", "achtzig", "neunzig"];
+
+    const convertGroup = (num) => {
+      if (num === 0) return "";
+      if (num < 10) return units[num];
+      if (num < 20) return teens[num - 10];
+      if (num < 100) {
+        const unit = num % 10;
+        const ten = Math.floor(num / 10);
+        if (unit === 0) return tens[ten];
+        return units[unit] + "und" + tens[ten];
+      }
+      const hundred = Math.floor(num / 100);
+      const rest = num % 100;
+      let str = units[hundred] + "hundert";
+      if (rest > 0) str += convertGroup(rest);
+      return str;
+    };
+    if (n < 1000) return convertGroup(n);
+    const thousands = Math.floor(n / 1000);
+    const remainder = n % 1000;
+    let str = thousands === 1 ? "eintausend" : convertGroup(thousands).replace("eins", "ein") + "tausend";
+    if (remainder > 0) str += convertGroup(remainder);
+    return str;
+  };
+
+  const printSachspende = (donation) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=1000');
+    if (!printWindow) return;
+
+    const spenderName = donation.accounting_contacts?.name || '-';
+    const valueInWords = numberToGermanWords(Math.floor(parseFloat(donation.estimated_value) || 0));
+    const cents = Math.round(((parseFloat(donation.estimated_value) || 0) % 1) * 100);
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Sachspende-Bescheinigung (Anlage 4)</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            @page { size: A4; margin: 12mm; }
+            @media print { 
+              body { margin: 0; padding: 0; } 
+              .footer-text { page-break-inside: avoid; }
+            }
+            
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 10pt;
+              line-height: 1.3;
+              color: #000;
+              padding: 12mm;
+            }
+            
+            .header {
+              text-align: center;
+              margin-bottom: 10px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 5px;
+            }
+            
+            .header img {
+              max-height: 35px;
+              margin-bottom: 3px;
+            }
+            
+            .header h1 {
+              font-size: 11pt;
+              font-weight: bold;
+              margin: 2px 0;
+            }
+            
+            .header p {
+              font-size: 9pt;
+              margin: 1px 0;
+            }
+            
+            .title {
+              text-align: center;
+              font-size: 11pt;
+              font-weight: bold;
+              margin: 10px 0 8px 0;
+              text-decoration: underline;
+            }
+            
+            .form-section {
+              margin-bottom: 8px;
+            }
+            
+            .form-row {
+              display: flex;
+              gap: 15px;
+              margin-bottom: 6px;
+            }
+            
+            .form-field {
+              flex: 1;
+            }
+            
+            .form-field label {
+              font-weight: bold;
+              font-size: 9pt;
+              display: block;
+              margin-bottom: 2px;
+            }
+            
+            .form-field .value {
+              border-bottom: 1px solid #000;
+              min-height: 16px;
+              padding: 1px 3px;
+              font-size: 9pt;
+              line-height: 1.2;
+            }
+            
+            .checkbox-group {
+              display: flex;
+              gap: 8px;
+              margin-bottom: 6px;
+            }
+            
+            .checkbox-item {
+              display: flex;
+              align-items: center;
+              gap: 5px;
+            }
+            
+            .checkbox {
+              width: 15px;
+              height: 15px;
+              border: 1px solid #000;
+            }
+            
+            .checkbox.checked::after {
+              content: "✓";
+              text-align: center;
+              font-weight: bold;
+            }
+            
+            .footer-text {
+              font-size: 7pt;
+              margin-top: 8px;
+              padding-top: 5px;
+              border-top: 1px solid #000;
+              line-height: 1.15;
+            }
+            
+            .signature-line {
+              border-top: 1px solid #000;
+              margin-top: 12px;
+              padding-top: 3px;
+              font-size: 9pt;
+              text-align: center;
+              line-height: 1.2;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
+            <h1>${orgSettings.name}</h1>
+            <p>Gemeinnütziger Verein | Steuernummer: ${orgSettings.taxNumber}</p>
+          </div>
+
+          <div class="title">BESCHEINIGUNG ÜBER SACHZUWENDUNGEN (ANLAGE 4)</div>
+
+          <div class="form-section">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Bescheinigung ausgestellt für:</label>
+                <div class="value">${spenderName}</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label>Sachzuwendung (genaue Bezeichnung mit Alter, Zustand, Kaufpreis etc.):</label>
+                <div class="value" style="min-height: 35px;">${donation.item_description}<br/>${donation.acquisition_details}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Gemeiner Wert der Sachzuwendung:</label>
+                <div class="value">${valueInWords} Euro und ${cents} Cent (${donation.estimated_value?.toFixed(2)} €)</div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label>Zeitpunkt der Zuwendung:</label>
+                <div class="value">${formatDateDE(donation.donation_date)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label style="font-weight: bold; display: block; margin-bottom: 10px;">Quelle der Sachspende:</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <div class="checkbox ${donation.source === 'privatvermogen' ? 'checked' : ''}"></div>
+                <label>Privatvermögen des Zuwendenden</label>
+              </div>
+              <div class="checkbox-item">
+                <div class="checkbox ${donation.source === 'betriebsvermogen' ? 'checked' : ''}"></div>
+                <label>Betriebsvermögen eines Unternehmens</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label style="font-weight: bold; display: block; margin-bottom: 10px;">Nachweis des gemeinen Wertes:</label>
+            <div class="checkbox-group">
+              <div class="checkbox-item">
+                <div class="checkbox ${donation.valuation_proof ? 'checked' : ''}"></div>
+                <label>Die Wertermittlung erfolgt aufgrund von Handelspreislisten, Katalogen, Auskünften von Sachverständigen etc.</label>
+              </div>
+              <div class="checkbox-item">
+                <div class="checkbox ${!donation.valuation_proof ? 'checked' : ''}"></div>
+                <label>Schätzwert des Vereins</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Freistellungsbescheid vom:</label>
+                <div class="value">${formatDateDE(orgSettings.taxExemptionDate)}</div>
+              </div>
+              <div class="form-field">
+                <label>Körperschaft-Steuernummer:</label>
+                <div class="value">${orgSettings.taxNumber}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Die Sachzuwendung wird gemäß § 5 Abs. 1 Nrn. 9 oder Abs. 3 Nr. 1 oder § 6 Abs. 1 Nr. 2 KStG zur Erfüllung von Zwecken der begünstigten Körperschaft verwendet. Die Zweckbestimmung ist: *</label>
+                <div class="value" style="min-height: 30px;">${donation.purpose}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-text">
+            <strong>Wichtiger Hinweis:</strong><br/>
+            Diese Bescheinigung wird unter der Voraussetzung ausgestellt, dass das Finanzamt die Gemeinnützigkeit der Körperschaft bestätigt hat. 
+            Die Zuwendung ist weder gegen Leistungen noch gegen Erwartung von Leistungen erbracht und nicht verbunden mit einer Auflage oder Bedingung des Zuwendenden, 
+            die einer Verwendung im Sinne dieser Bescheinigung widersprechen. Die Zuwendung wird unmittelbar und ausschließlich zur Erfüllung der Aufgaben der begünstigten Körperschaft verwendet.
+            <br/><br/>
+            <strong>Haftungsexklusiv:</strong><br/>
+            Sollte diese Zuwendungsbescheinigung auf unrichtige Angaben des Zuwendenden beruhen, so ist die begünstigte Körperschaft von einer Inanspruchnahme durch das Finanzamt befreit. 
+            Jedoch haftet die begünstigte Körperschaft, wenn sie die Sachzuwendung nicht, nicht ordnungsgemäß oder nicht gemäß der Erklärung des Zuwendenden verwendet.
+          </div>
+
+          <div class="signature-line">
+            Ort und Datum: ${formatDateDE(new Date().toISOString().slice(0, 10))}<br/>
+            Unterschrift und Stempel des Vereins
+          </div>
+
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 250);
+            });
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'accepted': return 'Angenommen';
+      case 'pending': return 'Ausstehend';
+      case 'rejected': return 'Abgelehnt';
+      default: return status;
+    }
+  };
+
+  if (loading && !isFormOpen) {
+    return <div className="flex justify-center items-center p-8"><FaSpinner className="animate-spin text-2xl" /></div>;
+  }
+
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-bold text-gray-800">Sachspende-Belege (Ayni Bağış Değerleme)</h3>
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-8 text-center">
-        <FaLock className="text-3xl text-amber-600 mx-auto mb-4" />
-        <p className="text-gray-700 mb-2">Ayni bağış yönetimi yakında eklenecek.</p>
-        <p className="text-sm text-gray-600">
-          Eşya bağışlarının değer tespiti ve belgeleri bu modülde kaydedilecek.
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800">Sachspende-Belege</h3>
+          <p className="text-sm text-gray-600">Verwaltung von In-Kind-Spenden</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={filterYear}
+            onChange={(e) => setFilterYear(parseInt(e.target.value))}
+            className="border border-gray-300 rounded px-3 py-2 text-sm"
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <button
+            onClick={() => { setIsFormOpen(!isFormOpen); if (isFormOpen) resetForm(); }}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2"
+          >
+            <FaPlus /> Neue Sachspende
+          </button>
+        </div>
+      </div>
+
+      {/* Organization Info Warning */}
+      <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+        <h4 className="font-bold text-blue-900 mb-3">📋 Dernek- und Kommunikationsinformationen</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+          <div>
+            <p><strong>Name:</strong> {orgSettings.name}</p>
+            <p><strong>Adresse:</strong> {orgSettings.address}, {orgSettings.postalCode} {orgSettings.city}</p>
+            <p><strong>Telefon:</strong> {orgSettings.phone || '—'}</p>
+            <p><strong>Email:</strong> {orgSettings.email || '—'}</p>
+          </div>
+          <div>
+            <p><strong>Steuernummer:</strong> {orgSettings.taxNumber}</p>
+            <p><strong>Freistellungsbescheid vom:</strong> {formatDateDE(orgSettings.taxExemptionDate)}</p>
+            <p><strong>Finanzamt:</strong> {orgSettings.exemptionOffice || '—'}</p>
+          </div>
+        </div>
+        <p className="text-xs text-blue-600 mt-3 pt-3 border-t border-blue-200">
+          ⚠️ <strong>Wichtig:</strong> Diese Informationen werden automatisch in alle Sachspende-Bescheinigungen und anderen offiziellen Dokumente übernommen. 
+          Bitte stellen Sie sicher, dass sie korrekt sind. Änderungen können in den Einstellungen vorgenommen werden (Buchhaltung > Einstellungen).
         </p>
+      </div>
+
+      {/* FORM */}
+      {isFormOpen && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-6 space-y-4">
+          <h4 className="font-bold text-gray-800">Sachspende {editingId ? 'bearbeiten' : 'hinzufügen'}</h4>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Datum *</label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Spender *</label>
+              <select
+                name="donor_contact_id"
+                value={formData.donor_contact_id}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              >
+                <option value="">-- Wählen --</option>
+                {contacts.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Kurzbeschreibung *</label>
+              <input
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                placeholder="z.B. 3 Stühle, Tisch"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Detaillierte Beschreibung (Alter, Zustand, Kaufpreis, etc.) *</label>
+              <textarea
+                name="acquisition_details"
+                value={formData.acquisition_details}
+                onChange={handleInputChange}
+                placeholder="z.B. Kaufjahr 2020, guter Zustand, durchschnittlicher Kaufpreis damals 50€ pro Stuhl"
+                rows="3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Geschätzter Wert (€) *</label>
+              <input
+                type="number"
+                name="estimated_value"
+                step="0.01"
+                value={formData.estimated_value}
+                onChange={handleInputChange}
+                placeholder="0.00"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quelle der Sachspende *</label>
+              <select
+                name="source"
+                value={formData.source}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="privatvermogen">Privatvermögen (Privatperson)</option>
+                <option value="betriebsvermogen">Betriebsvermögen (Geschäftsbetrieb)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 py-2">
+                <input
+                  type="checkbox"
+                  name="valuation_proof"
+                  checked={formData.valuation_proof}
+                  onChange={(e) => setFormData(prev => ({ ...prev, valuation_proof: e.target.checked }))}
+                  className="w-4 h-4"
+                />
+                Bewertungsunterlagen vorhanden (Rechnung, Gutachten, etc.)
+              </label>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Satzungszweck (automatisch - fix gemäß Vereinssatzung)
+              </label>
+              <textarea
+                name="purpose"
+                value={formData.purpose}
+                readOnly
+                rows="4"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Diese Zweckbestimmung ist gemäß Vereinssatzung fest und wird automatisch in alle Sachspende-Bescheinigungen übernommen.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="accepted">Angenommen</option>
+                <option value="pending">Ausstehend</option>
+                <option value="rejected">Abgelehnt</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Interne Notizen</label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                placeholder="Zusätzliche Informationen..."
+                rows="2"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dokument/Foto</label>
+              <div className="flex gap-2">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
+                  accept="image/*,.pdf"
+                />
+                {uploading && <FaSpinner className="animate-spin text-amber-600" />}
+                {formData.document_url && <span className="text-sm text-green-700">✓ Datei hochgeladen</span>}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+              >
+                Speichern
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* LISTE */}
+      <div className="overflow-x-auto border border-gray-300 rounded-lg bg-white">
+        <table className="w-full text-sm">
+          <thead className="bg-amber-100">
+            <tr>
+              <th className="px-3 py-2 text-left font-bold">Datum</th>
+              <th className="px-3 py-2 text-left font-bold">Spender</th>
+              <th className="px-3 py-2 text-left font-bold">Beschreibung</th>
+              <th className="px-3 py-2 text-right font-bold">Wert (€)</th>
+              <th className="px-3 py-2 text-center font-bold">Status</th>
+              <th className="px-3 py-2 text-center font-bold">Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {donations.map((donation) => (
+              <tr key={donation.id} className="border-t border-gray-200 hover:bg-gray-50">
+                <td className="px-3 py-2 text-sm">{formatDateDE(donation.donation_date)}</td>
+                <td className="px-3 py-2 text-sm">{donation.accounting_contacts?.name || '-'}</td>
+                <td className="px-3 py-2 text-sm">{donation.item_description}</td>
+                <td className="px-3 py-2 text-right font-semibold">{donation.estimated_value?.toFixed(2)} €</td>
+                <td className="px-3 py-2 text-center">
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${getStatusColor(donation.status)}`}>
+                    {getStatusLabel(donation.status)}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-center flex gap-2 justify-center">
+                  {donation.document_url && (
+                    <button
+                      onClick={() => openDocument(donation.document_url)}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="Dokument anzeigen"
+                    >
+                      <FaEye />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => printSachspende(donation)}
+                    className="text-amber-600 hover:text-amber-900"
+                    title="Sachspende-Bescheinigung drucken"
+                  >
+                    <FaPrint />
+                  </button>
+                  <button
+                    onClick={() => handleEdit(donation)}
+                    className="text-green-600 hover:text-green-900"
+                    title="Bearbeiten"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    onClick={() => handleDelete(donation.id)}
+                    className="text-red-600 hover:text-red-900"
+                    title="Löschen"
+                  >
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {donations.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+          <p className="text-amber-800">
+            Keine Sachspenden für das Jahr {filterYear} registriert.
+          </p>
+        </div>
+      )}
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+        <strong>Hinweis:</strong> Sachspenden zeigen hier den geschätzten Wert. Diese Spenden können nicht 
+        automatisch in die "Spendenübersicht" übernommen werden, da sie keinen direkten Geldfluss darstellen. 
+        Die Werte sollten nach Anlage-4 Form dokumentiert werden.
       </div>
     </div>
   );

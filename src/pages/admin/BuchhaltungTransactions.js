@@ -107,6 +107,15 @@ export default function BuchhaltungTransactions() {
     document_url: ''
   });
 
+  const normalizeCategoryName = (name = '') =>
+    name
+      .toLowerCase()
+      .replace(/ä/g, 'ae')
+      .replace(/ö/g, 'oe')
+      .replace(/ü/g, 'ue')
+      .replace(/ß/g, 'ss')
+      .replace(/[\s\-_]/g, '');
+
   useEffect(() => {
     fetchDropdownData();
     fetchTransactions();
@@ -169,7 +178,42 @@ export default function BuchhaltungTransactions() {
     const { data: accData } = await supabase.from('accounting_accounts').select('*').eq('is_active', true);
     const { data: conData } = await supabase.from('accounting_contacts').select('id, name, address').order('name');
 
-    if (catData) setCategories(catData);
+    if (catData) {
+      const incomeNames = new Set(
+        catData
+          .filter(category => category.type === 'income')
+          .map(category => normalizeCategoryName(category.name))
+      );
+      const expenseNames = new Set(
+        catData
+          .filter(category => category.type === 'expense')
+          .map(category => normalizeCategoryName(category.name))
+      );
+
+      const requiredIncomeCategories = ['Darlehen', 'Sonstiges'];
+      const requiredExpenseCategories = ['Darlehensrückzahlung'];
+
+      const incomeCategoriesToCreate = requiredIncomeCategories
+        .filter(name => !incomeNames.has(normalizeCategoryName(name)))
+        .map(name => ({ name, type: 'income' }));
+
+      const expenseCategoriesToCreate = requiredExpenseCategories
+        .filter(name => !expenseNames.has(normalizeCategoryName(name)))
+        .map(name => ({ name, type: 'expense' }));
+
+      const categoriesToCreate = [...incomeCategoriesToCreate, ...expenseCategoriesToCreate];
+
+      if (categoriesToCreate.length > 0) {
+        const { data: insertedCategories } = await supabase
+          .from('accounting_categories')
+          .insert(categoriesToCreate)
+          .select('*');
+
+        setCategories([...(catData || []), ...(insertedCategories || [])]);
+      } else {
+        setCategories(catData);
+      }
+    }
     if (accData) setAccounts(accData);
     if (conData) setContacts(conData);
   };
@@ -704,7 +748,7 @@ export default function BuchhaltungTransactions() {
     printWindow.document.close();
   };
 
-  // 3. SPENDENBESCHEINIGUNG (GÜNCELLENDİ)
+  // 3. Spendenquittung
   const printDonationReceipt = (trx) => {
     if (trx.type !== 'income') return;
     const contact = contacts.find(c => c.id === trx.contact_id);
@@ -884,17 +928,28 @@ export default function BuchhaltungTransactions() {
   };
 
   const filteredCategories = categories.filter(c => c.type === formData.type);
+  const allowedIncomeCategoryNameChecks = [
+    name => name.includes('mitglied') && name.includes('beitrag'),
+    name => name.includes('spende'),
+    name => name.includes('darlehen'),
+    name => name.includes('sonstiges'),
+  ];
   const allowedCategoryNames = [
     'Miete & Nebenkosten',
     'Bürokosten',
     'Vereinsverwaltung',
     'Fortbildung',
     'Inventar',
+    'Darlehensrückzahlung',
     'Sonstiges',
   ];
   const displayedCategories = formData.type === 'expense' 
     ? categories.filter(c => allowedCategoryNames.includes(c.name) && c.type === 'expense')
-    : filteredCategories;
+    : filteredCategories.filter(category => {
+        const normalizedName = normalizeCategoryName(category.name);
+        if (normalizedName.includes('sponsor')) return false;
+        return allowedIncomeCategoryNameChecks.some(check => check(normalizedName));
+      });
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
