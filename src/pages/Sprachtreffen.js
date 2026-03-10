@@ -58,7 +58,7 @@ const Sprachtreffen = () => {
                 .from('ereignisse')
                 .select('*')
                 .eq('is_public', true) // Sadece public olanlar
-            .in('category', ['Sprachtreff', 'Offene Treff', 'Offener Treff']) // Eski ve yeni kategori adlarini kapsa
+            .in('category', ['OffeneTreff', 'Sprachtreff', 'Offene Treff', 'Offener Treff']) // Admin ve eski/yeni kategori adlarini kapsa
                 .order('event_date', { ascending: true }); // Tarihe göre sırala
 
             if (error) {
@@ -156,7 +156,7 @@ const Sprachtreffen = () => {
                 imageSide="right"
             >
                 <p>
-                    Sich ganz zwanglos treffen, bei einer Tasse Kaffee oder Tee miteinander ins Gespräch kommen, nette Leute kennen lernen, vielleicht zusammen spielen, singen, basteln... oder einfach nur dabei sein.
+                    Sich ganz zwanglos treffen, bei einer Tasse Kaffee oder Tee miteinander ins Gespräch kommen, nette Leute kennen lernen, vielleicht zusammen spielen, singen, basteln… oder einfach nur dabei sein.
                 </p>
                 <p>
                     Jeden Dienstag, Donnerstag und Sonntag von 14.30 bis 16.30 Uhr.
