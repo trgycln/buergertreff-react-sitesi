@@ -10,9 +10,8 @@ import { Helmet } from 'react-helmet-async';
 
 const categoryOptions = [
     'Alle',
-    'Offene Stube',
     'Frühstück',
-    'Sprachtreff',
+    'Offene Treff',
     'Ausstellungen',
     'Spielen',
     'Singen',

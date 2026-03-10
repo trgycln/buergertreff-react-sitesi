@@ -28,7 +28,7 @@ const Ideenboerse = () => {
     // PDF'teki tüm fikirleri içeren tam liste
     const ideas = [
         {
-            title: "Offene Stube",
+            title: "OffeneTreff",
             text: "2-3 Stunden vormittags oder nachmittags, ohne Programm, zum Klönen, Nichtstun, Kaffeetrinken. 2 Gastgeberinnen sorgen für Kaffee und Tee.",
             image: offeneStubeImage,
             imageSide: "right"
@@ -40,7 +40,7 @@ const Ideenboerse = () => {
             imageSide: "left"
         },
         {
-            title: "Sprachtreff",
+            title: "Offene Treff",
             text: "Treffen von Deutschen und Migranten, möglichst 1:1, Ziel: Kennenlernen anderer Menschen und Kulturen; Anwenden und Verbessern der deutschen Alltagssprache, 1-2mal im Monat.",
             image: sprachtreffImage,
             imageSide: "right"

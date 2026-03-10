@@ -67,13 +67,7 @@ const Header = () => {
                 return text;
             });
 
-            // Davet bilgilerini başa ekle
-            const allAnnouncements = [
-                "📢 Mitgliederversammlung: Freitag, 06.03.2026 um 16:00 Uhr in Marktstr. 8, Wissen",
-                ...formattedAnnouncements
-            ];
-
-            setAnnouncements(allAnnouncements);
+            setAnnouncements(formattedAnnouncements);
         };
 
         fetchFeaturedEvents();
@@ -136,7 +130,7 @@ const Header = () => {
                                 <NavLink to="/angebote" className={navLinkStyles}>Angebote<b className='text-rcRed'>&</b>Veranstaltungen</NavLink>
                                 {isDropdownOpen && (
                                     <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
-                                        <li><NavLink to="/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Sprachtreffen</NavLink></li>
+                                        <li><NavLink to="/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Offene Treff</NavLink></li>
                                         <li><NavLink to="/buergertreff-unterwegs" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Bürgertreff Unterwegs</NavLink></li>
                                         <li><NavLink to="/nachbarschaftsboerse" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Nachbarschaftsbörse</NavLink></li>
                                         <li><NavLink to="/ideenboerse" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Ideenbörse</NavLink></li>
@@ -175,7 +169,7 @@ const Header = () => {
                                 </button>
                             </div>
                             <ul className={`overflow-hidden transition-all duration-300 ease-in-out bg-gray-50 w-full ${openSubmenu === 'angebote' ? 'max-h-96' : 'max-h-0'}`}>
-                                <li className="pt-2 uppercase"><NavLink to="/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Sprachtreffen</NavLink></li>
+                                <li className="pt-2 uppercase"><NavLink to="/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Offene Treff</NavLink></li>
                                 <li className="uppercase"><NavLink to="/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Bürgertreff Unterwegs</NavLink></li>
                                 <li className="uppercase"><NavLink to="/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Nachbarschaftsbörse</NavLink></li>
                                 <li className="uppercase"><NavLink to="/ideenboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Ideenbörse</NavLink></li>

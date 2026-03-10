@@ -58,11 +58,11 @@ const Sprachtreffen = () => {
                 .from('ereignisse')
                 .select('*')
                 .eq('is_public', true) // Sadece public olanlar
-                .eq('category', 'Sprachtreff') // Sadece Sprachtreff kategorisi
+            .in('category', ['Sprachtreff', 'Offene Treff']) // Eski ve yeni kategori adlarini kapsa
                 .order('event_date', { ascending: true }); // Tarihe göre sırala
 
             if (error) {
-                console.error("Fehler beim Abrufen der Sprachtreff-Ereignisse:", error);
+                console.error("Fehler beim Abrufen der Offene-Treff-Ereignisse:", error);
                 setError("Ereignisse konnten nicht geladen werden.");
             } else {
                 setEvents(data);
@@ -136,27 +136,27 @@ const Sprachtreffen = () => {
     return (
         <>
         <Helmet>
-    <title>Sprachtreffen: Deutsch Lernen & Austausch | Bürgertreff Wissen</title>
+    <title>Offene Treff: Deutsch Lernen & Austausch | Bürgertreff Wissen</title>
     <meta 
         name="description" 
-        content="Nehmen Sie an unseren offenen Sprachtreffen in Wissen teil. Ideal zum Deutschlernen, Üben und für interkulturellen Austausch in entspannter Atmosphäre."
+        content="Nehmen Sie an unserem Offenen Treff in Wissen teil. Ideal zum Deutschlernen, Üben und für interkulturellen Austausch in entspannter Atmosphäre."
     />
 </Helmet>
  <div>
             {/* PageBanner (Değişiklik yok) */}
             <PageBanner 
-                title="Sprachtreffen"
+                title="Offene Treff"
                 imageUrl={sprachtreffenBanner}
             />
 
             {/* ContentBlock (Değişiklik yok) */}
             <ContentBlock 
-                title="Was ist das Sprachtreffen?"
+                title="Was ist der Offene Treff?"
                 imageUrl={sprachtreffenImage}
                 imageSide="right"
             >
                 <p>
-                    Unser Sprachtreffen ist ein offener und ungezwungener Treffpunkt für alle, die ihre Deutschkenntnisse verbessern möchten. Egal, ob Sie Anfänger sind oder bereits fortgeschrittene Kenntnisse haben, hier können Sie in entspannter Atmosphäre sprechen, neue Wörter lernen und Kontakte knüpfen.
+                    Unser Offener Treff ist ein offener und ungezwungener Treffpunkt für alle, die ihre Deutschkenntnisse verbessern möchten. Egal, ob Sie Anfänger sind oder bereits fortgeschrittene Kenntnisse haben, hier können Sie in entspannter Atmosphäre sprechen, neue Wörter lernen und Kontakte knüpfen.
                 </p>
                 <p>
                     Wir unterhalten uns über alltägliche Themen, spielen Sprachspiele und unterstützen uns gegenseitig. Die Teilnahme ist kostenlos und eine Anmeldung ist nicht erforderlich.
@@ -166,7 +166,7 @@ const Sprachtreffen = () => {
             {/* "Für wen ist das?" Bölümü (Değişiklik yok) */}
             <section className="bg-white py-12 md:py-16">
                 <div className="container mx-auto px-6 max-w-4xl">
-                    <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Für wen ist das Sprachtreffen?</h2>
+                    <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Für wen ist der Offene Treff?</h2>
                     <ul className="space-y-4">
                         <li className="flex items-start">
                             <FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" />
@@ -215,7 +215,7 @@ const Sprachtreffen = () => {
                          <div className="text-center bg-gray-100 p-8 rounded-lg">
                             <h3 className="text-2xl font-bold text-gray-700 mb-2">Nächster Termin</h3>
                             <p className="text-gray-600 text-lg">
-                                Planung läuft! Wir arbeiten mit Hochdruck daran, die nächsten Sprachtreffen zu organisieren. Schauen Sie bald wieder vorbei.
+                                Planung läuft! Wir arbeiten mit Hochdruck daran, die nächsten Offene-Treff-Termine zu organisieren. Schauen Sie bald wieder vorbei.
                             </p>
                          </div>
                     )}
@@ -243,7 +243,7 @@ const Sprachtreffen = () => {
             <section className="bg-rcGray py-12 md:py-16">
                 <div className="container mx-auto px-6 max-w-4xl">
                     <h2 className="text-3xl font-bold text-rcDarkGray mb-8">
-                        Archiv: Vergangene Sprachtreffen
+                        Archiv: Vergangene Offene-Treff-Termine
                     </h2>
                     {renderArchiveList()}
                 </div>

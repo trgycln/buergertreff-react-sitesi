@@ -75,7 +75,7 @@ export default function EreignisForm() {
     const [eventDate, setEventDate] = useState('');
     const [location, setLocation] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('Offene Stube');
+    const [category, setCategory] = useState('OffeneTreff');
     const [imageUrl, setImageUrl] = useState(''); 
     const [isFeatured, setIsFeatured] = useState(false);
     const [registrationDetails, setRegistrationDetails] = useState('');
@@ -90,7 +90,7 @@ export default function EreignisForm() {
 
     const [currentEventDataForPdf, setCurrentEventDataForPdf] = useState(null);
     const categoryOptions = [
-        'Offene Stube', 'Frühstück', 'Sprachtreff', 'Ausstellungen', 'Spielen',
+        'OffeneTreff', 'Frühstück', 'Offene Treff', 'Ausstellungen', 'Spielen',
         'Singen', 'Handarbeiten', 'Schreibwerkstatt', 'Nachbarschaftsbörse',
         'Sonntagsgespräch', 'Beratung', 'Nachhilfe', 'Bürgertreff unterwegs', 'Sonstiges',
         'Intern'
@@ -115,7 +115,7 @@ export default function EreignisForm() {
                     setEventDate(data.event_date ? new Date(data.event_date).toISOString().slice(0, 16) : '');
                     setLocation(data.location || '');
                     setDescription(data.description || '');
-                    setCategory(data.category || 'Offene Stube');
+                    setCategory(data.category || 'OffeneTreff');
                     setImageUrl(data.image_url || '');
                     setIsFeatured(data.is_featured || false);
                     setRegistrationDetails(data.registration_details || '');
