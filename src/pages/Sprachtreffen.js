@@ -58,7 +58,7 @@ const Sprachtreffen = () => {
                 .from('ereignisse')
                 .select('*')
                 .eq('is_public', true) // Sadece public olanlar
-            .in('category', ['Sprachtreff', 'Offene Treff']) // Eski ve yeni kategori adlarini kapsa
+            .in('category', ['Sprachtreff', 'Offene Treff', 'Offener Treff']) // Eski ve yeni kategori adlarini kapsa
                 .order('event_date', { ascending: true }); // Tarihe göre sırala
 
             if (error) {
@@ -136,7 +136,7 @@ const Sprachtreffen = () => {
     return (
         <>
         <Helmet>
-    <title>Offene Treff: Deutsch Lernen & Austausch | Bürgertreff Wissen</title>
+            <title>Offener Treff: Deutsch Lernen & Austausch | Bürgertreff Wissen</title>
     <meta 
         name="description" 
         content="Nehmen Sie an unserem Offenen Treff in Wissen teil. Ideal zum Deutschlernen, Üben und für interkulturellen Austausch in entspannter Atmosphäre."
@@ -145,7 +145,7 @@ const Sprachtreffen = () => {
  <div>
             {/* PageBanner (Değişiklik yok) */}
             <PageBanner 
-                title="Offene Treff"
+                title="Offener Treff"
                 imageUrl={sprachtreffenBanner}
             />
 
@@ -156,10 +156,13 @@ const Sprachtreffen = () => {
                 imageSide="right"
             >
                 <p>
-                    Unser Offener Treff ist ein offener und ungezwungener Treffpunkt für alle, die ihre Deutschkenntnisse verbessern möchten. Egal, ob Sie Anfänger sind oder bereits fortgeschrittene Kenntnisse haben, hier können Sie in entspannter Atmosphäre sprechen, neue Wörter lernen und Kontakte knüpfen.
+                    Sich ganz zwanglos treffen, bei einer Tasse Kaffee oder Tee miteinander ins Gespräch kommen, nette Leute kennen lernen, vielleicht zusammen spielen, singen, basteln... oder einfach nur dabei sein.
                 </p>
                 <p>
-                    Wir unterhalten uns über alltägliche Themen, spielen Sprachspiele und unterstützen uns gegenseitig. Die Teilnahme ist kostenlos und eine Anmeldung ist nicht erforderlich.
+                    Jeden Dienstag, Donnerstag und Sonntag von 14.30 bis 16.30 Uhr.
+                </p>
+                <p>
+                    Kommen Sie rein und nehmen Sie Platz. Jeder und jede ist herzlich willkommen!
                 </p>
             </ContentBlock>
 

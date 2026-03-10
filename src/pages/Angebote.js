@@ -64,7 +64,7 @@ const Angebote = () => {
                                         }
                                     `}
                                 >
-                                    {category}
+                                    {category === 'Offene Treff' ? 'Offener Treff' : category}
                                 </button>
                             ))}
                         </div>

@@ -40,7 +40,7 @@ const Ideenboerse = () => {
             imageSide: "left"
         },
         {
-            title: "Offene Treff",
+            title: "Offener Treff",
             text: "Treffen von Deutschen und Migranten, möglichst 1:1, Ziel: Kennenlernen anderer Menschen und Kulturen; Anwenden und Verbessern der deutschen Alltagssprache, 1-2mal im Monat.",
             image: sprachtreffImage,
             imageSide: "right"

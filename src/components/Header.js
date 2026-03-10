@@ -88,16 +88,17 @@ const Header = () => {
 
     // Ana sayfa için özel ticker mesajı
     const staticTickerMessage = [
-        "Wir wünschen allen eine Zeit voller guter Begegnungen und hoffen, Sie und euch im nächsten Jahr persönlich zu treffen."
+        "14.03.26, 10 Uhr. An die Schrubber - fertig los! Wir putzen unseren Bürgertreff. Gemeinsam macht's mehr Spaß."
     ];
 
     // Sadece Start sayfasında özel mesajı göster
     const isStartPage = window.location.pathname === "/";
+    const tickerItems = announcements.length > 0 ? announcements : (isStartPage ? staticTickerMessage : []);
 
     return (
         <>
             {/* Kayan yazı bandı (Her sayfada admin tarafından girilen duyurular) */}
-            <AnnouncementTicker items={announcements} />
+            <AnnouncementTicker items={tickerItems} />
             
             <header className="bg-white shadow-md sticky top-0 z-50">
                 <div className="bg-rcBlue text-gray-300 py-2">
@@ -130,7 +131,7 @@ const Header = () => {
                                 <NavLink to="/angebote" className={navLinkStyles}>Angebote<b className='text-rcRed'>&</b>Veranstaltungen</NavLink>
                                 {isDropdownOpen && (
                                     <ul className="absolute left-0 top-full pt-2 w-56 bg-white shadow-lg rounded-md py-1">
-                                        <li><NavLink to="/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Offene Treff</NavLink></li>
+                                        <li><NavLink to="/sprachtreffen" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Offener Treff</NavLink></li>
                                         <li><NavLink to="/buergertreff-unterwegs" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Bürgertreff Unterwegs</NavLink></li>
                                         <li><NavLink to="/nachbarschaftsboerse" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Nachbarschaftsbörse</NavLink></li>
                                         <li><NavLink to="/ideenboerse" className="block px-4 py-2 text-gray-700 hover:bg-rcLightBlue">Ideenbörse</NavLink></li>
@@ -169,7 +170,7 @@ const Header = () => {
                                 </button>
                             </div>
                             <ul className={`overflow-hidden transition-all duration-300 ease-in-out bg-gray-50 w-full ${openSubmenu === 'angebote' ? 'max-h-96' : 'max-h-0'}`}>
-                                <li className="pt-2 uppercase"><NavLink to="/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Offene Treff</NavLink></li>
+                                <li className="pt-2 uppercase"><NavLink to="/sprachtreffen" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Offener Treff</NavLink></li>
                                 <li className="uppercase"><NavLink to="/buergertreff-unterwegs" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Bürgertreff Unterwegs</NavLink></li>
                                 <li className="uppercase"><NavLink to="/nachbarschaftsboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Nachbarschaftsbörse</NavLink></li>
                                 <li className="uppercase"><NavLink to="/ideenboerse" className="block py-2 text-gray-600" onClick={handleMobileLinkClick}>Ideenbörse</NavLink></li>

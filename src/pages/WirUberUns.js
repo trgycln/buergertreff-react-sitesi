@@ -6,10 +6,7 @@ import ContentBlock from '../components/ContentBlock';
 import teamPhoto from '../assets/images/team-photo.png';
 
 import aboutBannerImage from '../assets/images/about-banner.png'; 
-import introImage from '../assets/images/intro-image.JPG';  
-import wirUberUns2 from '../assets/images/wirUberUns-2.jpg'
-import wirUberUns3 from '../assets/images/wirUberUns-3.jpg'
-import wirUberUns4 from '../assets/images/wirUberUns-4.jpg'
+import wirUberUns4 from '../assets/images/wirUberUns-4.jpg';
 import flyer1 from '../assets/images/flyer1.jpg';
 import flyer2 from '../assets/images/flyer2.jpg';
 import ImageCarousel from '../components/ImageCarousel';
@@ -76,24 +73,18 @@ const WirUberUns = () => {
                     </div>
                 </div>
             </section>
-                  <ContentBlock 
-                title="Die nächsten Schritte (August 2025): Raumsuche, Finanzierung " 
-                imageUrl={wirUberUns4}
+                                    <ContentBlock 
+                                title="Wir haben's geschafft!" 
+                                imageUrl={wirUberUns4}
                 imageSide="right"
                 blobs={wirUeberUnsBlobs}
             >
                 <p className="text-justify indent-8">
-Angesichts knapper Kassen sehen sich Verbandsgemeinde, Caritas, Diakonie und andere soziale Einrichtungen nicht in der Lage, die Trägerschaft für den Bürgertreff zu übernehmen. Daher haben sich engagierte Bürgerinnen und Bürger in einem gemeinnützigen Verein zusammengeschlossen, um den Bürgertreff ins Leben zu rufen. Zurzeit haben wir 20 Mitglieder. Im Laufe der nächsten Monate wird die Zahl steigen.
- </p>
-             <p className="text-justify indent-8">
-Mehrere geeignete barrierefreie Räume in der Wissener Innenstadt sind in der Diskussion. Einer davon ist in die engere Auswahl genommen: zentral im autofreien Viertel, barrierefreier Zugang möglich; 120 qm, unten großer Raum mit Theke und Küche; oben Galerie mit Büro; ebenerdiges WC. 
- </p>           
-                <p className="text-justify indent-8">
-Damit wir starten können, benötigen wir eine Anschubfinanzierung, d.h. Mietübernahme für die ersten zwei Jahre. Wir warten auf die Genehmigung unseres Antrages Anfang 2026.
- </p> 
-            <p className="text-justify indent-8">
-Solange wir keinen festen Raum haben, treffen wir uns privat, bei schönem Wetter im Park oder bei Ausflügen in die nähere und mittlere Umgebung (s. Bürgertreff unterwegs.)
- </p>       
+Wir haben's geschafft! Seit März 2026 haben wir ein Ladenlokal in der Markstr. 8 in Wissen angemietet. Nach und nach richten wir dort unseren Bürgertreff ein. Wer Freude am gemeinsamen Gestalten von Raum und Programm hat, ist herzlich willkommen. Viele haben viele Ideen und Talente. So kann der Bürgertreff wachsen.
+                                </p>
+                                <p className="text-justify indent-8">
+Ab 17.03.26 beginnen wir mit gemeinsamen Nachmittagen (s. Veranstaltungen, Offener Treff).
+                                </p>
             </ContentBlock>
 
             <section className="bg-white py-12 md:py-20">

@@ -129,7 +129,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
                                 {/* Kategori */}
                                 {event.category && (
                                     <span className="text-xs font-semibold text-rcRed uppercase tracking-wide">
-                                        {event.category}
+                                        {event.category === 'Offene Treff' ? 'Offener Treff' : event.category}
                                     </span>
                                 )}
                                 
