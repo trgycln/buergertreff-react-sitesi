@@ -8,7 +8,7 @@ import ContentBlock from '../components/ContentBlock';
 import PageBanner from '../components/PageBanner';
 import sprachtreffenImage from '../assets/images/sprachtreffen-image.jpg';
 import sprachtreffenBanner from '../assets/images/sprachtreffen-banner.jpg';
-import { FaCheckCircle, FaUser, FaRegCalendarAlt, FaMapMarkerAlt, FaArrowRight } from 'react-icons/fa';
+import { FaUser, FaRegCalendarAlt, FaMapMarkerAlt, FaArrowRight } from 'react-icons/fa';
 
 import { Helmet } from 'react-helmet-async';
 
@@ -149,7 +149,6 @@ const Sprachtreffen = () => {
                 imageUrl={sprachtreffenBanner}
             />
 
-            {/* ContentBlock (Değişiklik yok) */}
             <ContentBlock 
                 title="Was ist der Offene Treff?"
                 imageUrl={sprachtreffenImage}
@@ -165,27 +164,6 @@ const Sprachtreffen = () => {
                     Kommen Sie rein und nehmen Sie Platz. Jeder und jede ist herzlich willkommen!
                 </p>
             </ContentBlock>
-
-            {/* "Für wen ist das?" Bölümü (Değişiklik yok) */}
-            <section className="bg-white py-12 md:py-16">
-                <div className="container mx-auto px-6 max-w-4xl">
-                    <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Für wen ist der Offene Treff?</h2>
-                    <ul className="space-y-4">
-                        <li className="flex items-start">
-                            <FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" />
-                            <span className="text-gray-700">Für alle, die neu in Deutschland sind und ihre Sprachkenntnisse im Alltag anwenden möchten.</span>
-                        </li>
-                        <li className="flex items-start">
-                            <FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" />
-                            <span className="text-gray-700">Für Menschen, die bereits einen Sprachkurs besuchen und zusätzlich üben wollen.</span>
-                        </li>
-                        <li className="flex items-start">
-                            <FaCheckCircle className="text-green-500 mr-3 mt-1 flex-shrink-0" />
-                            <span className="text-gray-700">Für Einheimische, die gerne neue Kulturen kennenlernen und als Gesprächspartner helfen möchten.</span>
-                        </li>
-                    </ul>
-                </div>
-            </section>
 
             {/* --- DÜZELTME: Dinamik "Wann & Wo" Bölümü --- */}
             <div className="bg-gray-50 py-12">

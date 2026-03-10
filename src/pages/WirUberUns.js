@@ -80,7 +80,7 @@ const WirUberUns = () => {
                 blobs={wirUeberUnsBlobs}
             >
                 <p className="text-justify indent-8">
-Wir haben's geschafft! Seit März 2026 haben wir ein Ladenlokal in der Markstr. 8 in Wissen angemietet. Nach und nach richten wir dort unseren Bürgertreff ein. Wer Freude am gemeinsamen Gestalten von Raum und Programm hat, ist herzlich willkommen. Viele haben viele Ideen und Talente. So kann der Bürgertreff wachsen.
+Seit März 2026 haben wir ein Ladenlokal in der Markstr. 8 in Wissen angemietet. Nach und nach richten wir dort unseren Bürgertreff ein. Wer Freude am gemeinsamen Gestalten von Raum und Programm hat, ist herzlich willkommen. Viele haben viele Ideen und Talente. So kann der Bürgertreff wachsen.
                                 </p>
                                 <p className="text-justify indent-8">
 Ab 17.03.26 beginnen wir mit gemeinsamen Nachmittagen (s. Veranstaltungen, Offener Treff).
