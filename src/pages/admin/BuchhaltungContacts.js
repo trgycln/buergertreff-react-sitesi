@@ -189,38 +189,88 @@ export default function BuchhaltungContacts() {
   };
 
   const printSponsorsList = async () => {
-    const sponsors = contacts.filter(c => c.type === 'sponsor').sort((a, b) => a.name.localeCompare(b.name));
-    
-    // Her sponsor için ilk bağış tarihini al
-    const sponsorsWithFirstPayment = await Promise.all(
-      sponsors.map(async (sponsor) => {
-        const { data } = await supabase
-          .from('accounting_transactions')
-          .select('date')
-          .eq('contact_id', sponsor.id)
-          .eq('type', 'income')
-          .order('date', { ascending: true })
-          .limit(1);
-        
+    const { data: transactions, error } = await supabase
+      .from('accounting_transactions')
+      .select('contact_id, date, amount, description, accounting_categories(name)')
+      .eq('type', 'income')
+      .not('contact_id', 'is', null)
+      .order('date', { ascending: true });
+
+    if (error) {
+      alert('Fehler beim Laden der Spenderliste: ' + error.message);
+      return;
+    }
+
+    const donationStatsByContactId = new Map();
+    const donationKeywords = ['spende', 'zuwendung', 'donation', 'bagis', 'bağış', 'sponsor'];
+    const nonDonationKeywords = ['mitglied', 'beitrag', 'aidat', 'darlehen', 'kredit'];
+
+    (transactions || []).forEach((trx) => {
+      const categoryName = trx.accounting_categories?.name?.toLowerCase() || '';
+      const description = trx.description?.toLowerCase() || '';
+      const text = `${categoryName} ${description}`;
+      const isExcluded = nonDonationKeywords.some((keyword) => text.includes(keyword));
+      const isDonation = donationKeywords.some((keyword) => text.includes(keyword));
+
+      if (!isDonation || isExcluded || !trx.contact_id) return;
+
+      const currentStats = donationStatsByContactId.get(trx.contact_id) || {
+        firstDate: trx.date,
+        lastDate: trx.date,
+        totalAmount: 0,
+        donationDates: []
+      };
+
+      const trxAmount = parseFloat(trx.amount) || 0;
+      currentStats.totalAmount += trxAmount;
+      currentStats.donationDates.push(trx.date);
+
+      if (trx.date < currentStats.firstDate) currentStats.firstDate = trx.date;
+      if (trx.date > currentStats.lastDate) currentStats.lastDate = trx.date;
+
+      donationStatsByContactId.set(trx.contact_id, currentStats);
+    });
+
+    const donorsWithFirstPayment = contacts
+      .filter((contact) => donationStatsByContactId.has(contact.id))
+      .map((contact) => {
+        const stats = donationStatsByContactId.get(contact.id);
         return {
-          ...sponsor,
-          first_payment_date: data && data.length > 0 ? data[0].date : null
+        ...contact,
+        first_payment_date: stats.firstDate,
+        last_payment_date: stats.lastDate,
+        total_donation_amount: stats.totalAmount,
+        donation_dates: Array.from(new Set(stats.donationDates)).sort()
         };
       })
-    );
-    
-    printContactList(sponsorsWithFirstPayment, 'Spenderliste / Sponsorenliste', false);
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    printContactList(donorsWithFirstPayment, 'Spenderliste', false);
   };
 
   const printContactList = (contactList, title, showFirstPayment = true) => {
     const printWindow = window.open('', '_blank', 'width=1100,height=800');
     if (!printWindow) return;
+    const isDonorList = title === 'Spenderliste';
+    const totalDonationSum = isDonorList
+      ? contactList.reduce((sum, contact) => sum + (parseFloat(contact.total_donation_amount) || 0), 0)
+      : 0;
+    const totalDonationSumText = totalDonationSum.toLocaleString('de-DE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
 
     let tableRows = '';
     contactList.forEach((contact, index) => {
       const seitDate = showFirstPayment && contact.first_payment_date 
         ? formatDateDE(contact.first_payment_date)
         : (contact.member_since ? formatDateDE(contact.member_since) : '-');
+      const donorTotalAmount = typeof contact.total_donation_amount === 'number'
+        ? `${contact.total_donation_amount.toFixed(2)} €`
+        : '-';
+      const donorDates = Array.isArray(contact.donation_dates) && contact.donation_dates.length > 0
+        ? contact.donation_dates.map((date) => formatDateDE(date)).join(', ')
+        : '-';
       
       // 2025 ve 2026 aidatları (sadece üye listesinde göster)
       const payment2025 = contact.payment_2025 ? `${contact.payment_2025.toFixed(0)} €` : '-';
@@ -231,7 +281,12 @@ export default function BuchhaltungContacts() {
           <td style="text-align: center; width: 40px;">${index + 1}</td>
           <td style="flex: 1;">${contact.name}</td>
           <td style="width: 200px;">${contact.email || '-'}</td>
+          ${isDonorList ? `
+          <td style="width: 95px; text-align: right; font-weight: bold;">${donorTotalAmount}</td>
+          <td style="width: 320px; font-size: 8.8pt; text-align: center;">${donorDates}</td>
+          ` : `
           <td style="width: 100px; text-align: center;">${seitDate}</td>
+          `}
           ${title === 'Mitgliederliste' ? `
           <td style="width: 80px; text-align: center; font-weight: bold;">${payment2025}</td>
           <td style="width: 80px; text-align: center; font-weight: bold;">${payment2026}</td>
@@ -358,7 +413,12 @@ export default function BuchhaltungContacts() {
                 <th style="width: 40px; text-align: center;">Nr.</th>
                 <th style="flex: 1;">Name</th>
                 <th style="width: 200px;">E-Mail</th>
+                ${title === 'Spenderliste' ? `
+                <th style="width: 95px; text-align: right;">Gesamt</th>
+                <th style="width: 320px; text-align: center;">Spende Daten</th>
+                ` : `
                 <th style="width: 100px; text-align: center;">Seit</th>
+                `}
                 ${title === 'Mitgliederliste' ? `
                 <th style="width: 80px; text-align: center;">Beitrag 2025</th>
                 <th style="width: 80px; text-align: center;">Beitrag 2026</th>
@@ -372,6 +432,7 @@ export default function BuchhaltungContacts() {
 
           <div class="footer">
             <p>Gesamt: ${contactList.length} ${title === 'Mitgliederliste' ? 'Mitglieder' : 'Spender/Sponsoren'}</p>
+            ${isDonorList ? `<p>Spende Gesamtbetrag: ${totalDonationSumText} €</p>` : ''}
           </div>
           
           <script>

@@ -1,8 +1,9 @@
 // src/pages/Kontakt.js
 import React from 'react';
 import PageBanner from '../components/PageBanner';
+import ContributionNotice from '../components/ContributionNotice';
 // Gerekli tüm ikonları tek bir yerden import ediyoruz
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebookF, FaInstagram, FaTwitter } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaPhone, FaEnvelope } from 'react-icons/fa';
 
 import kontaktBannerImage from '../assets/images/kontakt-banner.png';
 import { Helmet } from 'react-helmet-async';
@@ -98,6 +99,7 @@ const Kontakt = () => {
                                 <p>Turgay Celen</p>
                                 <h3 className="font-semibold text-gray-700 mt-6">Bankverbindung</h3>
                                 <p>IBAN: DE27 5735 1030 0055 0844 38<br/>Kontoinhaber: Bürgertreff Wissen e.V.</p>
+                                <ContributionNotice compact className="max-w-md" />
                             </div>
                         </div>
                     </div>

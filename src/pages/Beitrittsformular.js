@@ -14,6 +14,7 @@ import qrCode24 from '../assets/images/qr-code-24.png';
 import qrCode50 from '../assets/images/qr-code-50.png';
 
 import { Helmet } from 'react-helmet-async';
+import ContributionNotice from '../components/ContributionNotice';
 
 const Beitrittsformular = () => {
   const emailSubject = "Neue Beitrittserklärung (von der Webseite)";
@@ -104,12 +105,13 @@ const Beitrittsformular = () => {
               <p className="text-sm text-gray-500 mb-4">
                 Wählen Sie Ihren Jahresbeitrag. Sie können bequem per QR-Code über Ihre Banking-App oder manuell per Überweisung bezahlen.
               </p>
+              <ContributionNotice />
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg">
                   <label className="flex items-center cursor-pointer">
                     {/* GÜNCELLENDİ: name="Beitrag" -> name="beitrag", value basitleştirildi */}
                     <input type="radio" name="beitrag" value="24" className="h-5 w-5 text-rcRed focus:ring-rcRed" defaultChecked onClick={() => setVisibleQrCode(null)} />
-                    <span className="ml-4 text-gray-700">Ich bezahle den Mindest-Jahresbeitrag in Höhe von <strong>24,00 Euro</strong></span>
+                    <span className="ml-4 text-gray-700">Ich bezahle den regulären Jahresbeitrag in Höhe von <strong>24,00 Euro</strong></span>
                   </label>
                   <button type="button" onClick={() => toggleQrCode('24')} className="mt-2 ml-8 flex items-center text-sm text-rcBlue font-semibold hover:underline">
                     <FaQrcode className="mr-2" /> Mit QR-Code bezahlen
@@ -119,7 +121,7 @@ const Beitrittsformular = () => {
                   <label className="flex items-center cursor-pointer">
                     {/* GÜNCELLENDİ: name="Beitrag" -> name="beitrag", value basitleştirildi */}
                     <input type="radio" name="beitrag" value="50" className="h-5 w-5 text-rcRed focus:ring-rcRed" onClick={() => setVisibleQrCode(null)} />
-                    <span className="ml-4 text-gray-700">Ich unterstütze den Verein mit einem erhöhten Jahresbeitrag in Höhe von <strong>50,00 Euro</strong></span>
+                    <span className="ml-4 text-gray-700">Ich überweise <strong>50,00 Euro</strong>. Davon gelten <strong>24,00 Euro</strong> als Jahresbeitrag und <strong>26,00 Euro</strong> als Spende.</span>
                   </label>
                   <button type="button" onClick={() => toggleQrCode('50')} className="mt-2 ml-8 flex items-center text-sm text-rcBlue font-semibold hover:underline">
                     <FaQrcode className="mr-2" /> Mit QR-Code bezahlen
@@ -144,6 +146,7 @@ const Beitrittsformular = () => {
                 <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
                 <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
                 <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
+                <ContributionNotice compact />
               </div>
             </div>
 

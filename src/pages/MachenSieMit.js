@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 // Gerekli bileşenleri ve ikonları import edelim
 import PageBanner from "../components/PageBanner";
 import ActionCard from "../components/ActionCard";
+import ContributionNotice from "../components/ContributionNotice";
 import {
   FaIdCard,
   FaImage,
@@ -14,7 +15,6 @@ import {
   FaCoffee,
   FaMoneyBillWave,
   FaHandsHelping,
-  FaClipboardList,
 } from "react-icons/fa";
 // Banner resmini import edelim
 import mitBannerImage from "../assets/images/machen-sie-mit-banner.jpg";
@@ -108,11 +108,10 @@ const MachenSieMit = () => {
             </ActionCard>
             <ActionCard title="Werden Sie Mitglied." icon={<FaIdCard />}>
               <p>
-                Mit 24 Euro Jahresbeitrag sind Sie dabei. Sie haben dann
-                Stimmrecht und können über wichtige Dinge mitentscheiden.
-                Natürlich können Sie Ihren Jahresbeitrag auch erhöhen, z.B. 50
-                Euro, 60… nach oben offen.
+                Mit 24 Euro regulärem Jahresbeitrag sind Sie dabei. Sie haben
+                dann Stimmrecht und können über wichtige Dinge mitentscheiden.
               </p>
+              <ContributionNotice />
               <p>
                 Und so geht’s: Formular anklicken, entweder ausdrucken und
                 ausfüllen oder digital an den Bürgertreff Wissen e.V. schicken.
@@ -125,6 +124,7 @@ const MachenSieMit = () => {
                 <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
                 <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
                 <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
+                <ContributionNotice compact />
               </div>
               {/* Link/Buton, paragraftan SONRA ve kendi div'i içinde olmalı */}
               <div className="text-center mt-6">
@@ -149,6 +149,13 @@ const MachenSieMit = () => {
                 Ihnen ab 50 Euro eine Spendenquittung aus. Ab 100 Euro
                 veröffentlichen wir Ihr Logo auf unserer Internet-Seite.
               </p>
+              <ContributionNotice />
+              <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
+                <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
+                <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
+                <ContributionNotice compact />
+              </div>
               <div className="mt-4 pt-4 border-t"></div>
             </ActionCard>
           </div>
