@@ -41,6 +41,22 @@ const WirUberUns = () => {
                 title="Wir über uns" 
                 imageUrl={aboutBannerImage} 
             />
+            {/* Unser Konzept PDF Link */}
+            <section className="bg-gray-50 py-8">
+                <div className="container mx-auto px-6 text-center">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Unser Konzept</h2>
+                    <p className="text-gray-600 mb-4">Hier können Sie unser Konzept als PDF herunterladen und lesen.</p>
+                    <a
+                        href="/unserKonzept.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-6 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 transition-colors font-semibold"
+                    >
+                        Unser Konzept (PDF)
+                    </a>
+                </div>
+            </section>
+
             {/* Flyer Slider ve Download Butonu */}
             <section className="bg-white py-8">
                 <div className="container mx-auto px-6 text-center">
