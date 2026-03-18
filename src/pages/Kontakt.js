@@ -1,15 +1,105 @@
 // src/pages/Kontakt.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import PageBanner from '../components/PageBanner';
 import ContributionNotice from '../components/ContributionNotice';
+import { supabase } from '../supabaseClient';
 // Gerekli tüm ikonları tek bir yerden import ediyoruz
 import { FaMapMarkerAlt, FaPhone, FaEnvelope } from 'react-icons/fa';
 
 import kontaktBannerImage from '../assets/images/kontakt-banner.png';
 import { Helmet } from 'react-helmet-async';
 
+const HEADER_SOCIAL_LINKS = {
+    facebook: 'https://www.facebook.com/profile.php?id=61585385846803',
+    youtube: 'https://www.youtube.com/@buergertreff-wissen',
+    instagram: 'https://www.instagram.com/buergertreff.wissen/',
+};
+
+const IMPRESSUM_SETTING_KEYS = [
+  'org_name',
+  'org_address',
+  'org_postal_code',
+  'org_city',
+  'org_phone',
+  'org_email',
+  'org_website',
+  'org_facebook',
+  'org_instagram',
+  'org_twitter',
+  'org_tax_id',
+  'exemption_date',
+  'exemption_office',
+  'treasurer_name',
+  'org_purpose',
+];
+
+const DEFAULT_IMPRESSUM = {
+  org_name: 'Bürgertreff Wissen e.V.',
+  org_address: 'Marktstr. 8',
+  org_postal_code: '57537',
+  org_city: 'Wissen',
+  org_phone: '0163 6999513',
+  org_email: 'buergertreff.wissen@gmail.com',
+  org_website: 'www.buergertreff-wissen.de',
+    org_facebook: HEADER_SOCIAL_LINKS.facebook,
+    org_instagram: HEADER_SOCIAL_LINKS.instagram,
+  org_twitter: '',
+  org_tax_id: '',
+  exemption_date: '',
+  exemption_office: '',
+  treasurer_name: 'Erika Uber',
+  org_purpose: '',
+};
+
 const Kontakt = () => {
+    const [impressumData, setImpressumData] = useState(DEFAULT_IMPRESSUM);
     const mapSrc = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2598.8647!2d7.7329841!3d50.7820911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47bea2ee081cae1f%3A0xf18edd7f856004fa!2sMarktstra%C3%9Fe%208%2C%2057537%20Wissen!5e0!3m2!1sde!2sde!4v1740999999999";
+
+    useEffect(() => {
+        const loadImpressumSettings = async () => {
+            const { data, error } = await supabase
+                .from('site_settings')
+                .select('key, value')
+                .in('key', IMPRESSUM_SETTING_KEYS);
+
+            if (error || !data) {
+                return;
+            }
+
+            const loaded = { ...DEFAULT_IMPRESSUM };
+            data.forEach(({ key, value }) => {
+                if (typeof value === 'string') {
+                    const trimmed = value.trim();
+                    if (trimmed) {
+                        loaded[key] = trimmed;
+                    }
+                    return;
+                }
+
+                if (value !== null && value !== undefined) {
+                    loaded[key] = value;
+                }
+            });
+
+            setImpressumData(loaded);
+        };
+
+        loadImpressumSettings();
+    }, []);
+
+    const websiteHref = impressumData.org_website
+        ? (impressumData.org_website.startsWith('http://') || impressumData.org_website.startsWith('https://')
+            ? impressumData.org_website
+            : `https://${impressumData.org_website}`)
+        : '';
+
+    const formattedExemptionDate = impressumData.exemption_date
+        ? new Date(impressumData.exemption_date).toLocaleDateString('de-DE')
+        : '';
+
+    const facebookLink = impressumData.org_facebook || HEADER_SOCIAL_LINKS.facebook;
+    const instagramLink = impressumData.org_instagram || HEADER_SOCIAL_LINKS.instagram;
+    const twitterLink = impressumData.org_twitter || '';
 
     return (
 
@@ -93,12 +183,89 @@ const Kontakt = () => {
                         <div className="bg-white p-8 rounded-lg shadow-md">
                             <h2 className="text-3xl font-bold text-gray-800 mb-6">Impressum</h2>
                             <div className="text-gray-600 space-y-4">
-                                <h3 className="font-semibold text-gray-700">1. Vorsitzende</h3>
-                                <p>Erika Uber<br/><a href="mailto:buergertreff.wissen@gmail.com" className="text-red-600 hover:underline">buergertreff.wissen@gmail.com</a></p>
-                                <h3 className="font-semibold text-gray-700">Webmaster</h3>
-                                <p>Turgay Celen</p>
+                                <h3 className="font-semibold text-gray-700">Verein</h3>
+                                <p>
+                                    {impressumData.org_name || '—'}
+                                    <br />
+                                    {impressumData.org_address || '—'}
+                                    <br />
+                                    {(impressumData.org_postal_code || '')} {(impressumData.org_city || '')}
+                                </p>
+
+                                <h3 className="font-semibold text-gray-700">Kontakt</h3>
+                                <p>
+                                    Telefon:{' '}
+                                    {impressumData.org_phone ? (
+                                        <a href={`tel:${impressumData.org_phone.replace(/\s+/g, '')}`} className="text-red-600 hover:underline">
+                                            {impressumData.org_phone}
+                                        </a>
+                                    ) : '—'}
+                                    <br />
+                                    E-Mail:{' '}
+                                    {impressumData.org_email ? (
+                                        <a href={`mailto:${impressumData.org_email}`} className="text-red-600 hover:underline">
+                                            {impressumData.org_email}
+                                        </a>
+                                    ) : '—'}
+                                    <br />
+                                    Website:{' '}
+                                    {websiteHref ? (
+                                        <a href={websiteHref} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                            {impressumData.org_website}
+                                        </a>
+                                    ) : '—'}
+                                </p>
+
+                                <h3 className="font-semibold text-gray-700">Steuerliche Angaben</h3>
+                                <p>
+                                    Steuernummer: {impressumData.org_tax_id || '—'}
+                                    <br />
+                                    Finanzamt: {impressumData.exemption_office || '—'}
+                                    <br />
+                                    Freistellungsbescheid vom: {formattedExemptionDate || '—'}
+                                </p>
+
+                                <h3 className="font-semibold text-gray-700">Verantwortliche Person</h3>
+                                <p>
+                                    1. Erika Uber
+                                    <br />
+                                    2. Turgay Celen
+                                </p>
+
+                                <h3 className="font-semibold text-gray-700">Vereinszweck</h3>
+                                <p>{impressumData.org_purpose || '—'}</p>
+
+                                <h3 className="font-semibold text-gray-700">Social Media</h3>
+                                <p>
+                                    Facebook:{' '}
+                                    {facebookLink ? (
+                                        <a href={facebookLink} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                            facebook.com/profile.php?id=61585385846803
+                                        </a>
+                                    ) : '—'}
+                                    <br />
+                                    YouTube:{' '}
+                                    <a href={HEADER_SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                        youtube.com/@buergertreff-wissen
+                                    </a>
+                                    <br />
+                                    Instagram:{' '}
+                                    {instagramLink ? (
+                                        <a href={instagramLink} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                            instagram.com/buergertreff.wissen
+                                        </a>
+                                    ) : '—'}
+                                    <br />
+                                    X/Twitter:{' '}
+                                    {twitterLink ? (
+                                        <a href={twitterLink} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline">
+                                            x.com
+                                        </a>
+                                    ) : '—'}
+                                </p>
+
                                 <h3 className="font-semibold text-gray-700 mt-6">Bankverbindung</h3>
-                                <p>IBAN: DE27 5735 1030 0055 0844 38<br/>Kontoinhaber: Bürgertreff Wissen e.V.</p>
+                                <p>IBAN: DE27 5735 1030 0055 0844 38<br/>Bank: Sparkasse Westerwald-Sieg<br/>Kontoinhaber: Bürgertreff Wissen e.V.</p>
                                 <ContributionNotice compact className="max-w-md" />
                             </div>
                         </div>

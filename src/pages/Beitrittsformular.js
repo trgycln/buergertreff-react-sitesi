@@ -145,6 +145,7 @@ const Beitrittsformular = () => {
               <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                 <p className="text-sm font-semibold text-gray-700">Bankverbindung</p>
                 <p className="text-sm text-gray-700 mt-1">IBAN: DE27 5735 1030 0055 0844 38</p>
+                <p className="text-sm text-gray-700">Bank: Sparkasse Westerwald-Sieg</p>
                 <p className="text-sm text-gray-700">Kontoinhaber: Bürgertreff Wissen e.V.</p>
                 <ContributionNotice compact />
               </div>

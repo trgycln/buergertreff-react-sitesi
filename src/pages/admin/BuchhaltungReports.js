@@ -6,9 +6,11 @@ export default function BuchhaltungReports() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState({
+    openingBalance: 0,
     income: 0,
     expense: 0,
     balance: 0,
+    closingBalance: 0,
     categories: [],
     accounts: []
   });
@@ -37,6 +39,18 @@ export default function BuchhaltungReports() {
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
+    // 0. Vorjahre: Anfangsbestand (Übertrag) berechnen
+    const { data: previousTransactions, error: previousError } = await supabase
+      .from('accounting_transactions')
+      .select('amount, type, date')
+      .lt('date', startDate);
+
+    if (previousError) {
+      console.error(previousError);
+      setLoading(false);
+      return;
+    }
+
     // 1. O yılki tüm işlemleri çek
     const { data: transactions, error } = await supabase
       .from('accounting_transactions')
@@ -56,10 +70,17 @@ export default function BuchhaltungReports() {
     }
 
     // 2. Verileri Hesapla
+    let openingBalance = 0;
     let totalIncome = 0;
     let totalExpense = 0;
     const catMap = {}; // Kategori bazlı toplamlar
     const accMap = {}; // Hesap bazlı hareketler
+
+    (previousTransactions || []).forEach(trx => {
+      const amount = parseFloat(trx.amount || 0);
+      if (trx.type === 'income') openingBalance += amount;
+      else openingBalance -= amount;
+    });
 
     transactions.forEach(trx => {
       const amount = parseFloat(trx.amount);
@@ -89,9 +110,11 @@ export default function BuchhaltungReports() {
     const accounts = Object.values(accMap).sort((a, b) => a.name.localeCompare(b.name));
 
     setReportData({
+      openingBalance,
       income: totalIncome,
       expense: totalExpense,
       balance: totalIncome - totalExpense,
+      closingBalance: openingBalance + (totalIncome - totalExpense),
       categories,
       accounts
     });
@@ -106,8 +129,11 @@ export default function BuchhaltungReports() {
     const dateStr = new Date().toLocaleDateString('de-DE');
     const incomeStr = reportData.income.toFixed(2).replace('.', ',') + ' €';
     const expenseStr = reportData.expense.toFixed(2).replace('.', ',') + ' €';
-    const balanceStr = reportData.balance.toFixed(2).replace('.', ',') + ' €';
-    const balanceColor = reportData.balance >= 0 ? 'green' : 'red';
+    const openingStr = reportData.openingBalance.toFixed(2).replace('.', ',') + ' €';
+    const periodResultStr = reportData.balance.toFixed(2).replace('.', ',') + ' €';
+    const closingStr = reportData.closingBalance.toFixed(2).replace('.', ',') + ' €';
+    const periodResultColor = reportData.balance >= 0 ? 'green' : 'red';
+    const closingColor = reportData.closingBalance >= 0 ? 'green' : 'red';
 
     // Footer Bilgileri (Varsayılan veya Veritabanından)
     const footerInfo = `
@@ -153,6 +179,10 @@ export default function BuchhaltungReports() {
           <h1>Jahresabschluss / Kassenbericht</h1>
           <h2>Geschäftsjahr ${year}</h2>
 
+          <p style="text-align:center; font-size:9pt; margin: 0 0 8px 0; color:#555;">
+            Anfangsbestand (Übertrag aus Vorjahr): <strong>${openingStr}</strong>
+          </p>
+
           <div class="summary-box">
             <div class="sum-item">
               <span class="sum-label">Gesamteinnahmen</span>
@@ -163,8 +193,12 @@ export default function BuchhaltungReports() {
               <span class="sum-value expense-text">- ${expenseStr}</span>
             </div>
             <div class="sum-item">
-              <span class="sum-label">Ergebnis (Saldo)</span>
-              <span class="sum-value" style="color: ${balanceColor};">${balanceStr}</span>
+              <span class="sum-label">Jahresergebnis</span>
+              <span class="sum-value" style="color: ${periodResultColor};">${periodResultStr}</span>
+            </div>
+            <div class="sum-item" style="border-left: 1px solid #ccc;">
+              <span class="sum-label">Endbestand</span>
+              <span class="sum-value" style="color: ${closingColor};">${closingStr}</span>
             </div>
           </div>
 
@@ -215,7 +249,7 @@ export default function BuchhaltungReports() {
 
 
           <h3 style="margin-top:30px;">3. Zahlungsbewegungen nach Konten</h3>
-          <p style="font-size:10pt; font-style:italic;">(Zeigt nur die Bewegungen im Jahr ${year}, keine Anfangsbestände)</p>
+          <p style="font-size:10pt; font-style:italic;">(Zeigt die Bewegungen im Jahr ${year}; der Übertrag aus Vorjahr ist oben im Anfangsbestand ausgewiesen)</p>
           <table>
             <thead>
               <tr>
@@ -308,7 +342,13 @@ export default function BuchhaltungReports() {
       ) : (
         <>
           {/* Özet Kartları */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 text-center">
+              <h3 className="text-gray-800 text-sm font-bold uppercase">Anfangsbestand</h3>
+              <div className="text-3xl font-bold text-gray-700 mt-2">
+                {reportData.openingBalance.toFixed(2).replace('.', ',')} €
+              </div>
+            </div>
             <div className="bg-green-50 p-6 rounded-lg border border-green-200 text-center">
               <h3 className="text-green-800 text-sm font-bold uppercase">Gesamteinnahmen</h3>
               <div className="text-3xl font-bold text-green-600 mt-2">
@@ -325,6 +365,12 @@ export default function BuchhaltungReports() {
               <h3 className="text-gray-800 text-sm font-bold uppercase">Jahresergebnis</h3>
               <div className={`text-3xl font-bold mt-2 ${reportData.balance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
                 {reportData.balance.toFixed(2).replace('.', ',')} €
+              </div>
+            </div>
+            <div className={`p-6 rounded-lg border text-center ${reportData.closingBalance >= 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-orange-50 border-orange-200'}`}>
+              <h3 className="text-gray-800 text-sm font-bold uppercase">Endbestand</h3>
+              <div className={`text-3xl font-bold mt-2 ${reportData.closingBalance >= 0 ? 'text-indigo-600' : 'text-orange-600'}`}>
+                {reportData.closingBalance.toFixed(2).replace('.', ',')} €
               </div>
             </div>
           </div>

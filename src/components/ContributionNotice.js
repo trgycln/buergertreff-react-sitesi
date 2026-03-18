@@ -12,7 +12,7 @@ const ContributionNotice = ({ compact = false, className = '' }) => {
   return (
     <div className={containerClasses}>
       <p className={textClasses}>
-        Der reguläre Jahresbeitrag beträgt <strong>24 Euro</strong>. Jeder Betrag, der darüber hinaus überwiesen wird, gilt als Spende.
+        Der reguläre Jahresbeitrag beträgt <strong>24 Euro</strong>. Jeder darüber hinaus überwiesene Betrag wird als Spende verbucht. Bitte geben Sie im Verwendungszweck Ihrer Überweisung an: <strong>"24 Euro Mitgliedsbeitrag, Rest Spende"</strong>.
       </p>
     </div>
   );

@@ -25,6 +25,9 @@ export default function BuchhaltungDashboard() {
   });
   const [accountBalances, setAccountBalances] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const [yearlyContributionSummary, setYearlyContributionSummary] = useState([]);
+
+  const formatEuro = (value = 0) => `${value.toFixed(2)} €`;
 
   useEffect(() => {
     fetchDashboardData();
@@ -67,6 +70,7 @@ export default function BuchhaltungDashboard() {
     let yearExp = 0;
     let totalLoanIncome = 0;
     let totalLoanRepayment = 0;
+    const yearlySummaryMap = {};
     
     const currentYear = new Date().getFullYear().toString(); // "2026"
     const accMap = {}; // Hesap bazlı toplamlar için
@@ -75,6 +79,7 @@ export default function BuchhaltungDashboard() {
       const amount = parseFloat(t.amount);
       const isIncome = t.type === 'income';
       const isCurrentYear = t.date.startsWith(currentYear);
+      const trxYear = (t.date || '').slice(0, 4);
 
       // Genel Toplamlar
       if (isIncome) totalInc += amount;
@@ -87,6 +92,28 @@ export default function BuchhaltungDashboard() {
       }
 
       const normalizedCategoryName = normalizeCategoryName(t.accounting_categories?.name || '');
+
+      if (trxYear) {
+        if (!yearlySummaryMap[trxYear]) {
+          yearlySummaryMap[trxYear] = {
+            year: trxYear,
+            spende: 0,
+            mitgliederbeitrag: 0
+          };
+        }
+      }
+
+      if (trxYear && isIncome) {
+
+        if (normalizedCategoryName.includes('spende')) {
+          yearlySummaryMap[trxYear].spende += amount;
+        }
+
+        if (normalizedCategoryName.includes('mitglied') && normalizedCategoryName.includes('beitrag')) {
+          yearlySummaryMap[trxYear].mitgliederbeitrag += amount;
+        }
+      }
+
       if (normalizedCategoryName.includes('darlehen')) {
         if (isIncome) totalLoanIncome += amount;
         else totalLoanRepayment += amount;
@@ -116,9 +143,28 @@ export default function BuchhaltungDashboard() {
       totalLoanRepayment
     });
 
+    const yearlySummary = Object.values(yearlySummaryMap)
+      .map(item => ({
+        ...item,
+        total: item.spende + item.mitgliederbeitrag
+      }))
+      .sort((a, b) => Number(a.year) - Number(b.year));
+
+    setYearlyContributionSummary(yearlySummary);
+
     setAccountBalances(Object.values(accMap));
     setLoading(false);
   };
+
+  const summaryTotals = yearlyContributionSummary.reduce(
+    (acc, item) => {
+      acc.spende += item.spende;
+      acc.mitgliederbeitrag += item.mitgliederbeitrag;
+      acc.total += item.total;
+      return acc;
+    },
+    { spende: 0, mitgliederbeitrag: 0, total: 0 }
+  );
 
   if (loading) return <div className="text-center p-8">Lade Übersicht...</div>;
 
@@ -180,6 +226,44 @@ export default function BuchhaltungDashboard() {
             Gesamtausgaben: {stats.totalExpense.toFixed(2)} €
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Jahresübersicht: Spenden, Mitgliederbeiträge und Ausgaben</h3>
+        {yearlyContributionSummary.length === 0 ? (
+          <p className="text-gray-500 text-sm">Keine Daten für Spende oder Mitgliederbeitrag gefunden.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-600 border-b">
+                  <th className="py-2 pr-4 font-semibold">Jahr</th>
+                  <th className="py-2 pr-4 font-semibold">Spende</th>
+                  <th className="py-2 pr-4 font-semibold">Mitgliederbeitrag</th>
+                  <th className="py-2 font-semibold">Summe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {yearlyContributionSummary.map((item) => (
+                  <tr key={item.year} className="border-b last:border-b-0">
+                    <td className="py-2 pr-4 font-medium text-gray-800">{item.year}</td>
+                    <td className="py-2 pr-4 text-gray-700">{formatEuro(item.spende)}</td>
+                    <td className="py-2 pr-4 text-gray-700">{formatEuro(item.mitgliederbeitrag)}</td>
+                    <td className="py-2 font-semibold text-gray-900">{formatEuro(item.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-300 bg-gray-50">
+                  <td className="py-2 pr-4 font-bold text-gray-900">Gesamt</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">{formatEuro(summaryTotals.spende)}</td>
+                  <td className="py-2 pr-4 font-bold text-gray-900">{formatEuro(summaryTotals.mitgliederbeitrag)}</td>
+                  <td className="py-2 font-bold text-gray-900">{formatEuro(summaryTotals.total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

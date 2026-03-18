@@ -55,7 +55,7 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Kontakt</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               {/* GÜNCELLENDİ: Adres geçici bir metinle değiştirildi */}
-              <li><a href="tel:015165179082" className="hover:text-white">01516 5179082</a></li>
+              <li><a href="tel:+4916369995513" className="hover:text-white">0163 6999513</a></li>
               <li><a href="mailto:buergertreff.wissen@gmail.com" className="hover:text-white">buergertreff.wissen@gmail.com</a></li>
             </ul>
           </div>
