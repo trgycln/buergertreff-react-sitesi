@@ -87,9 +87,7 @@ const Header = () => {
     };
 
     // Ana sayfa için özel ticker mesajı
-    const staticTickerMessage = [
-        "14.03.26, 10 Uhr. An die Schrubber - fertig los! Wir putzen unseren Bürgertreff. Gemeinsam macht's mehr Spaß."
-    ];
+    const staticTickerMessage = [];
 
     // Sadece Start sayfasında özel mesajı göster
     const isStartPage = window.location.pathname === "/";
