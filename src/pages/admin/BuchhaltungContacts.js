@@ -134,6 +134,17 @@ export default function BuchhaltungContacts() {
     });
   };
 
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined || value === '') return '-';
+
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
   const printMembersList = async () => {
     const members = contacts.filter(c => c.type === 'member').sort((a, b) => a.name.localeCompare(b.name));
     
@@ -271,6 +282,12 @@ export default function BuchhaltungContacts() {
       const donorDates = Array.isArray(contact.donation_dates) && contact.donation_dates.length > 0
         ? contact.donation_dates.map((date) => formatDateDE(date)).join(', ')
         : '-';
+      const safeName = escapeHtml(contact.name);
+      const safeEmail = escapeHtml(contact.email);
+      const safePhone = escapeHtml(contact.phone);
+      const safeAddress = escapeHtml(contact.address);
+      const safeTaxNumber = escapeHtml(contact.tax_number);
+      const safeNotes = escapeHtml(contact.notes);
       
       // 2025 ve 2026 aidatları (sadece üye listesinde göster)
       const payment2025 = contact.payment_2025 ? `${contact.payment_2025.toFixed(0)} €` : '-';
@@ -278,18 +295,22 @@ export default function BuchhaltungContacts() {
       
       tableRows += `
         <tr>
-          <td style="text-align: center; width: 40px;">${index + 1}</td>
-          <td style="flex: 1;">${contact.name}</td>
-          <td style="width: 200px;">${contact.email || '-'}</td>
+          <td style="text-align: center; width: 28px;">${index + 1}</td>
+          <td style="width: 120px; word-break: normal; overflow-wrap: break-word;">${safeName}</td>
+          <td style="width: 140px; word-break: break-word;">${safeEmail}</td>
           ${isDonorList ? `
-          <td style="width: 95px; text-align: right; font-weight: bold;">${donorTotalAmount}</td>
-          <td style="width: 320px; font-size: 8.8pt; text-align: center;">${donorDates}</td>
+          <td style="width: 85px; text-align: right; font-weight: bold;">${donorTotalAmount}</td>
+          <td style="width: 240px; font-size: 8.2pt; text-align: center;">${donorDates}</td>
           ` : `
-          <td style="width: 100px; text-align: center;">${seitDate}</td>
+          <td style="width: 85px; text-align: center;">${safePhone}</td>
+          <td style="width: 150px;">${safeAddress}</td>
+          <td style="width: 70px; text-align: center;">${safeTaxNumber}</td>
+          <td style="width: 70px; text-align: center;">${escapeHtml(seitDate)}</td>
+          <td style="width: 100px;">${safeNotes}</td>
           `}
           ${title === 'Mitgliederliste' ? `
-          <td style="width: 80px; text-align: center; font-weight: bold;">${payment2025}</td>
-          <td style="width: 80px; text-align: center; font-weight: bold;">${payment2026}</td>
+          <td style="width: 55px; text-align: center; font-weight: bold;">${payment2025}</td>
+          <td style="width: 55px; text-align: center; font-weight: bold;">${payment2026}</td>
           ` : ''}
         </tr>`;
     });
@@ -308,8 +329,8 @@ export default function BuchhaltungContacts() {
             }
             
             @page {
-              size: A4;
-              margin: 15mm 15mm 15mm 15mm;
+              size: A4 landscape;
+              margin: 8mm;
             }
             
             @media print {
@@ -321,17 +342,17 @@ export default function BuchhaltungContacts() {
             
             body {
               font-family: Arial, Helvetica, sans-serif;
-              font-size: 10pt;
-              line-height: 1.5;
+              font-size: 8.5pt;
+              line-height: 1.3;
               color: #000;
-              margin: 15mm;
+              margin: 8mm;
               padding: 0;
             }
             
             .document-header {
               text-align: center;
-              margin-bottom: 12px;
-              padding-bottom: 8px;
+              margin-bottom: 8px;
+              padding-bottom: 6px;
               border-bottom: 2px solid #333;
               page-break-after: avoid;
             }
@@ -342,14 +363,14 @@ export default function BuchhaltungContacts() {
             }
             
             .document-header h1 {
-              font-size: 16pt;
+              font-size: 13pt;
               font-weight: bold;
               margin: 4px 0;
               text-transform: uppercase;
             }
             
             .document-header p {
-              font-size: 10pt;
+              font-size: 8.5pt;
               color: #555;
               margin: 2px 0;
             }
@@ -358,6 +379,7 @@ export default function BuchhaltungContacts() {
               width: 100%;
               border-collapse: collapse;
               margin-top: 10px;
+              table-layout: fixed;
             }
             
             thead {
@@ -376,17 +398,19 @@ export default function BuchhaltungContacts() {
               background-color: #333;
               color: white;
               border: 1px solid #999;
-              padding: 8px 4px;
+              padding: 6px 3px;
               text-align: left;
               font-weight: bold;
-              font-size: 9.5pt;
+              font-size: 8pt;
             }
             
             td {
               border: 1px solid #ccc;
-              padding: 6px 4px;
+              padding: 5px 3px;
               text-align: left;
-              font-size: 9.5pt;
+              font-size: 8pt;
+              word-break: break-word;
+              vertical-align: top;
             }
 
             .footer {
@@ -410,18 +434,22 @@ export default function BuchhaltungContacts() {
           <table>
             <thead>
               <tr>
-                <th style="width: 40px; text-align: center;">Nr.</th>
-                <th style="flex: 1;">Name</th>
-                <th style="width: 200px;">E-Mail</th>
+                <th style="width: 28px; text-align: center;">Nr.</th>
+                <th style="width: 120px;">Name</th>
+                <th style="width: 140px;">E-Mail</th>
                 ${title === 'Spenderliste' ? `
-                <th style="width: 95px; text-align: right;">Gesamt</th>
-                <th style="width: 320px; text-align: center;">Spende Daten</th>
+                <th style="width: 85px; text-align: right;">Gesamt</th>
+                <th style="width: 240px; text-align: center;">Spende Daten</th>
                 ` : `
-                <th style="width: 100px; text-align: center;">Seit</th>
+                <th style="width: 85px; text-align: center;">Telefon</th>
+                <th style="width: 150px;">Adresse</th>
+                <th style="width: 70px; text-align: center;">Steuernr.</th>
+                <th style="width: 70px; text-align: center;">Mitglied seit</th>
+                <th style="width: 100px;">Notiz</th>
                 `}
                 ${title === 'Mitgliederliste' ? `
-                <th style="width: 80px; text-align: center;">Beitrag 2025</th>
-                <th style="width: 80px; text-align: center;">Beitrag 2026</th>
+                <th style="width: 55px; text-align: center;">2025</th>
+                <th style="width: 55px; text-align: center;">2026</th>
                 ` : ''}
               </tr>
             </thead>
