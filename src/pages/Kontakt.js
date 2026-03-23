@@ -225,7 +225,7 @@ const Kontakt = () => {
                                     Freistellungsbescheid vom: {formattedExemptionDate || '—'}
                                 </p>
 
-                                <h3 className="font-semibold text-gray-700">Verantwortliche Person</h3>
+                                <h3 className="font-semibold text-gray-700">Verantwortliche Personen</h3>
                                 <p>
                                     1. Erika Uber
                                     <br />
