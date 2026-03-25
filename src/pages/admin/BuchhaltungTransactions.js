@@ -174,6 +174,95 @@ export default function BuchhaltungTransactions() {
   };
 
   const fetchDropdownData = async () => {
+    const reconcileCategoryCatalog = async () => {
+      const { data: rawCategories, error: categoryFetchError } = await supabase
+        .from('accounting_categories')
+        .select('*')
+        .eq('is_active', true)
+        .eq('type', 'expense');
+
+      if (categoryFetchError || !rawCategories) {
+        if (categoryFetchError) console.error('Fehler beim Laden der Ausgaben-Kategorien:', categoryFetchError);
+        return;
+      }
+
+      const sortByCreation = (a, b) => {
+        const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return aTime - bTime;
+      };
+
+      const mergeCategories = async (categoryGroup, targetName) => {
+        if (!categoryGroup || categoryGroup.length === 0) return;
+
+        const sorted = [...categoryGroup].sort(sortByCreation);
+        let primary = sorted[0];
+        const duplicateIds = sorted.slice(1).map((category) => category.id);
+
+        if (normalizeCategoryName(primary.name) !== normalizeCategoryName(targetName)) {
+          const { data: renamedCategory, error: renameError } = await supabase
+            .from('accounting_categories')
+            .update({ name: targetName })
+            .eq('id', primary.id)
+            .select('*')
+            .single();
+
+          if (renameError) {
+            console.error(`Fehler beim Umbenennen der Kategorie ${primary.name} -> ${targetName}:`, renameError);
+          } else if (renamedCategory) {
+            primary = renamedCategory;
+          }
+        }
+
+        if (duplicateIds.length > 0) {
+          const { error: transactionUpdateError } = await supabase
+            .from('accounting_transactions')
+            .update({ category_id: primary.id })
+            .in('category_id', duplicateIds);
+
+          if (transactionUpdateError) {
+            console.error('Fehler beim Zusammenführen von Transaktionen auf die Hauptkategorie:', transactionUpdateError);
+            return;
+          }
+
+          const { error: deactivateError } = await supabase
+            .from('accounting_categories')
+            .update({ is_active: false })
+            .in('id', duplicateIds);
+
+          if (deactivateError) {
+            console.error('Fehler beim Deaktivieren doppelter Kategorien:', deactivateError);
+          }
+        }
+      };
+
+      const inventarAndEinrichtung = rawCategories.filter((category) => {
+        const normalizedName = normalizeCategoryName(category.name);
+        return normalizedName === 'inventar' || normalizedName === 'einrichtung';
+      });
+      await mergeCategories(inventarAndEinrichtung, 'Einrichtung');
+
+      const darlehenRueckzahlung = rawCategories.filter(
+        (category) => normalizeCategoryName(category.name) === 'darlehensrueckzahlung'
+      );
+      await mergeCategories(darlehenRueckzahlung, 'Darlehensrückzahlung');
+
+      const hasVerbrauch = rawCategories.some(
+        (category) => normalizeCategoryName(category.name) === 'verbrauch'
+      );
+      if (!hasVerbrauch) {
+        const { error: insertVerbrauchError } = await supabase
+          .from('accounting_categories')
+          .insert([{ name: 'Verbrauch', type: 'expense' }]);
+
+        if (insertVerbrauchError) {
+          console.error('Fehler beim Erstellen der Kategorie Verbrauch:', insertVerbrauchError);
+        }
+      }
+    };
+
+    await reconcileCategoryCatalog();
+
     const { data: catData } = await supabase.from('accounting_categories').select('*').eq('is_active', true);
     const { data: accData } = await supabase.from('accounting_accounts').select('*').eq('is_active', true);
     const { data: conData } = await supabase.from('accounting_contacts').select('id, name, address').order('name');
@@ -191,7 +280,7 @@ export default function BuchhaltungTransactions() {
       );
 
       const requiredIncomeCategories = ['Darlehen', 'Sonstiges'];
-      const requiredExpenseCategories = ['Darlehensrückzahlung'];
+      const requiredExpenseCategories = ['Einrichtung', 'Darlehensrückzahlung', 'Verbrauch'];
 
       const incomeCategoriesToCreate = requiredIncomeCategories
         .filter(name => !incomeNames.has(normalizeCategoryName(name)))
@@ -939,8 +1028,9 @@ export default function BuchhaltungTransactions() {
     'Bürokosten',
     'Vereinsverwaltung',
     'Fortbildung',
-    'Inventar',
+    'Einrichtung',
     'Darlehensrückzahlung',
+    'Verbrauch',
     'Sonstiges',
   ];
   const displayedCategories = formData.type === 'expense' 
@@ -950,6 +1040,10 @@ export default function BuchhaltungTransactions() {
         if (normalizedName.includes('sponsor')) return false;
         return allowedIncomeCategoryNameChecks.some(check => check(normalizedName));
       });
+  const uniqueDisplayedCategories = displayedCategories.filter(
+    (category, index, array) =>
+      index === array.findIndex((item) => normalizeCategoryName(item.name) === normalizeCategoryName(category.name))
+  );
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -1014,7 +1108,7 @@ export default function BuchhaltungTransactions() {
               <div className="grid grid-cols-2 gap-4">
                 <select name="category_id" value={formData.category_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
                   <option value="">Kategorie wählen...</option>
-                  {displayedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {uniqueDisplayedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <select name="account_id" value={formData.account_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
                   <option value="">Konto wählen...</option>
