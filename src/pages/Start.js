@@ -4,10 +4,11 @@ import { Link } from 'react-router-dom';
 import Hero from '../components/Hero';
 import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
+import AktuellesTeaser from '../components/AktuellesTeaser';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 
 import heroVideo from '../assets/images/hero-background.mp4'; 
-import foto1 from '../assets/images/laden-foto.jpg';
+import foto1 from '../assets/images/wirUberUns-4.jpg';
 import { Helmet } from 'react-helmet-async';
 
 const Start = () => {
@@ -94,6 +95,8 @@ Ganz nach unserem Motto: miteinander füreinander.
                     <p className="text-gray-800 font-bold text-lg">57537 Wissen</p>
                 </div>
             </ContentBlock>
+
+            <AktuellesTeaser />
 
             <section className="bg-gray-50 py-12 md:py-20">
                 <div className="container mx-auto px-6">

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FaChevronLeft, FaChevronRight, FaTimes } from 'react-icons/fa';
 
-const ImageCarousel = ({ images, objectFit = "cover" }) => {
+const ImageCarousel = ({ images, objectFit = "contain" }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const [lightboxImage, setLightboxImage] = useState(null);
@@ -44,13 +44,15 @@ const ImageCarousel = ({ images, objectFit = "cover" }) => {
         setLightboxImage(images[newIndex]);
     };
 
+    const objectFitClass = objectFit === 'cover' ? 'object-cover' : 'object-contain';
+
     return (
         <div className="relative h-96 w-full"> {/* Yükseklik ve genişlik ayarlandı */}
-            <div className="relative w-full h-full overflow-hidden rounded-lg shadow-lg">
+            <div className="relative w-full h-full overflow-hidden rounded-lg shadow-lg bg-gray-100">
                 <img 
                     src={images[currentIndex]} 
-                    alt={`Carousel Image ${currentIndex + 1}`} 
-                    className={`w-full h-full object-${objectFit} cursor-pointer`} 
+                    alt={`Slide ${currentIndex + 1}`} 
+                    className={`w-full h-full ${objectFitClass} cursor-pointer`} 
                     onClick={() => openLightbox(images[currentIndex])}
                 />
                 
@@ -62,7 +64,7 @@ const ImageCarousel = ({ images, objectFit = "cover" }) => {
                 <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4" onClick={closeLightbox}>
                     <div className="relative max-w-5xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                         <button onClick={closeLightbox} className="absolute -top-10 right-0 text-white text-3xl hover:text-gray-300 transition-colors z-50"><FaTimes /></button>
-                        <img src={lightboxImage} className="max-w-full max-h-[90vh] object-contain" />
+                        <img src={lightboxImage} alt="Ausgewähltes Foto" className="max-w-full max-h-[90vh] object-contain" />
                         <button onClick={goToLightboxPrevious} className="absolute top-1/2 -left-12 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors z-50"><FaChevronLeft /></button>
                         <button onClick={goToLightboxNext} className="absolute top-1/2 -right-12 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-colors z-50"><FaChevronRight /></button>
                     </div>

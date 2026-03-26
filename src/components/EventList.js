@@ -7,6 +7,7 @@ import EventCard from './EventCard'; // Kart görünümü
 import { Link } from 'react-router-dom'; 
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'; // İkonlar eklendi
 import fallbackImage from '../assets/images/ana_logo.jpg'; // Varsayılan resim eklendi
+import ImageCarousel from './ImageCarousel';
 
 // Tarih formatlama (Liste için kısa format)
 const formatListDate = (dateString) => {
@@ -70,6 +71,12 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
         return { upcomingEvents: upcoming, pastEvents: past };
     }, [events, filterCategory]); 
 
+    const latestPastEventWithPhotos = useMemo(() => {
+        return pastEvents.find(
+            (event) => Array.isArray(event.archive_photos) && event.archive_photos.length > 0
+        ) || null;
+    }, [pastEvents]);
+
     // --- RENDER FONKSİYONLARI ---
 
     if (loading) {
@@ -121,7 +128,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
                             <img 
                                 src={event.image_url || fallbackImage} 
                                 alt={event.title} 
-                                className="w-24 h-16 object-cover rounded-md border border-gray-200 flex-shrink-0" 
+                                className="w-24 h-16 object-contain bg-gray-100 rounded-md border border-gray-200 flex-shrink-0" 
                             />
                             
                             {/* 2. Bilgi Alanı */}
@@ -166,10 +173,35 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
                 <h2 className="text-3xl font-bold text-rcDarkGray mb-6 pb-3 border-b-2 border-rcLightBlue">
                     Kommende Veranstaltungen
                 </h2>
-                {renderEventGrid(
-                    upcomingEvents, 
-                    "Zurzeit sind keine Veranstaltungen in dieser Kategorie geplant."
-                )}
+
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
+                    <div className="xl:col-span-2">
+                        {renderEventGrid(
+                            upcomingEvents,
+                            "Zurzeit sind keine Veranstaltungen in dieser Kategorie geplant."
+                        )}
+                    </div>
+
+                    {latestPastEventWithPhotos && (
+                        <aside className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+                            <h3 className="text-xl font-semibold text-rcDarkGray mb-3">
+                                Letzte Aktivität in Bildern
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-3">
+                                {latestPastEventWithPhotos.title}
+                            </p>
+                            <ImageCarousel images={latestPastEventWithPhotos.archive_photos} objectFit="contain" />
+                            <div className="mt-3 text-right">
+                                <Link
+                                    to={`/angebote/${latestPastEventWithPhotos.id}`}
+                                    className="text-sm font-semibold text-rcBlue hover:underline"
+                                >
+                                    Zum Rückblick &rarr;
+                                </Link>
+                            </div>
+                        </aside>
+                    )}
+                </div>
             </section>
 
             {/* --- BÖLÜM 2: GEÇMİŞ ETKİNLİKLER (ARŞİV) --- */}
