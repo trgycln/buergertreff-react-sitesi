@@ -28,7 +28,7 @@ const Ideenboerse = () => {
     // PDF'teki tüm fikirleri içeren tam liste
     const ideas = [
         {
-            title: "OffeneTreff",
+            title: "Offener Treff",
             text: "2-3 Stunden vormittags oder nachmittags, ohne Programm, zum Klönen, Nichtstun, Kaffeetrinken. 2 Gastgeberinnen sorgen für Kaffee und Tee.",
             image: offeneStubeImage,
             imageSide: "right"

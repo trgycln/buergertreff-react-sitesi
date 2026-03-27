@@ -24,7 +24,7 @@ const formatListDate = (dateString) => {
     }
 };
 
-const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
+const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingEvents = 3 }) => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -68,8 +68,11 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card' }) => {
             .filter(e => e.event_date && new Date(e.event_date) < today)
             .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); 
 
-        return { upcomingEvents: upcoming, pastEvents: past };
-    }, [events, filterCategory]); 
+        return {
+            upcomingEvents: upcoming.slice(0, maxUpcomingEvents),
+            pastEvents: past,
+        };
+    }, [events, filterCategory, maxUpcomingEvents]); 
 
     const latestPastEventWithPhotos = useMemo(() => {
         return pastEvents.find(

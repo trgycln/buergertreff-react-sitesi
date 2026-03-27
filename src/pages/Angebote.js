@@ -74,7 +74,8 @@ const Angebote = () => {
                     {/* DÜZELTME: Arşivin "liste" olarak görünmesi için prop eklendi */}
                     <EventList 
                         filterCategory={selectedCategory} 
-                        archiveView="list" 
+                        archiveView="list"
+                        maxUpcomingEvents={3}
                     />
                     
                 </div>

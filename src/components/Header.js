@@ -50,7 +50,7 @@ const Header = () => {
                 .eq('is_featured', true)    // 2. Öne çıkan olarak işaretlenmiş olmalı
                 .gte('event_date', today)   // 3. Tarihi gelecekte olmalı
                 .order('event_date', { ascending: true }) // 4. En yakın tarihli olan önce
-                .limit(5); // 5. En fazla 5 tane al
+                .limit(3); // 5. En fazla 3 tane al
 
             if (error) {
                 console.error("Fehler beim Laden der Ticker-Ankündigungen:", error);
