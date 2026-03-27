@@ -69,6 +69,7 @@ const AdminLayout = () => {
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/admin') return 'Dashboard';
+    if (path.startsWith('/admin/kalender')) return 'Terminkalender';
     if (path.startsWith('/admin/ereignisse/new')) return 'Neues Ereignis erstellen';
     if (path.startsWith('/admin/ereignisse/')) return 'Ereignis bearbeiten';
     if (path.startsWith('/admin/ereignisse')) return 'Alle Ereignisse verwalten';
@@ -120,6 +121,11 @@ const AdminLayout = () => {
             to="/admin/ereignisse"
             icon={<FaCalendarAlt size={18} />}
             label="Alle Ereignisse"
+          />
+          <SidebarLink
+            to="/admin/kalender"
+            icon={<FaCalendarAlt size={18} />}
+            label="Terminkalender"
           />
           <SidebarLink
             to="/admin/presse" 

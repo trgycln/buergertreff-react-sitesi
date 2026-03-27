@@ -117,6 +117,32 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div className="p-6 bg-white rounded-lg shadow-lg border border-gray-200">
+          <h2 className="text-xl font-semibold text-rcDarkGray mb-4 flex items-center">
+            <FaCalendarAlt className="mr-3 text-rcBlue" />
+            Schnellzugriffe: Terminkalender
+          </h2>
+          <p className="text-gray-600 mb-6 text-sm">
+            Wiederkehrende und einzelne Kalendereinträge separat pflegen.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link
+              to="/admin/kalender"
+              className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+            >
+              <FaCalendarAlt className="mr-2" />
+              Kalender verwalten
+            </Link>
+            <Link
+              to="/terminkalender"
+              className="flex items-center justify-center px-5 py-3 bg-rcDarkGray text-white text-sm font-semibold rounded-lg shadow hover:bg-gray-700 transition-colors"
+            >
+              <FaTachometerAlt className="mr-2" />
+              Öffentlich ansehen
+            </Link>
+          </div>
+        </div>
+
       </div>
       {/* --- BİTİŞ: Kısayollar Grid Yapısı --- */}
 

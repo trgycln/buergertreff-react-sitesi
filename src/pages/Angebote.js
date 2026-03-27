@@ -2,6 +2,7 @@
 // GÜNCELLENDİ: EventList'e 'archiveView="list"' prop'u eklendi.
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageBanner from '../components/PageBanner';
 import EventList from '../components/EventList'; 
 
@@ -67,6 +68,23 @@ const Angebote = () => {
                                     {category === 'Offene Treff' ? 'Offener Treff' : category}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-12 rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="max-w-3xl">
+                                <h2 className="text-2xl font-bold text-rcDarkGray">Terminkalender</h2>
+                                <p className="mt-2 text-gray-600">
+                                    Sehen Sie im Monatskalender sofort, welche Tage bereits belegt sind und wann noch freie Zeiten verfügbar sind.
+                                </p>
+                            </div>
+                            <Link
+                                to="/terminkalender"
+                                className="inline-flex items-center justify-center rounded-lg bg-rcBlue px-5 py-3 text-sm font-semibold text-white shadow hover:bg-blue-700"
+                            >
+                                Kalender öffnen
+                            </Link>
                         </div>
                     </div>
                     

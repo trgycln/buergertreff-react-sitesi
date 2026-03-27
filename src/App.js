@@ -29,6 +29,7 @@ import Beitrittsformular from './pages/Beitrittsformular';
 import Danke from './pages/Danke';
 import Sponsorlar from './pages/Sponsorlar';
 import EreignisDetail from './pages/EreignisDetail';
+import Terminkalender from './pages/Terminkalender';
 
 // --- Admin Pages & Components ---
 import AdminLogin from './pages/AdminLogin';
@@ -41,6 +42,7 @@ import EreignisForm from './components/admin/EreignisForm';
 import PresseList from './pages/admin/PresseList';
 import PresseForm from './pages/admin/PresseForm';
 import Buchhaltung from './pages/admin/Buchhaltung';
+import CalendarManagement from './pages/admin/CalendarManagement';
 
 // Admin Sicherheit & Layout
 import ProtectedRoute from './components/admin/ProtectedRoute';
@@ -136,6 +138,11 @@ function App() {
               element={ <ProtectedRoute level="treasurer"><Buchhaltung /></ProtectedRoute> } 
             />
 
+            <Route
+              path="kalender"
+              element={ <ProtectedRoute level="admin"><CalendarManagement /></ProtectedRoute> }
+            />
+
           </Route> {/* Ende /admin */}
 
 
@@ -146,6 +153,7 @@ function App() {
           <Route path="/wir-uber-uns" element={<MainLayout><WirUberUns /></MainLayout>} />
           
           <Route path="/angebote" element={<MainLayout><Angebote /></MainLayout>} />
+          <Route path="/terminkalender" element={<MainLayout><Terminkalender /></MainLayout>} />
           <Route path="/nachbarschaftsboerse" element={<MainLayout><Nachbarschaftsboerse /></MainLayout>} />
           <Route path="/sprachtreffen" element={<MainLayout><Sprachtreffen /></MainLayout>} />
           <Route path="/ideenboerse" element={<MainLayout><Ideenboerse /></MainLayout>} />
