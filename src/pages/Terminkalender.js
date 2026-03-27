@@ -54,10 +54,10 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
     const isOccupied = entries.length > 0;
     const dayClasses = day.inCurrentMonth
         ? isOccupied
-            ? 'border-red-200 bg-red-50 hover:bg-red-100'
+            ? 'border-indigo-200 bg-indigo-50 hover:bg-indigo-100'
             : 'border-emerald-200 bg-emerald-50 hover:bg-emerald-100'
         : isOccupied
-            ? 'border-red-100 bg-red-50/60 text-gray-400 hover:bg-red-100/80'
+            ? 'border-indigo-100 bg-indigo-50/60 text-gray-400 hover:bg-indigo-100/80'
             : 'border-gray-200 bg-gray-50 text-gray-400 hover:bg-gray-100';
 
     return (
@@ -75,7 +75,7 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
                     </span>
                     <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            isOccupied ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'
+                            isOccupied ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'
                         }`}
                     >
                         {isOccupied ? 'belegt' : 'frei'}
@@ -234,11 +234,11 @@ export default function Terminkalender() {
                                 <div className="max-w-3xl">
                                     <h2 className="text-3xl font-bold text-rcDarkGray">Belegte und freie Tage auf einen Blick</h2>
                                     <p className="mt-3 text-gray-600">
-                                        Dieser Kalender zeigt ausschließlich die im separaten Kalender-Modul gepflegten Termine. Rot markierte Tage sind bereits belegt, grüne Tage sind derzeit noch frei.
+                                        Dieser Kalender zeigt ausschließlich die im separaten Kalender-Modul gepflegten Termine. Blau markierte Tage sind bereits belegt, grüne Tage sind derzeit noch frei.
                                     </p>
                                 </div>
                                 <div className="flex flex-wrap gap-3 text-sm font-semibold">
-                                    <span className="inline-flex items-center rounded-full bg-red-100 px-4 py-2 text-red-700">Rot = belegt</span>
+                                    <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-2 text-indigo-700">Blau = belegt</span>
                                     <span className="inline-flex items-center rounded-full bg-emerald-100 px-4 py-2 text-emerald-700">Grün = derzeit frei</span>
                                 </div>
                             </div>
@@ -247,7 +247,7 @@ export default function Terminkalender() {
                         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
                             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                                 <p className="text-sm text-gray-500">Belegte Tage im Monat</p>
-                                <p className="mt-2 text-3xl font-bold text-red-600">{occupiedDayCount}</p>
+                                <p className="mt-2 text-3xl font-bold text-indigo-600">{occupiedDayCount}</p>
                             </div>
                             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
                                 <p className="text-sm text-gray-500">Freie Tage im Monat</p>
