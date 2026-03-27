@@ -136,6 +136,61 @@ export default function EreignisForm() {
         }
     }, [id, isEditMode]);
 
+    const toLocalDateKey = (dateTimeValue) => {
+        if (!dateTimeValue) return null;
+        const [datePart] = String(dateTimeValue).split('T');
+        return datePart || null;
+    };
+
+    const toLocalTimeValue = (dateTimeValue) => {
+        if (!dateTimeValue) return null;
+        const [, timePart = ''] = String(dateTimeValue).split('T');
+        const hhmm = timePart.slice(0, 5);
+        return hhmm || null;
+    };
+
+    const syncEventToCalendar = async (eventId, eventPayload, originalDateTimeValue) => {
+        const entryDate = toLocalDateKey(originalDateTimeValue);
+        const startTime = toLocalTimeValue(originalDateTimeValue);
+
+        // Ereignis ohne Datum hat keinen Platz im Kalender.
+        if (!entryDate) {
+            const { error } = await supabase
+                .from('calendar_single_entries')
+                .delete()
+                .eq('source_event_id', Number(eventId));
+
+            if (error) {
+                throw error;
+            }
+            return;
+        }
+
+        const calendarPayload = {
+            source_type: 'ereignis',
+            source_event_id: Number(eventId),
+            title: eventPayload.title,
+            category: eventPayload.category || null,
+            location: eventPayload.location || null,
+            description: eventPayload.description || null,
+            entry_date: entryDate,
+            start_time: startTime,
+            end_time: null,
+            color: 'red',
+            is_public: eventPayload.is_public,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+        };
+
+        const { error } = await supabase
+            .from('calendar_single_entries')
+            .upsert(calendarPayload, { onConflict: 'source_event_id' });
+
+        if (error) {
+            throw error;
+        }
+    };
+
     // Formu gönderme (Kaydetme)
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -173,11 +228,17 @@ export default function EreignisForm() {
             setMessage(`Fehler beim Speichern: ${error.message}`);
             setLoading(false);
         } else {
-            setMessage('Ereignis erfolgreich gespeichert!');
-             const updatedDataForPdf = { ...eventData, id: savedEventId, created_at: currentEventDataForPdf?.created_at || new Date().toISOString() };
-             setCurrentEventDataForPdf(updatedDataForPdf);
-            setLoading(false);
-             setTimeout(() => { navigate('/admin/ereignisse'); }, 1500);
+            try {
+                await syncEventToCalendar(savedEventId, eventData, eventDate);
+                setMessage('Ereignis erfolgreich gespeichert und mit Kalender synchronisiert!');
+                const updatedDataForPdf = { ...eventData, id: savedEventId, created_at: currentEventDataForPdf?.created_at || new Date().toISOString() };
+                setCurrentEventDataForPdf(updatedDataForPdf);
+                setLoading(false);
+                setTimeout(() => { navigate('/admin/ereignisse'); }, 1500);
+            } catch (calendarError) {
+                setMessage(`Ereignis gespeichert, aber Kalender-Sync fehlgeschlagen: ${calendarError.message}`);
+                setLoading(false);
+            }
         }
     };
 

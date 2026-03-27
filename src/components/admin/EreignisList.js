@@ -82,6 +82,12 @@ export default function EreignisList({ pageInfo }) {
         if (error) {
             setMessage(`Fehler beim Löschen: ${error.message}`);
         } else {
+            // Verknüpften Kalendereintrag ebenfalls entfernen.
+            await supabase
+                .from('calendar_single_entries')
+                .delete()
+                .eq('source_event_id', Number(id));
+
             setMessage('Ereignis erfolgreich gelöscht.');
             // Liste im State aktualisieren
             setEreignisse(ereignisse.filter(e => e.id !== id));

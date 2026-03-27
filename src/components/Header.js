@@ -7,6 +7,7 @@ import { supabase } from '../supabaseClient'; // Supabase istemcisini import et
 import logoImage from '../assets/images/logo.jpg';
 import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
+import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
 
 // Kayan yazı bileşenini import ediyoruz
 import AnnouncementTicker from './AnnouncementTicker';
@@ -39,30 +40,69 @@ const Header = () => {
     const [announcements, setAnnouncements] = useState([]);
 
     useEffect(() => {
-        // YENİ: Öne çıkan gelecek etkinlikleri çek
-        const fetchFeaturedEvents = async () => {
-            const today = new Date().toISOString(); // Bugünün tarihi
+        const fetchTickerEntries = async () => {
+            const today = parseLocalDate(new Date());
+            const horizon = new Date(today);
+            horizon.setDate(horizon.getDate() + 30);
 
-            const { data, error } = await supabase
-                .from('ereignisse')
-                .select('title, event_date, location')
-                .eq('is_public', true)      // 1. Herkese açık olmalı
-                .eq('is_featured', true)    // 2. Öne çıkan olarak işaretlenmiş olmalı
-                .gte('event_date', today)   // 3. Tarihi gelecekte olmalı
-                .order('event_date', { ascending: true }) // 4. En yakın tarihli olan önce
-                .limit(3); // 5. En fazla 3 tane al
+            const todayKey = dateToKey(today);
+            const horizonKey = dateToKey(horizon);
 
-            if (error) {
-                console.error("Fehler beim Laden der Ticker-Ankündigungen:", error);
+            const [recurringResponse, singleResponse] = await Promise.all([
+                supabase
+                    .from('calendar_recurring_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('end_date', todayKey)
+                    .lte('start_date', horizonKey),
+                supabase
+                    .from('calendar_single_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('entry_date', todayKey)
+                    .lte('entry_date', horizonKey),
+            ]);
+
+            if (recurringResponse.error || singleResponse.error) {
+                console.error("Fehler beim Laden der Ticker-Ankündigungen:", recurringResponse.error || singleResponse.error);
                 return;
             }
 
-            // Veriyi istediğimiz kısa metin formatına dönüştür
-            const formattedAnnouncements = data.map(event => {
-                const date = formatTickerDate(event.event_date);
-                let text = `${date}: ${event.title}`;
-                if (event.location) {
-                    text += ` - ${event.location}`;
+            const recurringOccurrences = expandRecurringEntries(recurringResponse.data || [], today, horizon).map((entry) => ({
+                dateKey: entry.dateKey,
+                title: entry.title,
+                location: entry.location,
+                startTime: entry.startTime,
+            }));
+
+            const singleOccurrences = (singleResponse.data || []).map((entry) => ({
+                dateKey: entry.entry_date,
+                title: entry.title,
+                location: entry.location,
+                startTime: entry.start_time,
+            }));
+
+            const combined = [...recurringOccurrences, ...singleOccurrences]
+                .sort((left, right) => {
+                    if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
+                    const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';
+                    const rightTime = right.startTime ? String(right.startTime).slice(0, 5) : '99:99';
+                    if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+                    return String(left.title).localeCompare(String(right.title), 'de');
+                })
+                .slice(0, 3);
+
+            const formattedAnnouncements = combined.map((entry) => {
+                const date = formatTickerDate(entry.dateKey);
+                const time = entry.startTime ? `${String(entry.startTime).slice(0, 5)} Uhr` : null;
+                let text = `${date}: ${entry.title}`;
+                if (time) {
+                    text += ` (${time})`;
+                }
+                if (entry.location) {
+                    text += ` - ${entry.location}`;
                 }
                 return text;
             });
@@ -70,7 +110,7 @@ const Header = () => {
             setAnnouncements(formattedAnnouncements);
         };
 
-        fetchFeaturedEvents();
+        fetchTickerEntries();
     }, []); // Sayfa yüklendiğinde bir kez çalışır
     // --- BİTİŞ: Dinamik Veri Çekme ---
 

@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS calendar_recurring_entries (
 -- Einzeltermine (z.B. ein Ausflug oder Sondertermin an einem konkreten Tag)
 CREATE TABLE IF NOT EXISTS calendar_single_entries (
   id BIGSERIAL PRIMARY KEY,
+  source_type VARCHAR(30),
+  source_event_id BIGINT UNIQUE,
   title VARCHAR(255) NOT NULL,
   category VARCHAR(100),
   location TEXT,
@@ -52,3 +54,6 @@ CREATE INDEX IF NOT EXISTS idx_calendar_single_entry_date
 
 CREATE INDEX IF NOT EXISTS idx_calendar_single_public_active
   ON calendar_single_entries(is_public, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_single_source_event
+  ON calendar_single_entries(source_event_id);

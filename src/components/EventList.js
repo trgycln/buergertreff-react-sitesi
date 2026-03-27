@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'; // İkonlar eklendi
 import fallbackImage from '../assets/images/ana_logo.jpg'; // Varsayılan resim eklendi
 import ImageCarousel from './ImageCarousel';
+import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
 
 // Tarih formatlama (Liste için kısa format)
 const formatListDate = (dateString) => {
@@ -24,8 +25,38 @@ const formatListDate = (dateString) => {
     }
 };
 
+const normalizeCategory = (value = '') => {
+    const trimmed = String(value || '').trim();
+    if (trimmed === 'Offener Treff') return 'Offene Treff';
+    if (trimmed === 'OffeneTreff') return 'Offene Treff';
+    return trimmed;
+};
+
+const formatCategoryLabel = (value = '') => {
+    if (normalizeCategory(value) === 'Offene Treff') return 'Offener Treff';
+    return value;
+};
+
+const formatUpcomingDate = (dateKey, startTime) => {
+    if (!dateKey) return '';
+
+    const date = parseLocalDate(dateKey);
+    if (!date) return dateKey;
+
+    const dateLabel = date.toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+
+    if (!startTime) return dateLabel;
+    return `${dateLabel}, ${String(startTime).slice(0, 5)} Uhr`;
+};
+
 const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingEvents = 3 }) => {
     const [events, setEvents] = useState([]);
+    const [recurringEntries, setRecurringEntries] = useState([]);
+    const [singleEntries, setSingleEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -33,18 +64,44 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
     useEffect(() => {
         const fetchEvents = async () => {
             setLoading(true);
-            
-            const { data, error } = await supabase
-                .from('ereignisse')
-                .select('*')
-                .eq('is_public', true) // Sadece kamuya açık olanlar
-                .order('event_date', { ascending: false }); 
 
-            if (error) {
-                console.error("Fehler beim Abrufen der Ereignisse:", error);
+            const today = parseLocalDate(new Date());
+            const horizon = new Date(today);
+            horizon.setMonth(horizon.getMonth() + 4);
+            const todayKey = dateToKey(today);
+            const horizonKey = dateToKey(horizon);
+            
+            const [eventsResponse, recurringResponse, singleResponse] = await Promise.all([
+                supabase
+                    .from('ereignisse')
+                    .select('*')
+                    .eq('is_public', true)
+                    .order('event_date', { ascending: false }),
+                supabase
+                    .from('calendar_recurring_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('end_date', todayKey)
+                    .lte('start_date', horizonKey)
+                    .order('start_date', { ascending: true }),
+                supabase
+                    .from('calendar_single_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('entry_date', todayKey)
+                    .lte('entry_date', horizonKey)
+                    .order('entry_date', { ascending: true }),
+            ]);
+
+            if (eventsResponse.error || recurringResponse.error || singleResponse.error) {
+                console.error("Fehler beim Abrufen der Veranstaltungsdaten:", eventsResponse.error || recurringResponse.error || singleResponse.error);
                 setError("Die Veranstaltungen konnten nicht geladen werden.");
             } else {
-                setEvents(data);
+                setEvents(eventsResponse.data || []);
+                setRecurringEntries(recurringResponse.data || []);
+                setSingleEntries(singleResponse.data || []);
             }
             setLoading(false);
         };
@@ -53,18 +110,59 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
 
     // Etkinlikleri filtrele ve "Gelecek" / "Geçmiş" olarak ayır
     const { upcomingEvents, pastEvents } = useMemo(() => {
-        const today = new Date().setHours(0, 0, 0, 0); 
+        const today = new Date().setHours(0, 0, 0, 0);
+        const horizon = new Date();
+        horizon.setMonth(horizon.getMonth() + 4);
+        const normalizedFilter = normalizeCategory(filterCategory);
 
-        const filtered = events.filter(event => {
+        const filteredArchive = events.filter(event => {
             if (filterCategory === 'Alle') return true;
-            return event.category === filterCategory;
+            return normalizeCategory(event.category) === normalizedFilter;
         });
 
-        const upcoming = filtered
-            .filter(e => !e.event_date || new Date(e.event_date) >= today)
-            .sort((a, b) => new Date(a.event_date) - new Date(b.event_date)); 
+        const filteredRecurring = recurringEntries.filter((entry) => {
+            if (filterCategory === 'Alle') return true;
+            return normalizeCategory(entry.category) === normalizedFilter;
+        });
 
-        const past = filtered
+        const filteredSingle = singleEntries.filter((entry) => {
+            if (filterCategory === 'Alle') return true;
+            return normalizeCategory(entry.category) === normalizedFilter;
+        });
+
+        const recurringOccurrences = expandRecurringEntries(filteredRecurring, parseLocalDate(new Date()), parseLocalDate(horizon)).map((item) => ({
+            id: item.id,
+            title: item.title,
+            category: item.category,
+            location: item.location,
+            description: item.description,
+            dateKey: item.dateKey,
+            startTime: item.startTime,
+            detailId: null,
+        }));
+
+        const singleOccurrences = filteredSingle.map((entry) => ({
+            id: `single-${entry.id}`,
+            title: entry.title,
+            category: entry.category,
+            location: entry.location,
+            description: entry.description,
+            dateKey: entry.entry_date,
+            startTime: entry.start_time,
+            detailId: entry.source_event_id || null,
+        }));
+
+        const upcoming = [...recurringOccurrences, ...singleOccurrences]
+            .filter((entry) => entry.dateKey && parseLocalDate(entry.dateKey) >= parseLocalDate(new Date()))
+            .sort((left, right) => {
+                if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
+                const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';
+                const rightTime = right.startTime ? String(right.startTime).slice(0, 5) : '99:99';
+                if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+                return String(left.title).localeCompare(String(right.title), 'de');
+            });
+
+        const past = filteredArchive
             .filter(e => e.event_date && new Date(e.event_date) < today)
             .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); 
 
@@ -72,7 +170,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             upcomingEvents: upcoming.slice(0, maxUpcomingEvents),
             pastEvents: past,
         };
-    }, [events, filterCategory, maxUpcomingEvents]); 
+    }, [events, recurringEntries, singleEntries, filterCategory, maxUpcomingEvents]); 
 
     const latestPastEventWithPhotos = useMemo(() => {
         return pastEvents.find(
@@ -169,6 +267,65 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
         );
     };
 
+    const renderUpcomingList = (eventList, noEventsMessage) => {
+        if (eventList.length === 0) {
+            return <p className="text-gray-500 italic">{noEventsMessage}</p>;
+        }
+
+        return (
+            <ul className="space-y-4 divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white p-4">
+                {eventList.map((event) => {
+                    const content = (
+                        <>
+                            <div className="flex-grow">
+                                {event.category && (
+                                    <span className="text-xs font-semibold text-rcRed uppercase tracking-wide">
+                                        {formatCategoryLabel(event.category)}
+                                    </span>
+                                )}
+                                <h3 className="text-lg font-semibold text-rcDarkGray mb-1">
+                                    {event.title}
+                                </h3>
+
+                                <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 gap-x-4 gap-y-1">
+                                    <span className="flex items-center">
+                                        <FaRegCalendarAlt className="mr-1.5" />
+                                        {formatUpcomingDate(event.dateKey, event.startTime)}
+                                    </span>
+                                    {event.location && (
+                                        <span className="flex items-center">
+                                            <FaMapMarkerAlt className="mr-1.5" />
+                                            {event.location}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {event.description && (
+                                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
+                                )}
+                            </div>
+                            {event.detailId && (
+                                <span className="text-sm font-semibold text-rcBlue whitespace-nowrap">Details &rarr;</span>
+                            )}
+                        </>
+                    );
+
+                    return (
+                        <li key={event.id} className="pt-4 first:pt-0">
+                            {event.detailId ? (
+                                <Link to={`/angebote/${event.detailId}`} className="flex items-start justify-between gap-4 group hover:bg-gray-50 rounded-md p-2 -m-2">
+                                    {content}
+                                </Link>
+                            ) : (
+                                <div className="flex items-start justify-between gap-4 p-2">{content}</div>
+                            )}
+                        </li>
+                    );
+                })}
+            </ul>
+        );
+    };
+
     return (
         <div className="space-y-16">
             {/* --- BÖLÜM 1: GELECEK ETKİNLİKLER (Kart olarak kalır) --- */}
@@ -179,7 +336,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
                     <div className="xl:col-span-2">
-                        {renderEventGrid(
+                        {renderUpcomingList(
                             upcomingEvents,
                             "Zurzeit sind keine Veranstaltungen in dieser Kategorie geplant."
                         )}
