@@ -63,6 +63,31 @@ export const formatWeekdayList = (weekdays = []) => {
         .join(', ');
 };
 
+const normalizeRecurrenceUnit = (value) => (String(value || '').toLowerCase() === 'month' ? 'month' : 'week');
+
+const normalizeRecurrenceInterval = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 1) return 1;
+    return Math.floor(parsed);
+};
+
+const getMonthsBetween = (startDate, endDate) => {
+    return (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+};
+
+export const formatRecurrenceRule = (entry = {}) => {
+    const recurrenceUnit = normalizeRecurrenceUnit(entry.recurrence_unit);
+    const recurrenceInterval = normalizeRecurrenceInterval(entry.recurrence_interval);
+
+    if (recurrenceUnit === 'month') {
+        return recurrenceInterval === 1 ? 'Monatlich' : `Alle ${recurrenceInterval} Monate`;
+    }
+
+    const weekdayLabel = formatWeekdayList(entry.weekdays || []);
+    const intervalLabel = recurrenceInterval === 1 ? 'Wöchentlich' : `Alle ${recurrenceInterval} Wochen`;
+    return weekdayLabel ? `${intervalLabel} (${weekdayLabel})` : intervalLabel;
+};
+
 export const getCalendarGridDays = (currentMonth) => {
     const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
@@ -84,6 +109,7 @@ export const getCalendarGridDays = (currentMonth) => {
 
 export const expandRecurringEntries = (seriesEntries = [], rangeStart, rangeEnd) => {
     const occurrences = [];
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
     seriesEntries.forEach((entry) => {
         const entryStart = parseLocalDate(entry.start_date);
@@ -94,12 +120,33 @@ export const expandRecurringEntries = (seriesEntries = [], rangeStart, rangeEnd)
         }
 
         const weekdays = Array.isArray(entry.weekdays) ? entry.weekdays.map(Number) : [];
+        const recurrenceUnit = normalizeRecurrenceUnit(entry.recurrence_unit);
+        const recurrenceInterval = normalizeRecurrenceInterval(entry.recurrence_interval);
         const effectiveStart = entryStart > rangeStart ? new Date(entryStart) : new Date(rangeStart);
         const effectiveEnd = entryEnd < rangeEnd ? new Date(entryEnd) : new Date(rangeEnd);
+        const anchorDayOfMonth = entryStart.getDate();
 
         for (let cursor = new Date(effectiveStart); cursor <= effectiveEnd; cursor.setDate(cursor.getDate() + 1)) {
-            if (!weekdays.includes(cursor.getDay())) {
-                continue;
+            if (recurrenceUnit === 'month') {
+                const monthsElapsed = getMonthsBetween(entryStart, cursor);
+
+                if (monthsElapsed < 0 || monthsElapsed % recurrenceInterval !== 0) {
+                    continue;
+                }
+
+                if (cursor.getDate() !== anchorDayOfMonth) {
+                    continue;
+                }
+            } else {
+                if (!weekdays.includes(cursor.getDay())) {
+                    continue;
+                }
+
+                const daysElapsed = Math.floor((cursor.getTime() - entryStart.getTime()) / millisecondsPerDay);
+                const weeksElapsed = Math.floor(daysElapsed / 7);
+                if (weeksElapsed % recurrenceInterval !== 0) {
+                    continue;
+                }
             }
 
             const dateKey = dateToKey(cursor);

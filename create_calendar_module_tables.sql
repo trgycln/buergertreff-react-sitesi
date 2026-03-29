@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS calendar_recurring_entries (
   description TEXT,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
+  recurrence_unit VARCHAR(10) NOT NULL DEFAULT 'week',
+  recurrence_interval SMALLINT NOT NULL DEFAULT 1,
   weekdays SMALLINT[] NOT NULL,
   start_time TIME,
   end_time TIME,
@@ -20,6 +22,8 @@ CREATE TABLE IF NOT EXISTS calendar_recurring_entries (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT chk_calendar_recurring_date_range CHECK (end_date >= start_date),
+  CONSTRAINT chk_calendar_recurring_recurrence_unit CHECK (recurrence_unit IN ('week', 'month')),
+  CONSTRAINT chk_calendar_recurring_recurrence_interval CHECK (recurrence_interval >= 1),
   CONSTRAINT chk_calendar_recurring_weekdays CHECK (array_length(weekdays, 1) >= 1)
 );
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaCalendarAlt, FaEdit, FaEye, FaPlus, FaTrashAlt } from 'react-icons/fa';
 import { supabase } from '../../supabaseClient';
-import { formatDateLabel, formatTimeRange, formatWeekdayList, parseLocalDate, WEEKDAY_OPTIONS } from '../../utils/calendarUtils';
+import { formatDateLabel, formatRecurrenceRule, formatTimeRange, parseLocalDate, WEEKDAY_OPTIONS } from '../../utils/calendarUtils';
 
 const recurringInitialState = {
     title: '',
@@ -11,6 +11,8 @@ const recurringInitialState = {
     description: '',
     startDate: '',
     endDate: '',
+    recurrenceUnit: 'week',
+    recurrenceInterval: 1,
     weekdays: [1],
     startTime: '',
     endTime: '',
@@ -56,6 +58,12 @@ const categoryOptions = [
 ];
 
 const normalizeTime = (value) => (value ? String(value).slice(0, 5) : '');
+
+const normalizeInterval = (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 1) return 1;
+    return Math.floor(parsed);
+};
 
 const MessageBanner = ({ message }) => {
     if (!message?.text) return null;
@@ -190,10 +198,19 @@ export default function CalendarManagement() {
     const handleRecurringSubmit = async (event) => {
         event.preventDefault();
 
-        if (recurringForm.weekdays.length === 0) {
+        if (recurringForm.recurrenceUnit === 'week' && recurringForm.weekdays.length === 0) {
             setMessage({ type: 'error', text: 'Bitte mindestens einen Wochentag auswählen.' });
             return;
         }
+
+        const normalizedInterval = normalizeInterval(recurringForm.recurrenceInterval);
+        const anchorDate = parseLocalDate(recurringForm.startDate);
+        const fallbackWeekday = anchorDate ? anchorDate.getDay() : 1;
+        const weekdays = recurringForm.recurrenceUnit === 'month'
+            ? recurringForm.weekdays.length > 0
+                ? recurringForm.weekdays
+                : [fallbackWeekday]
+            : recurringForm.weekdays;
 
         setSubmitting(true);
         setMessage(null);
@@ -205,7 +222,9 @@ export default function CalendarManagement() {
             description: recurringForm.description.trim() || null,
             start_date: recurringForm.startDate,
             end_date: recurringForm.endDate,
-            weekdays: recurringForm.weekdays,
+            recurrence_unit: recurringForm.recurrenceUnit,
+            recurrence_interval: normalizedInterval,
+            weekdays,
             start_time: recurringForm.startTime || null,
             end_time: recurringForm.endTime || null,
             color: recurringForm.color,
@@ -277,6 +296,8 @@ export default function CalendarManagement() {
             description: entry.description || '',
             startDate: entry.start_date || '',
             endDate: entry.end_date || '',
+            recurrenceUnit: entry.recurrence_unit === 'month' ? 'month' : 'week',
+            recurrenceInterval: normalizeInterval(entry.recurrence_interval),
             weekdays: Array.isArray(entry.weekdays) ? entry.weekdays.map(Number) : [],
             startTime: normalizeTime(entry.start_time),
             endTime: normalizeTime(entry.end_time),
@@ -391,7 +412,7 @@ export default function CalendarManagement() {
                                         {editingRecurringId ? 'Regelmäßigen Termin bearbeiten' : 'Neuen regelmäßigen Termin anlegen'}
                                     </h3>
                                     <p className="text-sm text-gray-500">
-                                        Beispiel: jeden Dienstag und Donnerstag, 10:00 bis 13:00 Uhr.
+                                        Beispiele: wöchentlich montags, alle 2 Wochen dienstags oder monatlich am Startdatum.
                                     </p>
                                 </div>
                                 {editingRecurringId && (
@@ -454,6 +475,23 @@ export default function CalendarManagement() {
                                     onChange={(event) => handleRecurringChange('endDate', event.target.value)}
                                     required
                                 />
+                                <FormSelect
+                                    label="Wiederholung"
+                                    value={recurringForm.recurrenceUnit}
+                                    onChange={(event) => handleRecurringChange('recurrenceUnit', event.target.value)}
+                                >
+                                    <option value="week">Wöchentlich</option>
+                                    <option value="month">Monatlich</option>
+                                </FormSelect>
+                                <FormInput
+                                    label="Intervall"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    value={recurringForm.recurrenceInterval}
+                                    onChange={(event) => handleRecurringChange('recurrenceInterval', event.target.value)}
+                                    required
+                                />
                                 <FormInput
                                     label="Beginn"
                                     type="time"
@@ -468,22 +506,28 @@ export default function CalendarManagement() {
                                 />
                             </div>
 
-                            <div>
-                                <p className="block text-sm font-medium text-rcDarkGray">Wochentage</p>
-                                <div className="mt-2 flex flex-wrap gap-3">
-                                    {WEEKDAY_OPTIONS.map((option) => (
-                                        <label key={option.value} className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700">
-                                            <input
-                                                type="checkbox"
-                                                checked={recurringForm.weekdays.includes(option.value)}
-                                                onChange={() => toggleRecurringWeekday(option.value)}
-                                                className="h-4 w-4 rounded border-gray-300 text-rcBlue focus:ring-rcBlue"
-                                            />
-                                            {option.longLabel}
-                                        </label>
-                                    ))}
+                            {recurringForm.recurrenceUnit === 'week' ? (
+                                <div>
+                                    <p className="block text-sm font-medium text-rcDarkGray">Wochentage</p>
+                                    <div className="mt-2 flex flex-wrap gap-3">
+                                        {WEEKDAY_OPTIONS.map((option) => (
+                                            <label key={option.value} className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={recurringForm.weekdays.includes(option.value)}
+                                                    onChange={() => toggleRecurringWeekday(option.value)}
+                                                    className="h-4 w-4 rounded border-gray-300 text-rcBlue focus:ring-rcBlue"
+                                                />
+                                                {option.longLabel}
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                                    Monatliche Wiederholung erfolgt am Kalendertag des Startdatums.
+                                </div>
+                            )}
 
                             <FormTextarea
                                 label="Beschreibung"
@@ -555,7 +599,7 @@ export default function CalendarManagement() {
                                                     <div className="font-medium text-rcDarkGray">{entry.title}</div>
                                                     <div className="text-xs text-gray-500">{entry.category || 'Ohne Kategorie'}</div>
                                                 </td>
-                                                <td className="px-4 py-4 align-top text-sm text-gray-700">{formatWeekdayList(entry.weekdays)}</td>
+                                                <td className="px-4 py-4 align-top text-sm text-gray-700">{formatRecurrenceRule(entry)}</td>
                                                 <td className="px-4 py-4 align-top text-sm text-gray-700">
                                                     {entry.start_date} bis {entry.end_date}
                                                 </td>
