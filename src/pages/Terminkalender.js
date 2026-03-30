@@ -65,7 +65,7 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
             <button
                 type="button"
                 onClick={onClick}
-                className={`group relative min-h-[112px] w-full rounded-xl border p-2 text-left transition ${dayClasses} ${
+                className={`group relative min-h-[96px] w-full rounded-xl border p-2 text-left transition sm:min-h-[112px] ${dayClasses} ${
                     isSelected ? 'ring-2 ring-rcBlue' : ''
                 } ${day.isToday ? 'shadow-[inset_0_0_0_1px_#1f5ea8]' : ''}`}
             >
@@ -293,12 +293,14 @@ export default function Terminkalender() {
                                     </div>
                                 </div>
 
-                                <div className="mb-3 grid grid-cols-7 gap-2">
+                                <div className="-mx-1 overflow-x-auto pb-1">
+                                    <div className="mb-3 grid min-w-[700px] grid-cols-7 gap-2 px-1">
                                     {WEEKDAY_OPTIONS.map((weekday) => (
                                         <div key={weekday.value} className="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
                                             {weekday.label}
                                         </div>
                                     ))}
+                                    </div>
                                 </div>
 
                                 {loading ? (
@@ -310,16 +312,18 @@ export default function Terminkalender() {
                                         {error}
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-7 gap-2">
-                                        {gridDays.map((day) => (
-                                            <DayCell
-                                                key={day.key}
-                                                day={day}
-                                                entries={entriesByDay[day.key] || []}
-                                                isSelected={selectedDateKey === day.key}
-                                                onClick={() => handleDayClick(day)}
-                                            />
-                                        ))}
+                                    <div className="-mx-1 overflow-x-auto pb-1">
+                                        <div className="grid min-w-[700px] grid-cols-7 gap-2 px-1">
+                                            {gridDays.map((day) => (
+                                                <DayCell
+                                                    key={day.key}
+                                                    day={day}
+                                                    entries={entriesByDay[day.key] || []}
+                                                    isSelected={selectedDateKey === day.key}
+                                                    onClick={() => handleDayClick(day)}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
