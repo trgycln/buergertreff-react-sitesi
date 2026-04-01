@@ -53,6 +53,99 @@ const formatUpcomingDate = (dateKey, startTime) => {
     return `${dateLabel}, ${String(startTime).slice(0, 5)} Uhr`;
 };
 
+const normalizeText = (value = '') => String(value || '').trim().toLocaleLowerCase('de-DE');
+
+const getDescriptionLookupKey = (title = '', category = '') => {
+    return `${normalizeText(title)}|${normalizeText(category)}`;
+};
+
+const normalizeTitleForMatch = (value = '') => {
+    return normalizeText(value)
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const findDescriptionBySimilarity = (archiveEvents = [], title = '', category = '') => {
+    const sourceTitle = normalizeTitleForMatch(title);
+    const sourceCategory = normalizeCategory(category);
+    if (!sourceTitle) return '';
+
+    const sourceTokens = sourceTitle.split(' ').filter(Boolean);
+    let best = { score: 0, description: '' };
+
+    archiveEvents.forEach((event) => {
+        const description = String(event.description || '').trim();
+        if (!description) return;
+        if (normalizeCategory(event.category) !== sourceCategory) return;
+
+        const targetTitle = normalizeTitleForMatch(event.title);
+        if (!targetTitle) return;
+
+        let score = 0;
+        if (targetTitle === sourceTitle) score += 100;
+        if (targetTitle.includes(sourceTitle) || sourceTitle.includes(targetTitle)) score += 40;
+
+        const targetTokens = targetTitle.split(' ').filter(Boolean);
+        const overlaps = sourceTokens.filter((token) => targetTokens.includes(token)).length;
+        score += overlaps * 5;
+
+        if (score > best.score) {
+            best = { score, description };
+        }
+    });
+
+    return best.score >= 10 ? best.description : '';
+};
+
+const pickDescription = (primary, fallback) => {
+    const primaryText = String(primary || '').trim();
+    if (primaryText) return primary;
+    return String(fallback || '').trim() ? fallback : '';
+};
+
+const dedupeUpcomingEvents = (items = []) => {
+    const deduped = new Map();
+
+    const score = (item) => {
+        let value = 0;
+        if (String(item.description || '').trim()) value += 3;
+        if (item.detailId) value += 2;
+        return value;
+    };
+
+    items.forEach((item) => {
+        const dayKey = item.dateKey || '';
+        const timeKey = item.startTime ? String(item.startTime).slice(0, 5) : '';
+        const titleKey = normalizeText(item.title);
+        const locationKey = normalizeText(item.location);
+        const dedupeKey = `${dayKey}|${timeKey}|${titleKey}|${locationKey}`;
+        const existing = deduped.get(dedupeKey);
+
+        if (!existing) {
+            deduped.set(dedupeKey, item);
+            return;
+        }
+
+        const existingScore = score(existing);
+        const candidateScore = score(item);
+        const preferred = candidateScore > existingScore ? item : existing;
+        const secondary = preferred === item ? existing : item;
+
+        deduped.set(dedupeKey, {
+            ...preferred,
+            detailId: preferred.detailId || secondary.detailId || null,
+            description: String(preferred.description || '').trim()
+                ? preferred.description
+                : (secondary.description || ''),
+            category: preferred.category || secondary.category || null,
+            location: preferred.location || secondary.location || null,
+        });
+    });
+
+    return Array.from(deduped.values());
+};
+
 const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingEvents = 3 }) => {
     const [events, setEvents] = useState([]);
     const [recurringEntries, setRecurringEntries] = useState([]);
@@ -120,6 +213,19 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             return normalizeCategory(event.category) === normalizedFilter;
         });
 
+        const archiveById = new Map();
+        const archiveDescriptionByKey = new Map();
+
+        filteredArchive.forEach((event) => {
+            archiveById.set(event.id, event);
+
+            if (!String(event.description || '').trim()) return;
+            const key = getDescriptionLookupKey(event.title, event.category);
+            if (!archiveDescriptionByKey.has(key)) {
+                archiveDescriptionByKey.set(key, event.description);
+            }
+        });
+
         const filteredRecurring = recurringEntries.filter((entry) => {
             if (filterCategory === 'Alle') return true;
             return normalizeCategory(entry.category) === normalizedFilter;
@@ -130,29 +236,59 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             return normalizeCategory(entry.category) === normalizedFilter;
         });
 
-        const recurringOccurrences = expandRecurringEntries(filteredRecurring, parseLocalDate(new Date()), parseLocalDate(horizon)).map((item) => ({
+        const archiveUpcoming = filteredArchive
+            .filter((event) => event.event_date && new Date(event.event_date) >= today)
+            .map((event) => {
+                const parsedDate = new Date(event.event_date);
+                return {
+                    id: `event-${event.id}`,
+                    title: event.title,
+                    category: event.category,
+                    location: event.location,
+                    description: event.description,
+                    dateKey: dateToKey(parsedDate),
+                    startTime: String(parsedDate.toTimeString()).slice(0, 5),
+                    detailId: event.id,
+                };
+            });
+
+        const recurringOccurrences = expandRecurringEntries(filteredRecurring, parseLocalDate(new Date()), parseLocalDate(horizon)).map((item) => {
+            const directDescription = archiveDescriptionByKey.get(getDescriptionLookupKey(item.title, item.category));
+            const similarityDescription = findDescriptionBySimilarity(filteredArchive, item.title, item.category);
+
+            return {
             id: item.id,
             title: item.title,
             category: item.category,
             location: item.location,
-            description: item.description,
+            description: pickDescription(item.description, pickDescription(directDescription, similarityDescription)),
             dateKey: item.dateKey,
             startTime: item.startTime,
             detailId: null,
-        }));
+            };
+        });
 
-        const singleOccurrences = filteredSingle.map((entry) => ({
+        const singleOccurrences = filteredSingle.map((entry) => {
+            const sourceDescription = archiveById.get(entry.source_event_id)?.description;
+            const directDescription = archiveDescriptionByKey.get(getDescriptionLookupKey(entry.title, entry.category));
+            const similarityDescription = findDescriptionBySimilarity(filteredArchive, entry.title, entry.category);
+
+            return {
             id: `single-${entry.id}`,
             title: entry.title,
             category: entry.category,
             location: entry.location,
-            description: entry.description,
+            description: pickDescription(
+                entry.description,
+                pickDescription(sourceDescription, pickDescription(directDescription, similarityDescription))
+            ),
             dateKey: entry.entry_date,
             startTime: entry.start_time,
             detailId: entry.source_event_id || null,
-        }));
+            };
+        });
 
-        const upcoming = [...recurringOccurrences, ...singleOccurrences]
+        const upcoming = dedupeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
             .filter((entry) => entry.dateKey && parseLocalDate(entry.dateKey) >= parseLocalDate(new Date()))
             .sort((left, right) => {
                 if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
@@ -301,7 +437,10 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                                 </div>
 
                                 {event.description && (
-                                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
+                                    <div className="mt-3 rounded-lg bg-gray-50 border border-gray-200 p-3">
+                                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Beschreibung</p>
+                                        <p className="text-sm leading-6 text-gray-700 whitespace-pre-wrap line-clamp-4">{event.description}</p>
+                                    </div>
                                 )}
                             </div>
                             {event.detailId && (

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import ImageCarousel from './ImageCarousel';
+import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
 
 const formatDate = (dateString) => {
     if (!dateString) return 'Datum folgt';
@@ -20,24 +21,107 @@ const formatDate = (dateString) => {
     }
 };
 
+const formatUpcomingDate = (event) => {
+    if (event.dateKey) {
+        const date = parseLocalDate(event.dateKey);
+        if (!date) return event.dateKey;
+
+        const dateLabel = date.toLocaleDateString('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        });
+
+        if (!event.startTime) return dateLabel;
+        return `${dateLabel}, ${String(event.startTime).slice(0, 5)} Uhr`;
+    }
+
+    return formatDate(event.eventDate);
+};
+
+const normalizeText = (value = '') => String(value || '').trim().toLocaleLowerCase('de-DE');
+
+const getEventDayKey = (event) => {
+    if (event.dateKey) return event.dateKey;
+    if (!event.eventDate) return '';
+    return dateToKey(new Date(event.eventDate));
+};
+
+const dedupeUpcomingEvents = (items = []) => {
+    const deduped = new Map();
+
+    items.forEach((item) => {
+        const dayKey = getEventDayKey(item);
+        const timeKey = item.startTime ? String(item.startTime).slice(0, 5) : '';
+        const titleKey = normalizeText(item.title);
+        const locationKey = normalizeText(item.location);
+        const dedupeKey = `${dayKey}|${timeKey}|${titleKey}|${locationKey}`;
+        const existing = deduped.get(dedupeKey);
+
+        if (!existing) {
+            deduped.set(dedupeKey, item);
+            return;
+        }
+
+        if (!existing.linkTo && item.linkTo) {
+            deduped.set(dedupeKey, item);
+        }
+    });
+
+    return Array.from(deduped.values());
+};
+
 const AktuellesTeaser = () => {
     const [events, setEvents] = useState([]);
+    const [recurringEntries, setRecurringEntries] = useState([]);
+    const [singleEntries, setSingleEntries] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchEvents = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('ereignisse')
-                .select('*')
-                .eq('is_public', true)
-                .order('event_date', { ascending: false });
+            const today = parseLocalDate(new Date());
+            const horizon = new Date(today);
+            horizon.setMonth(horizon.getMonth() + 4);
+            const todayKey = dateToKey(today);
+            const horizonKey = dateToKey(horizon);
 
-            if (error) {
-                console.error('Aktuelles konnte nicht geladen werden:', error);
+            const [eventsResponse, recurringResponse, singleResponse] = await Promise.all([
+                supabase
+                    .from('ereignisse')
+                    .select('*')
+                    .eq('is_public', true)
+                    .order('event_date', { ascending: false }),
+                supabase
+                    .from('calendar_recurring_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('end_date', todayKey)
+                    .lte('start_date', horizonKey)
+                    .order('start_date', { ascending: true }),
+                supabase
+                    .from('calendar_single_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('entry_date', todayKey)
+                    .lte('entry_date', horizonKey)
+                    .order('entry_date', { ascending: true }),
+            ]);
+
+            if (eventsResponse.error || recurringResponse.error || singleResponse.error) {
+                console.error(
+                    'Aktuelles konnte nicht geladen werden:',
+                    eventsResponse.error || recurringResponse.error || singleResponse.error
+                );
                 setEvents([]);
+                setRecurringEntries([]);
+                setSingleEntries([]);
             } else {
-                setEvents(data || []);
+                setEvents(eventsResponse.data || []);
+                setRecurringEntries(recurringResponse.data || []);
+                setSingleEntries(singleResponse.data || []);
             }
 
             setLoading(false);
@@ -48,10 +132,53 @@ const AktuellesTeaser = () => {
 
     const { upcoming, latestWithPhotos } = useMemo(() => {
         const today = new Date().setHours(0, 0, 0, 0);
+        const rangeStart = parseLocalDate(new Date());
+        const rangeEnd = new Date(rangeStart);
+        rangeEnd.setMonth(rangeEnd.getMonth() + 4);
 
-        const upcomingEvents = events
+        const upcomingFromEvents = events
             .filter((e) => !e.event_date || new Date(e.event_date) >= today)
-            .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
+            .map((e) => ({
+                id: `event-${e.id}`,
+                title: e.title,
+                location: e.location,
+                description: e.description,
+                eventDate: e.event_date,
+                startTime: e.event_date ? String(new Date(e.event_date).toTimeString()).slice(0, 5) : null,
+                linkTo: `/angebote/${e.id}`,
+                sortKey: e.event_date ? new Date(e.event_date).getTime() : Number.MAX_SAFE_INTEGER,
+            }));
+
+        const upcomingFromRecurring = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd).map((entry) => ({
+            id: entry.id,
+            title: entry.title,
+            location: entry.location,
+            description: entry.description,
+            dateKey: entry.dateKey,
+            startTime: entry.startTime,
+            linkTo: null,
+            sortKey: parseLocalDate(entry.dateKey)?.getTime() || Number.MAX_SAFE_INTEGER,
+        }));
+
+        const upcomingFromSingle = singleEntries.map((entry) => ({
+            id: `single-${entry.id}`,
+            title: entry.title,
+            location: entry.location,
+            description: entry.description,
+            dateKey: entry.entry_date,
+            startTime: entry.start_time,
+            linkTo: entry.source_event_id ? `/angebote/${entry.source_event_id}` : null,
+            sortKey: parseLocalDate(entry.entry_date)?.getTime() || Number.MAX_SAFE_INTEGER,
+        }));
+
+        const upcomingEvents = dedupeUpcomingEvents([...upcomingFromEvents, ...upcomingFromRecurring, ...upcomingFromSingle])
+            .sort((a, b) => {
+                if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
+                const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
+                const rightTime = b.startTime ? String(b.startTime).slice(0, 5) : '99:99';
+                if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+                return String(a.title || '').localeCompare(String(b.title || ''), 'de');
+            })
             .slice(0, 3);
 
         const latestPastWithPhotos = events
@@ -63,7 +190,7 @@ const AktuellesTeaser = () => {
             upcoming: upcomingEvents,
             latestWithPhotos: latestPastWithPhotos
         };
-    }, [events]);
+    }, [events, recurringEntries, singleEntries]);
 
     return (
         <section className="bg-white py-12 md:py-16">
@@ -88,23 +215,49 @@ const AktuellesTeaser = () => {
                                 <ul className="space-y-3 divide-y divide-gray-200">
                                     {upcoming.map((event) => (
                                         <li key={event.id} className="pt-3 first:pt-0">
-                                            <Link to={`/angebote/${event.id}`} className="block group">
-                                                <h4 className="text-lg font-semibold text-rcDarkGray group-hover:text-rcBlue mb-1">
-                                                    {event.title}
-                                                </h4>
-                                                <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 text-sm text-gray-600">
-                                                    <span className="flex items-center">
-                                                        <FaRegCalendarAlt className="mr-1.5" />
-                                                        {formatDate(event.event_date)}
-                                                    </span>
-                                                    {event.location && (
+                                            {event.linkTo ? (
+                                                <Link to={event.linkTo} className="block group">
+                                                    <h4 className="text-lg font-semibold text-rcDarkGray group-hover:text-rcBlue mb-1">
+                                                        {event.title}
+                                                    </h4>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 text-sm text-gray-600">
                                                         <span className="flex items-center">
-                                                            <FaMapMarkerAlt className="mr-1.5" />
-                                                            {event.location}
+                                                            <FaRegCalendarAlt className="mr-1.5" />
+                                                            {formatUpcomingDate(event)}
                                                         </span>
+                                                        {event.location && (
+                                                            <span className="flex items-center">
+                                                                <FaMapMarkerAlt className="mr-1.5" />
+                                                                {event.location}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {event.description && (
+                                                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
+                                                    )}
+                                                </Link>
+                                            ) : (
+                                                <div className="block">
+                                                    <h4 className="text-lg font-semibold text-rcDarkGray mb-1">
+                                                        {event.title}
+                                                    </h4>
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 text-sm text-gray-600">
+                                                        <span className="flex items-center">
+                                                            <FaRegCalendarAlt className="mr-1.5" />
+                                                            {formatUpcomingDate(event)}
+                                                        </span>
+                                                        {event.location && (
+                                                            <span className="flex items-center">
+                                                                <FaMapMarkerAlt className="mr-1.5" />
+                                                                {event.location}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {event.description && (
+                                                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
                                                     )}
                                                 </div>
-                                            </Link>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
