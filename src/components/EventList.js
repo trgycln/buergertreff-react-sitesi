@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'; // İkonlar eklendi
 import fallbackImage from '../assets/images/ana_logo.jpg'; // Varsayılan resim eklendi
 import ImageCarousel from './ImageCarousel';
-import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, parseLocalDate } from '../utils/calendarUtils';
 
 // Tarih formatlama (Liste için kısa format)
 const formatListDate = (dateString) => {
@@ -203,8 +203,9 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
 
     // Etkinlikleri filtrele ve "Gelecek" / "Geçmiş" olarak ayır
     const { upcomingEvents, pastEvents } = useMemo(() => {
-        const today = new Date().setHours(0, 0, 0, 0);
-        const horizon = new Date();
+        const now = new Date();
+        const nowTimestamp = now.getTime();
+        const horizon = new Date(now);
         horizon.setMonth(horizon.getMonth() + 4);
         const normalizedFilter = normalizeCategory(filterCategory);
 
@@ -237,17 +238,20 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
         });
 
         const archiveUpcoming = filteredArchive
-            .filter((event) => event.event_date && new Date(event.event_date) >= today)
+            .filter((event) => {
+                const eventDate = getComparableEventDate(event.event_date);
+                return eventDate && eventDate.getTime() >= nowTimestamp;
+            })
             .map((event) => {
-                const parsedDate = new Date(event.event_date);
+                const parsedDate = getComparableEventDate(event.event_date);
                 return {
                     id: `event-${event.id}`,
                     title: event.title,
                     category: event.category,
                     location: event.location,
                     description: event.description,
-                    dateKey: dateToKey(parsedDate),
-                    startTime: String(parsedDate.toTimeString()).slice(0, 5),
+                    dateKey: parsedDate ? dateToKey(parsedDate) : '',
+                    startTime: parsedDate ? String(parsedDate.toTimeString()).slice(0, 5) : null,
                     detailId: event.id,
                 };
             });
@@ -289,7 +293,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
         });
 
         const upcoming = dedupeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
-            .filter((entry) => entry.dateKey && parseLocalDate(entry.dateKey) >= parseLocalDate(new Date()))
+            .filter((entry) => entry.dateKey && !isEventInPast(entry.dateKey, now, entry.startTime))
             .sort((left, right) => {
                 if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
                 const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';
@@ -299,8 +303,12 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             });
 
         const past = filteredArchive
-            .filter(e => e.event_date && new Date(e.event_date) < today)
-            .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); 
+            .filter((event) => event.event_date && isEventInPast(event.event_date, now))
+            .sort((a, b) => {
+                const left = getComparableEventDate(a.event_date)?.getTime() || 0;
+                const right = getComparableEventDate(b.event_date)?.getTime() || 0;
+                return right - left;
+            }); 
 
         return {
             upcomingEvents: upcoming.slice(0, maxUpcomingEvents),

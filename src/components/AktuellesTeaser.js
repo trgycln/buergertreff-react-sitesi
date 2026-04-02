@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import ImageCarousel from './ImageCarousel';
-import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, parseLocalDate } from '../utils/calendarUtils';
 
 const formatDate = (dateString) => {
     if (!dateString) return 'Datum folgt';
@@ -131,23 +131,32 @@ const AktuellesTeaser = () => {
     }, []);
 
     const { upcoming, latestWithPhotos } = useMemo(() => {
-        const today = new Date().setHours(0, 0, 0, 0);
-        const rangeStart = parseLocalDate(new Date());
+        const now = new Date();
+        const nowTimestamp = now.getTime();
+        const rangeStart = parseLocalDate(now);
         const rangeEnd = new Date(rangeStart);
         rangeEnd.setMonth(rangeEnd.getMonth() + 4);
 
         const upcomingFromEvents = events
-            .filter((e) => !e.event_date || new Date(e.event_date) >= today)
-            .map((e) => ({
-                id: `event-${e.id}`,
-                title: e.title,
-                location: e.location,
-                description: e.description,
-                eventDate: e.event_date,
-                startTime: e.event_date ? String(new Date(e.event_date).toTimeString()).slice(0, 5) : null,
-                linkTo: `/angebote/${e.id}`,
-                sortKey: e.event_date ? new Date(e.event_date).getTime() : Number.MAX_SAFE_INTEGER,
-            }));
+            .filter((e) => {
+                if (!e.event_date) return true;
+                const eventDate = getComparableEventDate(e.event_date);
+                return !eventDate || eventDate.getTime() >= nowTimestamp;
+            })
+            .map((e) => {
+                const eventDate = getComparableEventDate(e.event_date);
+
+                return {
+                    id: `event-${e.id}`,
+                    title: e.title,
+                    location: e.location,
+                    description: e.description,
+                    eventDate: e.event_date,
+                    startTime: eventDate ? String(eventDate.toTimeString()).slice(0, 5) : null,
+                    linkTo: `/angebote/${e.id}`,
+                    sortKey: eventDate ? eventDate.getTime() : Number.MAX_SAFE_INTEGER,
+                };
+            });
 
         const upcomingFromRecurring = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd).map((entry) => ({
             id: entry.id,
@@ -172,6 +181,13 @@ const AktuellesTeaser = () => {
         }));
 
         const upcomingEvents = dedupeUpcomingEvents([...upcomingFromEvents, ...upcomingFromRecurring, ...upcomingFromSingle])
+            .filter((entry) => {
+                if (entry.dateKey) {
+                    return !isEventInPast(entry.dateKey, now, entry.startTime);
+                }
+
+                return !isEventInPast(entry.eventDate, now, entry.startTime);
+            })
             .sort((a, b) => {
                 if (a.sortKey !== b.sortKey) return a.sortKey - b.sortKey;
                 const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
@@ -182,8 +198,12 @@ const AktuellesTeaser = () => {
             .slice(0, 3);
 
         const latestPastWithPhotos = events
-            .filter((e) => e.event_date && new Date(e.event_date) < today)
-            .sort((a, b) => new Date(b.event_date) - new Date(a.event_date))
+            .filter((e) => e.event_date && isEventInPast(e.event_date, now))
+            .sort((a, b) => {
+                const left = getComparableEventDate(a.event_date)?.getTime() || 0;
+                const right = getComparableEventDate(b.event_date)?.getTime() || 0;
+                return right - left;
+            })
             .find((e) => Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || null;
 
         return {

@@ -30,6 +30,40 @@ export const dateToKey = (date) => {
     return `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}`;
 };
 
+export const getComparableEventDate = (dateValue, startTime = '') => {
+    if (!dateValue) return null;
+
+    if (dateValue instanceof Date) {
+        return new Date(dateValue);
+    }
+
+    const rawValue = String(dateValue).trim();
+    if (!rawValue) return null;
+
+    if (rawValue.includes('T')) {
+        const parsed = new Date(rawValue);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    const parsedLocalDate = parseLocalDate(rawValue);
+    if (!parsedLocalDate) return null;
+
+    const [hours = 0, minutes = 0] = String(startTime || '')
+        .slice(0, 5)
+        .split(':')
+        .map((part) => Number(part) || 0);
+
+    parsedLocalDate.setHours(hours, minutes, 0, 0);
+    return parsedLocalDate;
+};
+
+export const isEventInPast = (dateValue, referenceDate = new Date(), startTime = '') => {
+    const eventDate = getComparableEventDate(dateValue, startTime);
+    if (!eventDate) return false;
+
+    return eventDate.getTime() < referenceDate.getTime();
+};
+
 export const formatMonthTitle = (date) => {
     return date.toLocaleDateString('de-DE', {
         month: 'long',
