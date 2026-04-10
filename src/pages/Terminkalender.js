@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FaChevronLeft, FaChevronRight, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
@@ -65,8 +65,9 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
             <button
                 type="button"
                 onClick={onClick}
-                className={`group relative min-h-[96px] w-full rounded-xl border p-2 text-left transition sm:min-h-[112px] ${dayClasses} ${
-                    isSelected ? 'ring-2 ring-rcBlue' : ''
+                aria-pressed={isSelected}
+                className={`group relative min-h-[96px] w-full rounded-xl border p-2 text-left transition duration-200 sm:min-h-[112px] ${dayClasses} ${
+                    isSelected ? 'ring-2 ring-rcBlue shadow-lg shadow-blue-100/80 -translate-y-0.5' : ''
                 } ${day.isToday ? 'shadow-[inset_0_0_0_1px_#1f5ea8]' : ''}`}
             >
                 <div className="flex items-start justify-between gap-2">
@@ -98,6 +99,12 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
                     {entries.length > 0 ? `${entries.length} Termin${entries.length > 1 ? 'e' : ''}` : 'Noch frei'}
                 </div>
 
+                {isSelected && (
+                    <div className="mt-2 inline-flex rounded-full bg-rcBlue px-2 py-1 text-[10px] font-semibold text-white">
+                        ausgewählt
+                    </div>
+                )}
+
                 {entries.length > 0 && (
                     <div className="pointer-events-none absolute left-0 top-full z-30 mt-2 hidden w-80 rounded-xl border border-gray-200 bg-white p-3 shadow-xl md:group-hover:block md:group-focus-visible:block">
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Tagesvorschau</p>
@@ -124,6 +131,9 @@ export default function Terminkalender() {
     const [singleEntries, setSingleEntries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [detailsHighlight, setDetailsHighlight] = useState(false);
+    const detailsPanelRef = useRef(null);
+    const detailsHighlightTimeoutRef = useRef(null);
 
     const gridDays = useMemo(() => getCalendarGridDays(currentMonth), [currentMonth]);
     const rangeStart = gridDays[0]?.date;
@@ -180,6 +190,14 @@ export default function Terminkalender() {
         }
     }, [currentMonth, gridDays, selectedDateKey]);
 
+    useEffect(() => {
+        return () => {
+            if (detailsHighlightTimeoutRef.current) {
+                window.clearTimeout(detailsHighlightTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const entriesByDay = useMemo(() => {
         const recurringOccurrences = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd);
         const singleOccurrences = buildSingleOccurrences(singleEntries);
@@ -209,8 +227,21 @@ export default function Terminkalender() {
 
     const handleDayClick = (day) => {
         setSelectedDateKey(day.key);
+
         if (!day.inCurrentMonth) {
             setCurrentMonth(new Date(day.date.getFullYear(), day.date.getMonth(), 1, 12, 0, 0, 0));
+        }
+
+        setDetailsHighlight(true);
+        if (detailsHighlightTimeoutRef.current) {
+            window.clearTimeout(detailsHighlightTimeoutRef.current);
+        }
+        detailsHighlightTimeoutRef.current = window.setTimeout(() => setDetailsHighlight(false), 1800);
+
+        if (typeof window !== 'undefined' && window.innerWidth < 1280 && detailsPanelRef.current) {
+            window.requestAnimationFrame(() => {
+                detailsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
         }
     };
 
@@ -236,6 +267,9 @@ export default function Terminkalender() {
                                     <p className="mt-3 text-gray-600">
                                         Dieser Kalender zeigt ausschließlich die im separaten Kalender-Modul gepflegten Termine. Blau markierte Tage sind bereits belegt, grüne Tage sind derzeit noch frei.
                                     </p>
+                                    <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-gray-700">
+                                        <span className="font-semibold text-rcBlue">Hinweis:</span> Klicken oder tippen Sie auf einen Tag – die Tagesdetails erscheinen rechts neben dem Kalender oder auf kleineren Bildschirmen direkt darunter.
+                                    </div>
                                 </div>
                                 <div className="flex flex-wrap gap-3 text-sm font-semibold">
                                     <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-2 text-indigo-700">Blau = belegt</span>
@@ -328,11 +362,23 @@ export default function Terminkalender() {
                                 )}
                             </div>
 
-                            <aside className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm xl:sticky xl:top-24 xl:self-start">
+                            <aside
+                                ref={detailsPanelRef}
+                                className={`scroll-mt-24 rounded-2xl border bg-white p-6 shadow-sm transition-all duration-300 xl:sticky xl:top-24 xl:self-start ${
+                                    detailsHighlight ? 'border-blue-300 ring-2 ring-rcBlue shadow-lg shadow-blue-100/80' : 'border-gray-200'
+                                }`}
+                            >
                                 <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">Tagesdetails</p>
                                 <h3 className="mt-2 text-2xl font-bold text-rcDarkGray">
                                     {selectedDate ? formatDateLabel(selectedDate) : 'Datum wählen'}
                                 </h3>
+
+                                <div aria-live="polite" className={`mt-4 rounded-xl border px-4 py-3 text-sm ${selectedEntries.length > 0 ? 'border-blue-100 bg-blue-50 text-gray-700' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                                    <span className="font-semibold">Ausgewählter Tag:</span>{' '}
+                                    {selectedEntries.length > 0
+                                        ? `${selectedEntries.length} Termin${selectedEntries.length > 1 ? 'e' : ''} geöffnet.`
+                                        : 'für diesen Tag ist aktuell nichts eingetragen.'}
+                                </div>
 
                                 <div className="mt-6 space-y-4">
                                     {selectedEntries.length === 0 ? (
