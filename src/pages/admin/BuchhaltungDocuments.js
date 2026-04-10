@@ -156,7 +156,7 @@ export default function BuchhaltungDocuments() {
           onClick={() => setActiveDocument(null)}
           className="mb-4 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors flex items-center gap-2"
         >
-          ← Belgelere Dön
+          ← Zurück zu den Dokumenten
         </button>
         
         <div className="bg-white rounded-lg shadow p-6 mb-6 border-l-4 border-gray-400">
@@ -192,9 +192,9 @@ export default function BuchhaltungDocuments() {
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-6">
-        <h2 className="text-2xl font-bold mb-2">Resmi Muhasebe Belgeleri</h2>
+        <h2 className="text-2xl font-bold mb-2">Offizielle Buchhaltungsunterlagen</h2>
         <p className="text-blue-100">
-          Almanya e.V. muhasebesi için gerekli tüm resmi belgelerin kayıt ve yönetim sistemi
+          Zentrales Erfassungs- und Verwaltungssystem für alle erforderlichen Buchhaltungsunterlagen des Vereins.
         </p>
       </div>
 
