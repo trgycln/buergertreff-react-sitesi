@@ -64,6 +64,90 @@ export const isEventInPast = (dateValue, referenceDate = new Date(), startTime =
     return eventDate.getTime() < referenceDate.getTime();
 };
 
+const normalizeText = (value = '') => String(value || '').trim().toLocaleLowerCase('de-DE');
+
+const normalizeUpcomingCategory = (value = '') => {
+    const trimmed = String(value || '').trim();
+    if (trimmed === 'Offener Treff' || trimmed === 'OffeneTreff') return 'Offene Treff';
+    return trimmed;
+};
+
+const normalizeTitleForMerge = (value = '') => {
+    return normalizeText(value)
+        .replace(/[^a-z0-9äöüß\s]/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const getUpcomingItemDayKey = (item = {}) => {
+    if (item.dateKey) return item.dateKey;
+
+    const comparableDate = getComparableEventDate(item.eventDate, item.startTime);
+    return comparableDate ? dateToKey(comparableDate) : '';
+};
+
+const getUpcomingMergeScore = (item = {}) => {
+    let score = 0;
+    if (item.linkTo) score += 4;
+    if (item.detailId) score += 4;
+    if (String(item.description || '').trim()) score += 3;
+    if (String(item.location || '').trim()) score += 2;
+    if (String(item.startTime || '').trim()) score += 1;
+    return score;
+};
+
+const pickPreferredValue = (preferredValue, secondaryValue) => {
+    const preferredText = String(preferredValue || '').trim();
+    const secondaryText = String(secondaryValue || '').trim();
+
+    if (!preferredText) return secondaryValue || preferredValue;
+    if (!secondaryText) return preferredValue;
+
+    return preferredText.length >= secondaryText.length ? preferredValue : secondaryValue;
+};
+
+export const mergeUpcomingEvents = (items = []) => {
+    const deduped = new Map();
+
+    items.forEach((item) => {
+        const dayKey = getUpcomingItemDayKey(item);
+        const titleKey = normalizeTitleForMerge(item.title);
+        const categoryKey = normalizeText(normalizeUpcomingCategory(item.category));
+        const mergeKey = dayKey && titleKey
+            ? `${dayKey}|${titleKey}|${categoryKey}`
+            : String(item.id || `${item.title || ''}|${dayKey}`);
+        const existing = deduped.get(mergeKey);
+
+        if (!existing) {
+            deduped.set(mergeKey, {
+                ...item,
+                dateKey: item.dateKey || dayKey,
+            });
+            return;
+        }
+
+        const preferred = getUpcomingMergeScore(item) > getUpcomingMergeScore(existing) ? item : existing;
+        const secondary = preferred === item ? existing : item;
+
+        deduped.set(mergeKey, {
+            ...secondary,
+            ...preferred,
+            id: preferred.id || secondary.id,
+            dateKey: preferred.dateKey || secondary.dateKey || dayKey,
+            eventDate: preferred.eventDate || secondary.eventDate || null,
+            startTime: pickPreferredValue(preferred.startTime, secondary.startTime),
+            location: pickPreferredValue(preferred.location, secondary.location),
+            description: pickPreferredValue(preferred.description, secondary.description),
+            category: preferred.category || secondary.category || null,
+            linkTo: preferred.linkTo || secondary.linkTo || null,
+            detailId: preferred.detailId || secondary.detailId || null,
+            sortKey: Math.min(preferred.sortKey ?? Number.MAX_SAFE_INTEGER, secondary.sortKey ?? Number.MAX_SAFE_INTEGER),
+        });
+    });
+
+    return Array.from(deduped.values());
+};
+
 export const formatMonthTitle = (date) => {
     return date.toLocaleDateString('de-DE', {
         month: 'long',

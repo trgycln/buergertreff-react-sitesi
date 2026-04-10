@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'; // İkonlar eklendi
 import fallbackImage from '../assets/images/ana_logo.jpg'; // Varsayılan resim eklendi
 import ImageCarousel from './ImageCarousel';
-import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 // Tarih formatlama (Liste için kısa format)
 const formatListDate = (dateString) => {
@@ -102,48 +102,6 @@ const pickDescription = (primary, fallback) => {
     const primaryText = String(primary || '').trim();
     if (primaryText) return primary;
     return String(fallback || '').trim() ? fallback : '';
-};
-
-const dedupeUpcomingEvents = (items = []) => {
-    const deduped = new Map();
-
-    const score = (item) => {
-        let value = 0;
-        if (String(item.description || '').trim()) value += 3;
-        if (item.detailId) value += 2;
-        return value;
-    };
-
-    items.forEach((item) => {
-        const dayKey = item.dateKey || '';
-        const timeKey = item.startTime ? String(item.startTime).slice(0, 5) : '';
-        const titleKey = normalizeText(item.title);
-        const locationKey = normalizeText(item.location);
-        const dedupeKey = `${dayKey}|${timeKey}|${titleKey}|${locationKey}`;
-        const existing = deduped.get(dedupeKey);
-
-        if (!existing) {
-            deduped.set(dedupeKey, item);
-            return;
-        }
-
-        const existingScore = score(existing);
-        const candidateScore = score(item);
-        const preferred = candidateScore > existingScore ? item : existing;
-        const secondary = preferred === item ? existing : item;
-
-        deduped.set(dedupeKey, {
-            ...preferred,
-            detailId: preferred.detailId || secondary.detailId || null,
-            description: String(preferred.description || '').trim()
-                ? preferred.description
-                : (secondary.description || ''),
-            category: preferred.category || secondary.category || null,
-            location: preferred.location || secondary.location || null,
-        });
-    });
-
-    return Array.from(deduped.values());
 };
 
 const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingEvents = 3 }) => {
@@ -292,7 +250,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             };
         });
 
-        const upcoming = dedupeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
+        const upcoming = mergeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
             .filter((entry) => entry.dateKey && !isEventInPast(entry.dateKey, now, entry.startTime))
             .sort((left, right) => {
                 if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);

@@ -279,7 +279,7 @@ export default function BuchhaltungTransactions() {
           .map(category => normalizeCategoryName(category.name))
       );
 
-      const requiredIncomeCategories = ['Darlehen', 'Sonstiges'];
+      const requiredIncomeCategories = ['Darlehen', 'Sonstiges', 'Spendenbox / Sammelglas'];
       const requiredExpenseCategories = ['Einrichtung', 'Darlehensrückzahlung', 'Verbrauch'];
 
       const incomeCategoriesToCreate = requiredIncomeCategories

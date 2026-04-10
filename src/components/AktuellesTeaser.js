@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import ImageCarousel from './ImageCarousel';
-import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 const formatDate = (dateString) => {
     if (!dateString) return 'Datum folgt';
@@ -37,38 +37,6 @@ const formatUpcomingDate = (event) => {
     }
 
     return formatDate(event.eventDate);
-};
-
-const normalizeText = (value = '') => String(value || '').trim().toLocaleLowerCase('de-DE');
-
-const getEventDayKey = (event) => {
-    if (event.dateKey) return event.dateKey;
-    if (!event.eventDate) return '';
-    return dateToKey(new Date(event.eventDate));
-};
-
-const dedupeUpcomingEvents = (items = []) => {
-    const deduped = new Map();
-
-    items.forEach((item) => {
-        const dayKey = getEventDayKey(item);
-        const timeKey = item.startTime ? String(item.startTime).slice(0, 5) : '';
-        const titleKey = normalizeText(item.title);
-        const locationKey = normalizeText(item.location);
-        const dedupeKey = `${dayKey}|${timeKey}|${titleKey}|${locationKey}`;
-        const existing = deduped.get(dedupeKey);
-
-        if (!existing) {
-            deduped.set(dedupeKey, item);
-            return;
-        }
-
-        if (!existing.linkTo && item.linkTo) {
-            deduped.set(dedupeKey, item);
-        }
-    });
-
-    return Array.from(deduped.values());
 };
 
 const AktuellesTeaser = () => {
@@ -149,6 +117,7 @@ const AktuellesTeaser = () => {
                 return {
                     id: `event-${e.id}`,
                     title: e.title,
+                    category: e.category,
                     location: e.location,
                     description: e.description,
                     eventDate: e.event_date,
@@ -161,6 +130,7 @@ const AktuellesTeaser = () => {
         const upcomingFromRecurring = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd).map((entry) => ({
             id: entry.id,
             title: entry.title,
+            category: entry.category,
             location: entry.location,
             description: entry.description,
             dateKey: entry.dateKey,
@@ -172,6 +142,7 @@ const AktuellesTeaser = () => {
         const upcomingFromSingle = singleEntries.map((entry) => ({
             id: `single-${entry.id}`,
             title: entry.title,
+            category: entry.category,
             location: entry.location,
             description: entry.description,
             dateKey: entry.entry_date,
@@ -180,7 +151,7 @@ const AktuellesTeaser = () => {
             sortKey: parseLocalDate(entry.entry_date)?.getTime() || Number.MAX_SAFE_INTEGER,
         }));
 
-        const upcomingEvents = dedupeUpcomingEvents([...upcomingFromEvents, ...upcomingFromRecurring, ...upcomingFromSingle])
+        const upcomingEvents = mergeUpcomingEvents([...upcomingFromEvents, ...upcomingFromRecurring, ...upcomingFromSingle])
             .filter((entry) => {
                 if (entry.dateKey) {
                     return !isEventInPast(entry.dateKey, now, entry.startTime);

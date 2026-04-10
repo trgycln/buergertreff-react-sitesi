@@ -116,7 +116,17 @@ export default function BuchhaltungDashboard() {
       const normalizedCategoryName = normalizeCategoryName(t.accounting_categories?.name || '');
       const normalizedDescription = normalizeCategoryName(t.description || '');
       const normalizedTransactionText = `${normalizedCategoryName} ${normalizedDescription}`;
-      const isDonation = normalizedTransactionText.includes('spende') || normalizedTransactionText.includes('zuwendung') || normalizedTransactionText.includes('bagis') || normalizedTransactionText.includes('donation');
+      const isCashJarIncome =
+        normalizedTransactionText.includes('spendenbox') ||
+        normalizedTransactionText.includes('sammelglas') ||
+        normalizedTransactionText.includes('kavanoz') ||
+        normalizedTransactionText.includes('tischglas');
+      const isDonation = !isCashJarIncome && (
+        normalizedTransactionText.includes('spende') ||
+        normalizedTransactionText.includes('zuwendung') ||
+        normalizedTransactionText.includes('bagis') ||
+        normalizedTransactionText.includes('donation')
+      );
       const isMembership = (normalizedTransactionText.includes('mitglied') && normalizedTransactionText.includes('beitrag')) || normalizedTransactionText.includes('aidat');
       const isLoanTransaction = normalizedTransactionText.includes('darlehen') || normalizedTransactionText.includes('kredit') || normalizedTransactionText.includes('loan');
 
@@ -134,10 +144,12 @@ export default function BuchhaltungDashboard() {
       yearlySummaryMap[trxYear].netChange += isIncome ? amount : -amount;
 
       if (isIncome) {
-        if (isDonation) {
-          yearlySummaryMap[trxYear].spende += amount;
-        } else if (isMembership) {
+        if (isMembership) {
           yearlySummaryMap[trxYear].mitgliederbeitrag += amount;
+        } else if (isCashJarIncome) {
+          yearlySummaryMap[trxYear].sonstiges += amount;
+        } else if (isDonation) {
+          yearlySummaryMap[trxYear].spende += amount;
         } else {
           yearlySummaryMap[trxYear].sonstiges += amount;
         }
@@ -427,7 +439,8 @@ export default function BuchhaltungDashboard() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="mb-4 border-b pb-2 text-lg font-bold text-gray-800">Jahresübersicht: Einnahmen, Ausgaben und Saldoentwicklung</h3>
+        <h3 className="border-b pb-2 text-lg font-bold text-gray-800">Jahresübersicht: Einnahmen, Ausgaben und Saldoentwicklung</h3>
+        <p className="mb-4 mt-2 text-xs text-gray-500">Darlehen sowie Sammelglas- und Spendenbox-Einnahmen sind in der Spalte „Sonstiges“ enthalten.</p>
         {yearlyContributionSummary.length === 0 ? (
           <p className="text-gray-500 text-sm">Keine Buchungsdaten für die Jahresübersicht gefunden.</p>
         ) : (
@@ -438,7 +451,7 @@ export default function BuchhaltungDashboard() {
                   <th className="py-2 pr-4 font-semibold">Jahr</th>
                   <th className="py-2 pr-4 text-right font-semibold">Spende</th>
                   <th className="py-2 pr-4 text-right font-semibold">Mitgliederbeitrag</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Sonstiges / Darlehen +/-</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Sonstiges</th>
                   <th className="py-2 pr-4 text-right font-semibold">Ausgaben</th>
                   <th className="py-2 pr-4 text-right font-semibold">Jahresergebnis</th>
                   <th className="py-2 text-right font-semibold">Kontostand Ende Jahr</th>

@@ -7,7 +7,7 @@ import { supabase } from '../supabaseClient'; // Supabase istemcisini import et
 import logoImage from '../assets/images/logo.jpg';
 import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { dateToKey, expandRecurringEntries, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 // Kayan yazı bileşenini import ediyoruz
 import AnnouncementTicker from './AnnouncementTicker';
@@ -73,6 +73,7 @@ const Header = () => {
             const recurringOccurrences = expandRecurringEntries(recurringResponse.data || [], today, horizon).map((entry) => ({
                 dateKey: entry.dateKey,
                 title: entry.title,
+                category: entry.category,
                 location: entry.location,
                 startTime: entry.startTime,
             }));
@@ -80,11 +81,12 @@ const Header = () => {
             const singleOccurrences = (singleResponse.data || []).map((entry) => ({
                 dateKey: entry.entry_date,
                 title: entry.title,
+                category: entry.category,
                 location: entry.location,
                 startTime: entry.start_time,
             }));
 
-            const combined = [...recurringOccurrences, ...singleOccurrences]
+            const combined = mergeUpcomingEvents([...recurringOccurrences, ...singleOccurrences])
                 .sort((left, right) => {
                     if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
                     const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';

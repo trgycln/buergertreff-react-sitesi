@@ -17,6 +17,7 @@ import TaxExemptions from '../../components/admin/documents/TaxExemptions';
 import Reserves from '../../components/admin/documents/Reserves';
 import Payroll from '../../components/admin/documents/Payroll';
 import Decisions from '../../components/admin/documents/Decisions';
+import CashCountProtocol from '../../components/admin/documents/CashCountProtocol';
 
 export default function BuchhaltungDocuments() {
   const [activeDocument, setActiveDocument] = useState(null);
@@ -81,6 +82,15 @@ export default function BuchhaltungDocuments() {
 
   // Weitere Geschäftsunterlagen (Unterer Bereich)
   const otherDocuments = [
+    {
+      id: 'cash_count_protocol',
+      label: 'Eigenbeleg',
+      title: 'Kassenzählprotokoll',
+      subtitle: 'Bareinnahmen ohne Fremdbeleg',
+      icon: FaReceipt,
+      color: 'slate',
+      description: 'Formeller Nachweis für die Kassenaufnahme vom 31.05.2026'
+    },
     {
       id: 'noncash_donations',
       label: 'Sachspenden',
@@ -180,6 +190,7 @@ export default function BuchhaltungDocuments() {
           {activeDocument === 'donation_registry' && <DonationRegistry />}
           {activeDocument === 'noncash_donations' && <NonCashDonations />}
           {activeDocument === 'members' && <MemberTracking />}
+          {activeDocument === 'cash_count_protocol' && <CashCountProtocol />}
           {activeDocument === 'tax_exemptions' && <TaxExemptions />}
           {activeDocument === 'reserves' && <Reserves />}
           {activeDocument === 'payroll' && <Payroll />}
