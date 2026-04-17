@@ -187,7 +187,7 @@ export default function BuchhaltungSettings() {
           
           {/* --- BASIT BİLGİLER --- */}
           <div className="md:col-span-2 mb-4">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📋 Basit Bilgiler</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📋 Grundinformationen</h3>
           </div>
 
           <div className="md:col-span-2">
@@ -240,7 +240,7 @@ export default function BuchhaltungSettings() {
 
           {/* --- KONTAKTBİLGİLERİ --- */}
           <div className="md:col-span-2 mb-4 mt-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📞 Kontaktbilgiler</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📞 Kontaktinformationen</h3>
           </div>
 
           <div>
@@ -281,7 +281,7 @@ export default function BuchhaltungSettings() {
 
           {/* --- SOSYAL MEDYA --- */}
           <div className="md:col-span-2 mb-4 mt-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📱 Sosyal Medya</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">📱 Soziale Medien</h3>
           </div>
 
           <div>
@@ -322,7 +322,7 @@ export default function BuchhaltungSettings() {
 
           {/* --- VERGI & MUHASEBE --- */}
           <div className="md:col-span-2 mb-4 mt-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">💼 Vergi- und Muhasebeinformationen</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">💼 Steuer- und Buchhaltungsinformationen</h3>
           </div>
 
           <div>
@@ -362,7 +362,7 @@ export default function BuchhaltungSettings() {
 
           {/* --- SORUMLULAR --- */}
           <div className="md:col-span-2 mb-4 mt-6">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">👤 Sorumlu Kişiler</h3>
+            <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">👤 Verantwortliche Personen</h3>
           </div>
 
           <div className="md:col-span-2">

@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { Link } from 'react-router-dom';
 // DÜZELTME: FaCalendarAlt eklendi
-import { FaPlus, FaList, FaRegNewspaper, FaUsersCog, FaTachometerAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaPlus, FaList, FaRegNewspaper, FaUsersCog, FaTachometerAlt, FaCalendarAlt, FaHandshake } from 'react-icons/fa';
 
 export default function AdminDashboard() {
   const [user, setUser] = useState(null);
@@ -145,6 +145,33 @@ export default function AdminDashboard() {
 
       </div>
       {/* --- BİTİŞ: Kısayollar Grid Yapısı --- */}
+
+      {/* --- Kısayol Kutusu: Sponsoren --- */}
+      <div className="p-6 bg-white rounded-lg shadow-lg border border-gray-200">
+        <h2 className="text-xl font-semibold text-rcDarkGray mb-4 flex items-center">
+          <FaHandshake className="mr-3 text-rcBlue" />
+          Schnellzugriffe: Sponsoren
+        </h2>
+        <p className="text-gray-600 mb-6 text-sm">
+          Sponsoren und Partner hinzufügen, bearbeiten oder entfernen.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link
+            to="/admin/sponsoren"
+            className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+          >
+            <FaHandshake className="mr-2" />
+            Sponsoren verwalten
+          </Link>
+          <Link
+            to="/sponsorlar"
+            className="flex items-center justify-center px-5 py-3 bg-rcDarkGray text-white text-sm font-semibold rounded-lg shadow hover:bg-gray-700 transition-colors"
+          >
+            <FaList className="mr-2" />
+            Öffentlich ansehen
+          </Link>
+        </div>
+      </div>
 
     </div>
   );

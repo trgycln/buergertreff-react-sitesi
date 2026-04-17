@@ -7,7 +7,7 @@ import { supabase } from '../supabaseClient'; // Supabase istemcisini import et
 import logoImage from '../assets/images/logo.jpg';
 import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaChevronDown, FaYoutube } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { dateToKey, expandRecurringEntries, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 // Kayan yazı bileşenini import ediyoruz
 import AnnouncementTicker from './AnnouncementTicker';
@@ -48,7 +48,7 @@ const Header = () => {
             const todayKey = dateToKey(today);
             const horizonKey = dateToKey(horizon);
 
-            const [recurringResponse, singleResponse] = await Promise.all([
+            const [recurringResponse, singleResponse, ereignisseResponse] = await Promise.all([
                 supabase
                     .from('calendar_recurring_entries')
                     .select('*')
@@ -63,6 +63,11 @@ const Header = () => {
                     .eq('is_active', true)
                     .gte('entry_date', todayKey)
                     .lte('entry_date', horizonKey),
+                supabase
+                    .from('ereignisse')
+                    .select('id, title, category, location, event_date')
+                    .eq('is_public', true)
+                    .order('event_date', { ascending: true }),
             ]);
 
             if (recurringResponse.error || singleResponse.error) {
@@ -70,12 +75,34 @@ const Header = () => {
                 return;
             }
 
+            const now = new Date();
+
+            const ereignisseOccurrences = (ereignisseResponse.data || [])
+                .filter((e) => {
+                    if (!e.event_date) return true;
+                    return !isEventInPast(e.event_date, now);
+                })
+                .map((e) => {
+                    const eventDate = getComparableEventDate(e.event_date);
+                    return {
+                        dateKey: eventDate ? dateToKey(eventDate) : null,
+                        title: e.title,
+                        category: e.category,
+                        location: e.location,
+                        startTime: eventDate ? String(eventDate.toTimeString()).slice(0, 5) : null,
+                        sortKey: eventDate ? eventDate.getTime() : Number.MAX_SAFE_INTEGER,
+                        isPriority: true,
+                    };
+                });
+
             const recurringOccurrences = expandRecurringEntries(recurringResponse.data || [], today, horizon).map((entry) => ({
                 dateKey: entry.dateKey,
                 title: entry.title,
                 category: entry.category,
                 location: entry.location,
                 startTime: entry.startTime,
+                sortKey: parseLocalDate(entry.dateKey)?.getTime() || Number.MAX_SAFE_INTEGER,
+                isPriority: false,
             }));
 
             const singleOccurrences = (singleResponse.data || []).map((entry) => ({
@@ -84,17 +111,26 @@ const Header = () => {
                 category: entry.category,
                 location: entry.location,
                 startTime: entry.start_time,
+                sortKey: parseLocalDate(entry.entry_date)?.getTime() || Number.MAX_SAFE_INTEGER,
+                isPriority: false,
             }));
 
-            const combined = mergeUpcomingEvents([...recurringOccurrences, ...singleOccurrences])
-                .sort((left, right) => {
-                    if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
-                    const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';
-                    const rightTime = right.startTime ? String(right.startTime).slice(0, 5) : '99:99';
-                    if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
-                    return String(left.title).localeCompare(String(right.title), 'de');
-                })
-                .slice(0, 3);
+            const sortByDateKey = (a, b) => {
+                const aKey = a.dateKey || '';
+                const bKey = b.dateKey || '';
+                if (aKey !== bKey) return aKey.localeCompare(bKey);
+                const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
+                const rightTime = b.startTime ? String(b.startTime).slice(0, 5) : '99:99';
+                if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+                return String(a.title || '').localeCompare(String(b.title || ''), 'de');
+            };
+
+            const allMerged = mergeUpcomingEvents([...ereignisseOccurrences, ...recurringOccurrences, ...singleOccurrences]);
+
+            const priorityItems = allMerged.filter((e) => e.isPriority).sort(sortByDateKey);
+            const calendarItems = allMerged.filter((e) => !e.isPriority).sort(sortByDateKey);
+            const remainingSlots = Math.max(0, 5 - priorityItems.length);
+            const combined = [...priorityItems, ...calendarItems.slice(0, remainingSlots)];
 
             const formattedAnnouncements = combined.map((entry) => {
                 const date = formatTickerDate(entry.dateKey);

@@ -1,5 +1,5 @@
 // src/components/Footer.js
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaFacebookF,
@@ -9,18 +9,24 @@ import {
   FaYoutube,
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
-
-import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
-import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
-import sponsorLogo3 from '../assets/images/sponsor3.jpg';
-
-const footerSponsors = [
-    { name: 'Kölschbach Heizung Klima Sanitär', logo: sponsorLogoKoelschbach, url: 'https://www.koelschbach.de/' },
-    { name: 'Sparkasse', logo: sponsorLogoSparkasse, url: 'https://www.sk-westerwald-sieg.de/de/home.html' },
-    { name: 'KS Druck Schneider', logo: sponsorLogo3, url: 'https://ks-druck-schneider.de/' },
-];
+import { supabase } from "../supabaseClient";
 
 const Footer = () => {
+  const [footerSponsors, setFooterSponsors] = useState([]);
+
+  useEffect(() => {
+    const fetchSponsors = async () => {
+      const { data } = await supabase
+        .from("sponsors")
+        .select("id, name, logo_url, website_url")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
+      setFooterSponsors(data || []);
+    };
+    fetchSponsors();
+  }, []);
+
   return (
     <footer className="bg-rcBlue text-white">
       <div className="container mx-auto pt-16 pb-8 px-4">
@@ -30,17 +36,21 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Unsere Sponsoren</h3>
             <div className="flex flex-col space-y-4">
                 <div className="flex flex-wrap gap-4 items-center">
-                    {footerSponsors.map((sponsor, index) => (
+                    {footerSponsors.map((sponsor) => (
                         <a 
-                            key={index} 
-                            href={sponsor.url}
+                            key={sponsor.id} 
+                            href={sponsor.website_url || '#'}
                             title={sponsor.name}
-                            target="_blank" 
+                            target={sponsor.website_url ? '_blank' : '_self'}
                             rel="noopener noreferrer" 
                             className="group"
                         >
                             <div className="w-12 h-12 bg-white rounded-full p-1 shadow-sm flex justify-center items-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-md overflow-hidden">
-                                <img src={sponsor.logo} alt={sponsor.name} className="w-10 h-10 object-contain" />
+                                {sponsor.logo_url ? (
+                                    <img src={sponsor.logo_url} alt={sponsor.name} className="w-10 h-10 object-contain" />
+                                ) : (
+                                    <span className="text-[8px] font-bold text-rcDarkGray text-center leading-tight px-1">{sponsor.name}</span>
+                                )}
                             </div>
                         </a>
                     ))}

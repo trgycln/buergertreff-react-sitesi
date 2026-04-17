@@ -142,6 +142,7 @@ export const mergeUpcomingEvents = (items = []) => {
             linkTo: preferred.linkTo || secondary.linkTo || null,
             detailId: preferred.detailId || secondary.detailId || null,
             sortKey: Math.min(preferred.sortKey ?? Number.MAX_SAFE_INTEGER, secondary.sortKey ?? Number.MAX_SAFE_INTEGER),
+            isPriority: preferred.isPriority || secondary.isPriority || false,
         });
     });
 

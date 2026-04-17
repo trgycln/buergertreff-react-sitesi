@@ -15,7 +15,7 @@ export default function Buchhaltung() {
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
     { id: 'transactions', label: 'Transaktionen' },
-    { id: 'documents', label: 'Resmi Belgeler' },
+    { id: 'documents', label: 'Offizielle Unterlagen' },
     { id: 'reports', label: 'Berichte' },
     { id: 'contacts', label: 'Kontakte' },
     { id: 'settings', label: 'Einstellungen' },

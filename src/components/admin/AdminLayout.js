@@ -10,7 +10,8 @@ import {
     FaTachometerAlt, FaUsersCog, FaSignOutAlt, FaCalendarAlt, FaRegNewspaper,
     FaBars, // Hamburger ikonu
     FaTimes, // Kapatma (X) ikonu
-    FaEuroSign // Muhasebe ikonu
+    FaEuroSign, // Muhasebe ikonu
+    FaHandshake // Sponsoren ikonu
 } from 'react-icons/fa'; 
 
 // Sidebar-Link-Komponente (Değişiklik yok)
@@ -70,6 +71,7 @@ const AdminLayout = () => {
     const path = location.pathname;
     if (path === '/admin') return 'Dashboard';
     if (path.startsWith('/admin/kalender')) return 'Terminkalender';
+    if (path.startsWith('/admin/sponsoren')) return 'Sponsoren verwalten';
     if (path.startsWith('/admin/ereignisse/new')) return 'Neues Ereignis erstellen';
     if (path.startsWith('/admin/ereignisse/')) return 'Ereignis bearbeiten';
     if (path.startsWith('/admin/ereignisse')) return 'Alle Ereignisse verwalten';
@@ -131,6 +133,11 @@ const AdminLayout = () => {
             to="/admin/presse" 
             icon={<FaRegNewspaper size={18} />}
             label="Presse Verwalten"
+          />
+          <SidebarLink
+            to="/admin/sponsoren"
+            icon={<FaHandshake size={18} />}
+            label="Sponsoren"
           />
           
           {isTreasurer && (

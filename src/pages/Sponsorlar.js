@@ -1,69 +1,69 @@
 // src/Sponsorlar.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaHandshake } from 'react-icons/fa';
 
 import PageBanner from '../components/PageBanner';
-import sponsorBanner from '../assets/images/sponsorenbanner.png'; 
-
-import sponsorLogoKoelschbach from '../assets/images/sponsor1.jpg';
-import sponsorLogoSparkasse from '../assets/images/sponsor2.jpg';
-import sponsorLogo3 from '../assets/images/sponsor3.jpg';
+import sponsorBanner from '../assets/images/sponsorenbanner.png';
+import { supabase } from '../supabaseClient';
 
 import { Helmet } from 'react-helmet-async';
 
-const sponsors = [
-  {
-    name: 'Kölschbach Heizung Klima Sanitär',
-    logo: sponsorLogoKoelschbach,
-    url: 'https://www.koelschbach.de/' 
-  },
-  {
-    name: 'Sparkasse',
-    logo: sponsorLogoSparkasse,
-    url: 'https://www.sk-westerwald-sieg.de/de/home.html'
-  },
-  {
-    name: 'KS Druck Schneider',
-    logo: sponsorLogo3,
-    url: 'https://ks-druck-schneider.de/'
-  }
-];
-
-const SponsorCircle = ({ name, logo, url }) => (
+const SponsorCircle = ({ name, logo_url, website_url }) => (
   <a
-    href={url}
-    target="_blank"
+    href={website_url || '#'}
+    target={website_url ? '_blank' : '_self'}
     rel="noopener noreferrer"
     title={name}
     className="group flex justify-center items-center"
   >
     <div className="w-40 h-40 bg-white rounded-full shadow-lg p-4 flex justify-center items-center transition-all duration-300 ease-in-out group-hover:shadow-2xl group-hover:scale-105 border-4 border-transparent group-hover:border-rcRed overflow-hidden">
-      <img 
-        src={logo} 
-        alt={name}
-        className="w-28 h-28 object-contain" 
-      />
+      {logo_url ? (
+        <img
+          src={logo_url}
+          alt={name}
+          className="w-28 h-28 object-contain"
+        />
+      ) : (
+        <span className="text-sm font-semibold text-rcDarkGray text-center leading-tight px-2">{name}</span>
+      )}
     </div>
   </a>
 );
 
 const Sponsorlar = () => {
+  const [sponsors, setSponsors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSponsors = async () => {
+      const { data } = await supabase
+        .from('sponsors')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true });
+      setSponsors(data || []);
+      setLoading(false);
+    };
+    fetchSponsors();
+  }, []);
+
   return (
     <>
-<Helmet>
-    <title>Unsere Sponsoren & Unterstützer | Bürgertreff Wissen e.V.</title>
-    <meta 
-        name="description" 
-        content="Vielen Dank an unsere großzügigen Sponsoren und Partner, die die Arbeit des Bürgertreff Wissen e.V. ermöglichen und unser Engagement in der Gemeinschaft unterstützen."
-    />
-</Helmet>
+      <Helmet>
+        <title>Unsere Sponsoren & Unterstützer | Bürgertreff Wissen e.V.</title>
+        <meta
+          name="description"
+          content="Vielen Dank an unsere großzügigen Sponsoren und Partner, die die Arbeit des Bürgertreff Wissen e.V. ermöglichen und unser Engagement in der Gemeinschaft unterstützen."
+        />
+      </Helmet>
 
       <PageBanner
         title="Sponsoren & Partner"
         imageUrl={sponsorBanner}
       />
 
-      <div className="bg-gray-50 py-8"> {/* Dikey boşluk py-8 olarak güncellendi */}
+      <div className="bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <FaHandshake className="text-rcRed text-5xl mx-auto mb-4" />
@@ -73,9 +73,17 @@ const Sponsorlar = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-12">
-            {sponsors.map((sponsor, index) => <SponsorCircle key={index} {...sponsor} />)}
-          </div>
+          {loading ? (
+            <p className="text-center text-gray-500">Lade Sponsoren...</p>
+          ) : sponsors.length === 0 ? (
+            <p className="text-center text-gray-500 italic">Aktuell sind keine Sponsoren eingetragen.</p>
+          ) : (
+            <div className="flex flex-wrap justify-center items-center gap-12">
+              {sponsors.map((sponsor) => (
+                <SponsorCircle key={sponsor.id} {...sponsor} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

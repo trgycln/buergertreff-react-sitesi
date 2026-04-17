@@ -43,6 +43,7 @@ import PresseList from './pages/admin/PresseList';
 import PresseForm from './pages/admin/PresseForm';
 import Buchhaltung from './pages/admin/Buchhaltung';
 import CalendarManagement from './pages/admin/CalendarManagement';
+import SponsorManagement from './pages/admin/SponsorManagement';
 
 // Admin Sicherheit & Layout
 import ProtectedRoute from './components/admin/ProtectedRoute';
@@ -141,6 +142,11 @@ function App() {
             <Route
               path="kalender"
               element={ <ProtectedRoute level="admin"><CalendarManagement /></ProtectedRoute> }
+            />
+
+            <Route
+              path="sponsoren"
+              element={ <ProtectedRoute level="admin"><SponsorManagement /></ProtectedRoute> }
             />
 
           </Route> {/* Ende /admin */}

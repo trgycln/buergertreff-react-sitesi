@@ -211,6 +211,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                     dateKey: parsedDate ? dateToKey(parsedDate) : '',
                     startTime: parsedDate ? String(parsedDate.toTimeString()).slice(0, 5) : null,
                     detailId: event.id,
+                    isPriority: true,
                 };
             });
 
@@ -250,15 +251,21 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             };
         });
 
-        const upcoming = mergeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
-            .filter((entry) => entry.dateKey && !isEventInPast(entry.dateKey, now, entry.startTime))
-            .sort((left, right) => {
-                if (left.dateKey !== right.dateKey) return left.dateKey.localeCompare(right.dateKey);
-                const leftTime = left.startTime ? String(left.startTime).slice(0, 5) : '99:99';
-                const rightTime = right.startTime ? String(right.startTime).slice(0, 5) : '99:99';
-                if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
-                return String(left.title).localeCompare(String(right.title), 'de');
-            });
+        const sortByDate = (a, b) => {
+            if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+            const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
+            const rightTime = b.startTime ? String(b.startTime).slice(0, 5) : '99:99';
+            if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+            return String(a.title).localeCompare(String(b.title), 'de');
+        };
+
+        const allMerged = mergeUpcomingEvents([...archiveUpcoming, ...recurringOccurrences, ...singleOccurrences])
+            .filter((entry) => entry.dateKey && !isEventInPast(entry.dateKey, now, entry.startTime));
+
+        const priorityUpcoming = allMerged.filter((e) => e.isPriority).sort(sortByDate);
+        const calendarUpcoming = allMerged.filter((e) => !e.isPriority).sort(sortByDate);
+        const remainingSlots = Math.max(0, maxUpcomingEvents - priorityUpcoming.length);
+        const upcoming = [...priorityUpcoming, ...calendarUpcoming.slice(0, remainingSlots)];
 
         const past = filteredArchive
             .filter((event) => event.event_date && isEventInPast(event.event_date, now))
@@ -269,7 +276,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             }); 
 
         return {
-            upcomingEvents: upcoming.slice(0, maxUpcomingEvents),
+            upcomingEvents: upcoming,
             pastEvents: past,
         };
     }, [events, recurringEntries, singleEntries, filterCategory, maxUpcomingEvents]); 

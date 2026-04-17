@@ -48,7 +48,7 @@ export default function Vouchers() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Buchungsbelege</h3>
-          <p className="text-sm text-gray-600">Faturalar, makbuzlar ve banka dekontları</p>
+          <p className="text-sm text-gray-600">Rechnungen, Quittungen und Bankbelege</p>
         </div>
         <select
           value={filterYear}

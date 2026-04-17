@@ -93,7 +93,7 @@ const Angebote = () => {
                     <EventList 
                         filterCategory={selectedCategory} 
                         archiveView="list"
-                        maxUpcomingEvents={3}
+                        maxUpcomingEvents={5}
                     />
                     
                 </div>
