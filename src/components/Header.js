@@ -65,7 +65,7 @@ const Header = () => {
                     .lte('entry_date', horizonKey),
                 supabase
                     .from('ereignisse')
-                    .select('id, title, category, location, event_date')
+                    .select('id, title, category, location, event_date, end_time, is_big_event')
                     .eq('is_public', true)
                     .order('event_date', { ascending: true }),
             ]);
@@ -90,8 +90,10 @@ const Header = () => {
                         category: e.category,
                         location: e.location,
                         startTime: eventDate ? String(eventDate.toTimeString()).slice(0, 5) : null,
+                        endTime: e.end_time ? String(e.end_time).slice(0, 5) : null,
                         sortKey: eventDate ? eventDate.getTime() : Number.MAX_SAFE_INTEGER,
                         isPriority: true,
+                        isBigEvent: e.is_big_event || false,
                     };
                 });
 
@@ -130,19 +132,29 @@ const Header = () => {
             const priorityItems = allMerged.filter((e) => e.isPriority).sort(sortByDateKey);
             const calendarItems = allMerged.filter((e) => !e.isPriority).sort(sortByDateKey);
             const remainingSlots = Math.max(0, 5 - priorityItems.length);
-            const combined = [...priorityItems, ...calendarItems.slice(0, remainingSlots)];
+            // Büyük etkinlikler her zaman en başa alınır
+            const bigEvents = priorityItems.filter((e) => e.isBigEvent);
+            const normalPriority = priorityItems.filter((e) => !e.isBigEvent);
+            const combined = [...bigEvents, ...normalPriority, ...calendarItems.slice(0, remainingSlots)];
 
             const formattedAnnouncements = combined.map((entry) => {
                 const date = formatTickerDate(entry.dateKey);
-                const time = entry.startTime ? `${String(entry.startTime).slice(0, 5)} Uhr` : null;
+                const startTime = entry.startTime ? String(entry.startTime).slice(0, 5) : null;
+                const endTime = entry.endTime ? String(entry.endTime).slice(0, 5) : null;
+                let timeText = null;
+                if (startTime && endTime) {
+                    timeText = `${startTime}–${endTime} Uhr`;
+                } else if (startTime) {
+                    timeText = `${startTime} Uhr`;
+                }
                 let text = `${date}: ${entry.title}`;
-                if (time) {
-                    text += ` (${time})`;
+                if (timeText) {
+                    text += ` (${timeText})`;
                 }
                 if (entry.location) {
-                    text += ` - ${entry.location}`;
+                    text += ` – ${entry.location}`;
                 }
-                return text;
+                return { text, isBig: entry.isBigEvent || false };
             });
 
             setAnnouncements(formattedAnnouncements);

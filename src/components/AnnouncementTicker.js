@@ -1,5 +1,4 @@
 // src/components/AnnouncementTicker.js
-// DÜZELTME: Duyuruları tek metin yapmak yerine, map ile dönüp aralarına boşluk eklendi.
 
 import React from 'react';
 import { FaStar } from 'react-icons/fa';
@@ -9,38 +8,37 @@ const AnnouncementTicker = ({ items }) => {
     return null;
   }
 
-  // DÜZELTME: Bu birleştirme (join) işlemine artık gerek yok.
-  // const marqueeText = items.map(item => ` ${item} `).join(' ★ '); // <-- KALDIRILDI
+  const normalizedItems = items.map((item) =>
+    typeof item === 'string' ? { text: item, isBig: false } : item
+  );
 
-  // YENİ: Kesintisiz bir animasyon döngüsü için listeyi ikiye katlıyoruz.
-  // Eğer sadece 1 etkinlik varsa, [event1, event1] olur.
-  // Eğer 2 etkinlik varsa, [event1, event2, event1, event2] olur.
-  const doubledItems = [...items, ...items];
+  const doubledItems = [...normalizedItems, ...normalizedItems];
 
   return (
-    // Ana konteyner
-    <div className="bg-[#FFFBEB] text-[#92400E] py-1.5 px-4 flex items-center overflow-hidden shadow-sm border-b border-amber-200">
-      
-      {/* Animasyonlu div */}
+    <div className="bg-[#FFFBEB] py-1.5 px-4 flex items-center overflow-hidden shadow-sm border-b border-amber-200">
       <div className="flex flex-nowrap animate-marquee">
-        
-        {/* DÜZELTME: 
-          Eski iki <p> etiketi yerine, ikiye katlanmış 'doubledItems' dizisini map ile dönüyoruz.
-          Her bir öğe artık kendi başına bir 'span' etiketi içinde.
-        */}
-        {doubledItems.map((item, index) => (
-          <span 
-            // index'i key olarak kullanmak bu senaryoda (sabit liste animasyonu) kabul edilebilir.
-            key={index} 
-            // DÜZELTME: Her öğeye 'mr-16' (margin-right: 4rem) ekleyerek aralarını açıyoruz.
-            className="flex-shrink-0 flex items-center text-sm font-semibold mr-16"
-          >
-            <FaStar className="mr-3 text-amber-500" /> {/* Yıldız ve metin arasını biraz azalttık */}
-            {item}
-          </span>
-        ))}
-        {/* Eski <p> etiketleri kaldırıldı */}
-
+        {doubledItems.map((item, index) =>
+          item.isBig ? (
+            <span
+              key={index}
+              className="flex-shrink-0 flex items-center mr-16"
+            >
+              {/* Büyük etkinlik: koyu kırmızı arka planlı pill */}
+              <span className="inline-flex items-center gap-2 bg-red-600 text-white text-sm font-bold px-4 py-1 rounded-full shadow-md">
+                <span className="text-base leading-none">🎉</span>
+                {item.text}
+              </span>
+            </span>
+          ) : (
+            <span
+              key={index}
+              className="flex-shrink-0 flex items-center text-sm font-semibold mr-16 text-[#92400E]"
+            >
+              <FaStar className="mr-3 text-amber-500" size={11} />
+              {item.text}
+            </span>
+          )
+        )}
       </div>
     </div>
   );

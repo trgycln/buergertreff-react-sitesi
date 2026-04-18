@@ -77,7 +77,9 @@ export default function EreignisForm() {
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('OffeneTreff');
     const [imageUrl, setImageUrl] = useState(''); 
+    const [endTime, setEndTime] = useState('');
     const [isFeatured, setIsFeatured] = useState(false);
+    const [isBigEvent, setIsBigEvent] = useState(false);
     const [registrationDetails, setRegistrationDetails] = useState('');
     const [cost, setCost] = useState('');
     const [contactPerson, setContactPerson] = useState('');
@@ -113,11 +115,13 @@ export default function EreignisForm() {
                     setCurrentEventDataForPdf(data);
                     setTitle(data.title || '');
                     setEventDate(data.event_date ? new Date(data.event_date).toISOString().slice(0, 16) : '');
+                    setEndTime(data.end_time || '');
                     setLocation(data.location || '');
                     setDescription(data.description || '');
                     setCategory(data.category || 'OffeneTreff');
                     setImageUrl(data.image_url || '');
                     setIsFeatured(data.is_featured || false);
+                    setIsBigEvent(data.is_big_event || false);
                     setRegistrationDetails(data.registration_details || '');
                     setCost(data.cost || '');
                     setContactPerson(data.contact_person || '');
@@ -149,7 +153,7 @@ export default function EreignisForm() {
         return hhmm || null;
     };
 
-    const syncEventToCalendar = async (eventId, eventPayload, originalDateTimeValue) => {
+    const syncEventToCalendar = async (eventId, eventPayload, originalDateTimeValue, endTimeValue) => {
         const entryDate = toLocalDateKey(originalDateTimeValue);
         const startTime = toLocalTimeValue(originalDateTimeValue);
 
@@ -175,7 +179,7 @@ export default function EreignisForm() {
             description: eventPayload.description || null,
             entry_date: entryDate,
             start_time: startTime,
-            end_time: null,
+            end_time: endTimeValue || null,
             color: 'red',
             is_public: eventPayload.is_public,
             is_active: true,
@@ -199,11 +203,13 @@ export default function EreignisForm() {
         const eventData = {
             title,
             event_date: eventDate ? new Date(eventDate).toISOString() : null,
+            end_time: endTime || null,
             location,
             description,
             category,
             image_url: imageUrl || null,
             is_featured: isFeatured,
+            is_big_event: isBigEvent,
             registration_details: registrationDetails || null,
             cost: cost || null,
             contact_person: contactPerson || null,
@@ -229,7 +235,7 @@ export default function EreignisForm() {
             setLoading(false);
         } else {
             try {
-                await syncEventToCalendar(savedEventId, eventData, eventDate);
+                await syncEventToCalendar(savedEventId, eventData, eventDate, endTime);
                 setMessage('Ereignis erfolgreich gespeichert und mit Kalender synchronisiert!');
                 const updatedDataForPdf = { ...eventData, id: savedEventId, created_at: currentEventDataForPdf?.created_at || new Date().toISOString() };
                 setCurrentEventDataForPdf(updatedDataForPdf);
@@ -439,8 +445,9 @@ export default function EreignisForm() {
                         {isEditMode ? 'Ereignis bearbeiten' : 'Neues Ereignis erstellen'}
                     </h2>
                     <FormInput label="Titel*" value={title} onChange={(e) => setTitle(e.target.value)} required />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormInput label="Datum & Uhrzeit" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormInput label="Datum & Startzeit" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+                        <FormInput label="Endzeit (Optional)" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} hint="z.B. 18:00" />
                         <FormInput label="Ort" value={location} onChange={(e) => setLocation(e.target.value)} />
                     </div>
                     <FormTextarea label="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} hint="Sie können hier Zeilenumbrüche verwenden, diese werden im PDF korrekt dargestellt." />
@@ -566,10 +573,22 @@ export default function EreignisForm() {
                         label="Als hervorgehobenes Ereignis auf Angebotsseite anzeigen?" 
                         checked={isFeatured} 
                         onChange={(e) => setIsFeatured(e.target.checked)} 
-                        // DÜZELTME: Açıklama metni eklendi
                         hint="Zeigt dieses Ereignis in einem speziellen 'Highlight'-Bereich an (z.B. auf der Startseite). Funktioniert nur, wenn es auch 'öffentlich' ist."
                         disabled={!isPublic} 
                     />
+                    <div className="p-4 border-2 border-orange-300 rounded-lg bg-orange-50 space-y-2">
+                        <FormCheckbox 
+                            id="is_big_event" 
+                            label="🎉 Großes Ereignis – Vollbild-Banner auf der Startseite anzeigen" 
+                            checked={isBigEvent} 
+                            onChange={(e) => setIsBigEvent(e.target.checked)} 
+                            hint="Wenn aktiviert, erscheint dieses Ereignis auf der Startseite als großer Vollbild-Banner (mit Gradient), bis das Datum abgelaufen ist. Nur öffentliche Ereignisse werden angezeigt."
+                            disabled={!isPublic} 
+                        />
+                        {isBigEvent && !isPublic && (
+                            <p className="text-xs text-orange-700 font-semibold ml-6">⚠️ Hinweis: Das Ereignis muss auch öffentlich sein, damit der Banner erscheint.</p>
+                        )}
+                    </div>
 
                     <div className="flex justify-end pt-4 border-t border-gray-200 mt-4">
                         <button type="submit" disabled={loading} className="w-full md:w-auto px-6 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 disabled:bg-gray-400 transition-colors">

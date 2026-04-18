@@ -5,7 +5,9 @@ import Hero from '../components/Hero';
 import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
 import AktuellesTeaser from '../components/AktuellesTeaser';
+import BigEventBanner from '../components/BigEventBanner';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
+import { supabase } from '../supabaseClient';
 
 import heroVideo from '../assets/images/hero-background.mp4'; 
 import foto1 from '../assets/images/wirUberUns-4.jpg';
@@ -14,6 +16,30 @@ import { Helmet } from 'react-helmet-async';
 const Start = () => {
     const welcomeMessages = useMemo(() => [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا","Serdecznie witamy","Hûn bi xêr hatinî"],[]);
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+    const [bigEvent, setBigEvent] = useState(null);
+    const [showBanner, setShowBanner] = useState(false);
+
+    // Büyük etkinliği Supabase'den çek
+    useEffect(() => {
+        const fetchBigEvent = async () => {
+            const now = new Date().toISOString();
+            const { data, error } = await supabase
+                .from('ereignisse')
+                .select('id, title, event_date, end_time, location, description, image_url')
+                .eq('is_big_event', true)
+                .eq('is_public', true)
+                .gte('event_date', now)
+                .order('event_date', { ascending: true })
+                .limit(1)
+                .maybeSingle();
+
+            if (!error && data) {
+                setBigEvent(data);
+                setShowBanner(true);
+            }
+        };
+        fetchBigEvent();
+    }, []);
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -43,6 +69,12 @@ const Start = () => {
                     content="Willkommen beim Bürgertreff Wissen e.V. Wir fördern Gemeinschaft, bürgerschaftliches Engagement und Miteinander im Großraum Wissen/Sieg. Entdecken Sie unsere Angebote und Projekte."
                 />
             </Helmet>
+
+            {/* Büyük Etkinlik Banner (varsa, tam ekran overlay) */}
+            {showBanner && bigEvent && (
+                <BigEventBanner event={bigEvent} onClose={() => setShowBanner(false)} />
+            )}
+
         <div>
             <Hero videoUrl={heroVideo}>
                 {/* GÜNCELLENDİ: Metin yapısı ve fontlar isteğinize göre düzeltildi */}

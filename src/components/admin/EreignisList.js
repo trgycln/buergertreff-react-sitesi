@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Link } from 'react-router-dom';
-import { FaPlus, FaPencilAlt, FaTrashAlt, FaFilter, FaStar, FaRegStar } from 'react-icons/fa'; // Icons hinzugefügt
+import { FaPlus, FaPencilAlt, FaTrashAlt, FaFilter, FaStar, FaRegStar, FaBolt } from 'react-icons/fa'; // Icons hinzugefügt
 
 // Hilfsfunktion zum Formatieren des Datums
 const formatDate = (dateString) => {
@@ -168,16 +168,17 @@ export default function EreignisList({ pageInfo }) {
                             <th className="px-6 py-3 text-left text-xs font-medium text-rcDarkGray uppercase tracking-wider">Kategorie</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-rcDarkGray uppercase tracking-wider">Datum & Uhrzeit</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-rcDarkGray uppercase tracking-wider">Hervorgehoben?</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-orange-600 uppercase tracking-wider">🎉 Großes Ereignis</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-rcDarkGray uppercase tracking-wider">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {loading && ereignisse.length > 0 && (
-                             <tr><td colSpan="5" className="px-6 py-4 text-center text-gray-500 italic">Filtere neu...</td></tr>
+                             <tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500 italic">Filtere neu...</td></tr>
                         )}
                         {!loading && ereignisse.length === 0 && (
                             <tr>
-                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                                     Keine Ereignisse gefunden {filterCategory ? `für Kategorie "${filterCategory}"` : ''}.
                                 </td>
                             </tr>
@@ -206,6 +207,15 @@ export default function EreignisList({ pageInfo }) {
                                     >
                                         {event.is_featured ? <FaStar size={18} /> : <FaRegStar size={18} />}
                                     </button>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                    {event.is_big_event ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                                            <FaBolt size={11} /> Aktiv
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-300 text-xs">–</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                     {/* "Bearbeiten" Knopf (Link zur Formularseite mit ID) */}
