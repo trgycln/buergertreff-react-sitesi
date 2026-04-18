@@ -25,7 +25,7 @@ const Start = () => {
             const now = new Date().toISOString();
             const { data, error } = await supabase
                 .from('ereignisse')
-                .select('id, title, event_date, end_time, location, description, image_url')
+                .select('id, title, event_date, end_time, location, description, image_url, program_details')
                 .eq('is_big_event', true)
                 .eq('is_public', true)
                 .gte('event_date', now)
