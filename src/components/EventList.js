@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa'; // İkonlar eklendi
 import fallbackImage from '../assets/images/ana_logo.jpg'; // Varsayılan resim eklendi
 import ImageCarousel from './ImageCarousel';
-import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, formatTimeRange, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 // Tarih formatlama (Liste için kısa format)
 const formatListDate = (dateString) => {
@@ -37,7 +37,7 @@ const formatCategoryLabel = (value = '') => {
     return value;
 };
 
-const formatUpcomingDate = (dateKey, startTime) => {
+const formatUpcomingDate = (dateKey, startTime, endTime) => {
     if (!dateKey) return '';
 
     const date = parseLocalDate(dateKey);
@@ -50,7 +50,7 @@ const formatUpcomingDate = (dateKey, startTime) => {
     });
 
     if (!startTime) return dateLabel;
-    return `${dateLabel}, ${String(startTime).slice(0, 5)} Uhr`;
+    return `${dateLabel}, ${formatTimeRange(startTime, endTime)}`;
 };
 
 const normalizeText = (value = '') => String(value || '').trim().toLocaleLowerCase('de-DE');
@@ -227,6 +227,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             description: pickDescription(item.description, pickDescription(directDescription, similarityDescription)),
             dateKey: item.dateKey,
             startTime: item.startTime,
+            endTime: item.endTime,
             detailId: null,
             };
         });
@@ -247,6 +248,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             ),
             dateKey: entry.entry_date,
             startTime: entry.start_time,
+            endTime: entry.end_time,
             detailId: entry.source_event_id || null,
             };
         });
@@ -399,7 +401,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                                 <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 gap-x-4 gap-y-1">
                                     <span className="flex items-center">
                                         <FaRegCalendarAlt className="mr-1.5" />
-                                        {formatUpcomingDate(event.dateKey, event.startTime)}
+                                        {formatUpcomingDate(event.dateKey, event.startTime, event.endTime)}
                                     </span>
                                     {event.location && (
                                         <span className="flex items-center">
