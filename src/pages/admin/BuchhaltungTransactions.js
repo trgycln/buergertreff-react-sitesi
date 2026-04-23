@@ -1023,18 +1023,9 @@ export default function BuchhaltungTransactions() {
     name => name.includes('darlehen'),
     name => name.includes('sonstiges'),
   ];
-  const allowedCategoryNames = [
-    'Miete & Nebenkosten',
-    'Bürokosten',
-    'Vereinsverwaltung',
-    'Fortbildung',
-    'Einrichtung',
-    'Darlehensrückzahlung',
-    'Verbrauch',
-    'Sonstiges',
-  ];
-  const displayedCategories = formData.type === 'expense' 
-    ? categories.filter(c => allowedCategoryNames.includes(c.name) && c.type === 'expense')
+  // Tüm aktif gider kategorilerini göster (manuel liste yok)
+  const displayedCategories = formData.type === 'expense'
+    ? categories.filter(c => c.type === 'expense' && c.is_active !== false)
     : filteredCategories.filter(category => {
         const normalizedName = normalizeCategoryName(category.name);
         if (normalizedName.includes('sponsor')) return false;

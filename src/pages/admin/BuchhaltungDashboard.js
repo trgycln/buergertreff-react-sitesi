@@ -534,15 +534,24 @@ export default function BuchhaltungDashboard() {
           <p className="text-gray-500 text-sm">Keine Transaktionen gefunden.</p>
         ) : (
           recentTransactions.map((trx) => (
-            <div key={trx.id} className="flex justify-between items-center text-sm border-b last:border-0 pb-2 last:pb-0">
-              <div>
+            <div key={trx.id} className="flex flex-col md:flex-row md:justify-between md:items-center text-sm border-b last:border-0 pb-2 last:pb-0 gap-1">
+              <div className="flex-1">
                 <div className="font-medium text-gray-800">{trx.accounting_categories?.name || 'Unbekannt'}</div>
                 <div className="text-xs text-gray-500">
-                  {new Date(trx.date).toLocaleDateString('de-DE')} 
+                  {new Date(trx.date).toLocaleDateString('de-DE')}
                   {trx.accounting_contacts && ` • ${trx.accounting_contacts.name}`}
                 </div>
+                {trx.description && (
+                  <div className="text-xs text-gray-600 mt-1">{trx.description}</div>
+                )}
+                {trx.account_id && trx.accounting_accounts?.name && (
+                  <div className="text-xs text-gray-400 mt-1">Konto: {trx.accounting_accounts.name}</div>
+                )}
+                {trx.receipt_no && (
+                  <div className="text-xs text-gray-400 mt-1">Beleg-Nr: {trx.receipt_no}</div>
+                )}
               </div>
-              <span className={`font-bold ${trx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`font-bold ${trx.type === 'income' ? 'text-green-600' : 'text-red-600'} md:ml-4`}>
                 {trx.type === 'income' ? '+' : '-'} {formatEuro(trx.amount)}
               </span>
             </div>
