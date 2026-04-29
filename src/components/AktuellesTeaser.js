@@ -265,7 +265,15 @@ const AktuellesTeaser = () => {
                                 <h3 className="text-xl font-semibold text-rcDarkGray mb-2">Letzte Aktivität</h3>
                                 <p className="text-sm text-gray-600 mb-3">{latestWithPhotos.title}</p>
                                 <ImageCarousel images={latestWithPhotos.archive_photos} objectFit="contain" />
-                                <div className="mt-3 text-right">
+                                {latestWithPhotos.archive_summary && (
+                                    <blockquote className="mt-4 border-l-[3px] border-rcBlue pl-3">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-rcBlue mb-1.5">Kurzbericht</p>
+                                        <p className="text-sm text-gray-600 leading-relaxed">
+                                            {latestWithPhotos.archive_summary}
+                                        </p>
+                                    </blockquote>
+                                )}
+                                <div className="mt-4 text-right">
                                     <Link
                                         to={`/angebote/${latestWithPhotos.id}`}
                                         className="text-sm font-semibold text-rcBlue hover:underline"

@@ -465,7 +465,15 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                                 {latestPastEventWithPhotos.title}
                             </p>
                             <ImageCarousel images={latestPastEventWithPhotos.archive_photos} objectFit="contain" />
-                            <div className="mt-3 text-right">
+                            {latestPastEventWithPhotos.archive_summary && (
+                                <blockquote className="mt-4 border-l-[3px] border-rcBlue pl-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-rcBlue mb-1.5">Kurzbericht</p>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
+                                        {latestPastEventWithPhotos.archive_summary}
+                                    </p>
+                                </blockquote>
+                            )}
+                            <div className="mt-4 text-right">
                                 <Link
                                     to={`/angebote/${latestPastEventWithPhotos.id}`}
                                     className="text-sm font-semibold text-rcBlue hover:underline"

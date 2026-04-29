@@ -484,6 +484,7 @@ export default function BuchhaltungContacts() {
   const getTypeLabel = (type) => {
     switch(type) {
       case 'member': return { label: 'Mitglied', color: 'bg-blue-100 text-blue-800', icon: <FaUser /> };
+      case 'former_member': return { label: 'Ehem. Mitglied', color: 'bg-gray-100 text-gray-400', icon: <FaUser /> };
       case 'sponsor': return { label: 'Sponsor', color: 'bg-yellow-100 text-yellow-800', icon: <FaHandHoldingHeart /> };
       case 'supplier': return { label: 'Lieferant', color: 'bg-purple-100 text-purple-800', icon: <FaBuilding /> };
       default: return { label: 'Sonstiges', color: 'bg-gray-100 text-gray-800', icon: <FaUser /> };
@@ -560,6 +561,7 @@ export default function BuchhaltungContacts() {
                       onChange={handleInputChange}
                     >
                       <option value="member">Mitglied</option>
+                      <option value="former_member">Ehem. Mitglied (ausgetreten)</option>
                       <option value="sponsor">Sponsor</option>
                       <option value="supplier">Lieferant / Dienstleister</option>
                       <option value="other">Sonstiges</option>

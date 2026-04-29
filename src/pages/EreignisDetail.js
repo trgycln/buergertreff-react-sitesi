@@ -178,9 +178,12 @@ const EreignisDetail = () => {
                                 
                                 {/* Arşiv Özeti */}
                                 {event.archive_summary && (
-                                    <p className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed mb-6">
-                                        {event.archive_summary}
-                                    </p>
+                                    <blockquote className="border-l-4 border-rcBlue pl-5 py-1 mb-6">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-rcBlue mb-3">Kurzbericht</p>
+                                        <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                            {event.archive_summary}
+                                        </p>
+                                    </blockquote>
                                 )}
                                 
                                 {/* Arşiv Videosu */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { FaPrint, FaSearch, FaEye, FaTimes } from 'react-icons/fa';
+import { FaPrint, FaSearch, FaEye, FaTimes, FaUserMinus } from 'react-icons/fa';
 
 export default function BuchhaltungMembers() {
   const [members, setMembers] = useState([]);
@@ -91,6 +91,24 @@ export default function BuchhaltungMembers() {
         return effectiveYear === targetYear;
       })
       .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+  };
+
+  const handleRemoveMember = async (member) => {
+    if (!window.confirm(
+      `"${member.name}" als ausgetreten markieren?\n\nDie Transaktionshistorie bleibt vollständig erhalten. Das Mitglied wird nur aus der aktiven Liste entfernt.`
+    )) return;
+
+    const { error } = await supabase
+      .from('accounting_contacts')
+      .update({ type: 'former_member' })
+      .eq('id', member.id);
+
+    if (error) {
+      alert('Fehler: ' + error.message);
+    } else {
+      setMembers(prev => prev.filter(m => m.id !== member.id));
+      if (selectedMember?.id === member.id) setSelectedMember(null);
+    }
   };
 
   // --- LİSTELEME VE SIRALAMA ---
@@ -229,9 +247,22 @@ export default function BuchhaltungMembers() {
                   );
                 })}
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => setSelectedMember(member)} className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-50">
-                    <FaEye />
-                  </button>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => setSelectedMember(member)}
+                      className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-50"
+                      title="Details anzeigen"
+                    >
+                      <FaEye />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveMember(member)}
+                      className="text-red-400 hover:text-red-700 p-2 rounded-full hover:bg-red-50"
+                      title="Als ausgetreten markieren"
+                    >
+                      <FaUserMinus />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -276,7 +307,15 @@ export default function BuchhaltungMembers() {
                   </div>
                 </div>
               </div>
-              <div className="mt-6 text-right"><button onClick={() => setSelectedMember(null)} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 text-sm">Schließen</button></div>
+              <div className="mt-6 flex justify-between items-center">
+                <button
+                  onClick={() => handleRemoveMember(selectedMember)}
+                  className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded hover:bg-red-100 text-sm"
+                >
+                  <FaUserMinus /> Als ausgetreten markieren
+                </button>
+                <button onClick={() => setSelectedMember(null)} className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300 text-sm">Schließen</button>
+              </div>
             </div>
           </div>
         </div>
