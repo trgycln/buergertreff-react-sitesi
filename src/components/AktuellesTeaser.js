@@ -43,6 +43,7 @@ const AktuellesTeaser = () => {
     const [events, setEvents] = useState([]);
     const [recurringEntries, setRecurringEntries] = useState([]);
     const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -54,7 +55,7 @@ const AktuellesTeaser = () => {
             const todayKey = dateToKey(today);
             const horizonKey = dateToKey(horizon);
 
-            const [eventsResponse, recurringResponse, singleResponse] = await Promise.all([
+            const [eventsResponse, recurringResponse, singleResponse, exceptionsResponse] = await Promise.all([
                 supabase
                     .from('ereignisse')
                     .select('*')
@@ -76,6 +77,7 @@ const AktuellesTeaser = () => {
                     .gte('entry_date', todayKey)
                     .lte('entry_date', horizonKey)
                     .order('entry_date', { ascending: true }),
+                supabase.from('calendar_recurring_exceptions').select('*'),
             ]);
 
             if (eventsResponse.error || recurringResponse.error || singleResponse.error) {
@@ -90,6 +92,7 @@ const AktuellesTeaser = () => {
                 setEvents(eventsResponse.data || []);
                 setRecurringEntries(recurringResponse.data || []);
                 setSingleEntries(singleResponse.data || []);
+                setExceptions(exceptionsResponse.data || []);
             }
 
             setLoading(false);
@@ -128,7 +131,7 @@ const AktuellesTeaser = () => {
                 };
             });
 
-        const upcomingFromRecurring = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd).map((entry) => ({
+        const upcomingFromRecurring = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd, exceptions).map((entry) => ({
             id: entry.id,
             title: entry.title,
             category: entry.category,
@@ -186,7 +189,7 @@ const AktuellesTeaser = () => {
             upcoming: upcomingEvents,
             latestWithPhotos: latestPastWithPhotos
         };
-    }, [events, recurringEntries, singleEntries]);
+    }, [events, recurringEntries, singleEntries, exceptions]);
 
     return (
         <section className="bg-white py-12 md:py-16">

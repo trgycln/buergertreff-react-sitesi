@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaCalendarAlt, FaEdit, FaEye, FaPlus, FaTrashAlt } from 'react-icons/fa';
+import { FaBan, FaCalendarAlt, FaEdit, FaEye, FaPlus, FaTrashAlt } from 'react-icons/fa';
 import { supabase } from '../../supabaseClient';
-import { formatDateLabel, formatRecurrenceRule, formatTimeRange, parseLocalDate, WEEKDAY_OPTIONS } from '../../utils/calendarUtils';
+import { dateToKey, expandRecurringEntries, formatDateLabel, formatRecurrenceRule, formatTimeRange, parseLocalDate, WEEKDAY_OPTIONS } from '../../utils/calendarUtils';
 
 const recurringInitialState = {
     title: '',
@@ -32,6 +32,16 @@ const singleInitialState = {
     color: 'red',
     isPublic: true,
     isActive: true,
+};
+
+const exceptionInitialState = {
+    recurringEntryId: '',
+    originalDate: '',
+    exceptionType: 'cancelled',
+    newDate: '',
+    newStartTime: '',
+    newEndTime: '',
+    note: '',
 };
 
 const colorOptions = [
@@ -130,10 +140,13 @@ export default function CalendarManagement() {
     const [activeTab, setActiveTab] = useState('recurring');
     const [recurringEntries, setRecurringEntries] = useState([]);
     const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
     const [recurringForm, setRecurringForm] = useState(recurringInitialState);
     const [singleForm, setSingleForm] = useState(singleInitialState);
+    const [exceptionForm, setExceptionForm] = useState(exceptionInitialState);
     const [editingRecurringId, setEditingRecurringId] = useState(null);
     const [editingSingleId, setEditingSingleId] = useState(null);
+    const [editingExceptionId, setEditingExceptionId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState(null);
@@ -141,9 +154,10 @@ export default function CalendarManagement() {
     const fetchCalendarData = async () => {
         setLoading(true);
 
-        const [recurringResponse, singleResponse] = await Promise.all([
+        const [recurringResponse, singleResponse, exceptionsResponse] = await Promise.all([
             supabase.from('calendar_recurring_entries').select('*').order('start_date', { ascending: false }),
             supabase.from('calendar_single_entries').select('*').order('entry_date', { ascending: false }),
+            supabase.from('calendar_recurring_exceptions').select('*').order('original_date', { ascending: false }),
         ]);
 
         if (recurringResponse.error || singleResponse.error) {
@@ -154,6 +168,7 @@ export default function CalendarManagement() {
         } else {
             setRecurringEntries(recurringResponse.data || []);
             setSingleEntries(singleResponse.data || []);
+            setExceptions(exceptionsResponse.data || []);
         }
 
         setLoading(false);
@@ -326,6 +341,83 @@ export default function CalendarManagement() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const resetExceptionForm = () => {
+        setEditingExceptionId(null);
+        setExceptionForm(exceptionInitialState);
+    };
+
+    const handleExceptionChange = (field, value) => {
+        setExceptionForm((current) => ({ ...current, [field]: value }));
+    };
+
+    // Compute the upcoming occurrences of the selected recurring series for the next 6 months
+    const upcomingDatesForSeries = useMemo(() => {
+        if (!exceptionForm.recurringEntryId) return [];
+        const entry = recurringEntries.find((e) => e.id === exceptionForm.recurringEntryId);
+        if (!entry) return [];
+        const rangeStart = parseLocalDate(new Date());
+        const rangeEnd = new Date(rangeStart);
+        rangeEnd.setMonth(rangeEnd.getMonth() + 6);
+        return expandRecurringEntries([entry], rangeStart, rangeEnd)
+            .map((occ) => occ.dateKey)
+            .sort();
+    }, [exceptionForm.recurringEntryId, recurringEntries]);
+
+    const handleExceptionSubmit = async (event) => {
+        event.preventDefault();
+        if (!exceptionForm.recurringEntryId || !exceptionForm.originalDate) {
+            setMessage({ type: 'error', text: 'Bitte Terminserie und Datum auswählen.' });
+            return;
+        }
+        if (exceptionForm.exceptionType === 'rescheduled' && !exceptionForm.newDate) {
+            setMessage({ type: 'error', text: 'Bitte das neue Datum für die Verschiebung angeben.' });
+            return;
+        }
+        setSubmitting(true);
+        setMessage(null);
+
+        const payload = {
+            recurring_entry_id: exceptionForm.recurringEntryId,
+            original_date: exceptionForm.originalDate,
+            exception_type: exceptionForm.exceptionType,
+            new_date: exceptionForm.exceptionType === 'rescheduled' ? exceptionForm.newDate || null : null,
+            new_start_time: exceptionForm.exceptionType === 'rescheduled' ? exceptionForm.newStartTime || null : null,
+            new_end_time: exceptionForm.exceptionType === 'rescheduled' ? exceptionForm.newEndTime || null : null,
+            note: exceptionForm.note.trim() || null,
+        };
+
+        const response = editingExceptionId
+            ? await supabase.from('calendar_recurring_exceptions').update(payload).eq('id', editingExceptionId)
+            : await supabase.from('calendar_recurring_exceptions').insert(payload);
+
+        if (response.error) {
+            setMessage({ type: 'error', text: `Speichern fehlgeschlagen: ${response.error.message}` });
+        } else {
+            setMessage({
+                type: 'success',
+                text: editingExceptionId ? 'Ausnahme aktualisiert.' : 'Ausnahme gespeichert.',
+            });
+            resetExceptionForm();
+            await fetchCalendarData();
+        }
+        setSubmitting(false);
+    };
+
+    const handleEditException = (ex) => {
+        setActiveTab('exceptions');
+        setEditingExceptionId(ex.id);
+        setExceptionForm({
+            recurringEntryId: ex.recurring_entry_id,
+            originalDate: ex.original_date,
+            exceptionType: ex.exception_type,
+            newDate: ex.new_date || '',
+            newStartTime: ex.new_start_time ? String(ex.new_start_time).slice(0, 5) : '',
+            newEndTime: ex.new_end_time ? String(ex.new_end_time).slice(0, 5) : '',
+            note: ex.note || '',
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const handleDelete = async (tableName, id, title) => {
         if (!window.confirm(`Soll "${title}" wirklich gelöscht werden?`)) {
             return;
@@ -374,10 +466,8 @@ export default function CalendarManagement() {
                     <p className="mt-2 text-3xl font-bold text-rcBlue">{singleEntries.length}</p>
                 </div>
                 <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <p className="text-sm text-gray-500">Hinweis</p>
-                    <p className="mt-2 text-sm text-gray-700">
-                        Aktiv + öffentlich markierte Einträge werden im Kalender rot dargestellt.
-                    </p>
+                    <p className="text-sm text-gray-500">Ausnahmen (Absagen & Verschiebungen)</p>
+                    <p className="mt-2 text-3xl font-bold text-orange-500">{exceptions.length}</p>
                 </div>
             </div>
 
@@ -400,6 +490,21 @@ export default function CalendarManagement() {
                         }`}
                     >
                         Sondertermine
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('exceptions')}
+                        className={`flex-1 px-5 py-4 text-sm font-semibold flex items-center justify-center gap-2 ${
+                            activeTab === 'exceptions' ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'
+                        }`}
+                    >
+                        <FaBan className="text-xs" />
+                        Ausnahmen
+                        {exceptions.length > 0 && (
+                            <span className="ml-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                                {exceptions.length}
+                            </span>
+                        )}
                     </button>
                 </div>
 
@@ -636,7 +741,7 @@ export default function CalendarManagement() {
                             </table>
                         </div>
                     </div>
-                ) : (
+                ) : activeTab === 'single' ? (
                     <div className="space-y-6 p-6">
                         <form onSubmit={handleSingleSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
                             <div className="flex items-center justify-between gap-4">
@@ -824,7 +929,260 @@ export default function CalendarManagement() {
                             </table>
                         </div>
                     </div>
-                )}
+                ) : activeTab === 'exceptions' ? (
+                    <div className="space-y-6 p-6">
+                        {/* Exception Form */}
+                        <form onSubmit={handleExceptionSubmit} className="space-y-6 rounded-xl border border-orange-200 bg-orange-50 p-6">
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-rcDarkGray">
+                                        {editingExceptionId ? 'Ausnahme bearbeiten' : 'Neue Ausnahme hinzufügen'}
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                        Einzelne Termine aus einer Serie absagen oder auf einen anderen Tag verschieben.
+                                    </p>
+                                </div>
+                                {editingExceptionId && (
+                                    <button type="button" onClick={resetExceptionForm} className="text-sm font-semibold text-rcBlue hover:underline">
+                                        Bearbeitung abbrechen
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                {/* Series selector */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-rcDarkGray">Terminserie</label>
+                                    <select
+                                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                        value={exceptionForm.recurringEntryId}
+                                        onChange={(e) => handleExceptionChange('recurringEntryId', e.target.value)}
+                                        required
+                                    >
+                                        <option value="">– Serie auswählen –</option>
+                                        {recurringEntries.map((entry) => (
+                                            <option key={entry.id} value={entry.id}>
+                                                {entry.title} ({formatRecurrenceRule(entry)})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Original date — dropdown from computed occurrences */}
+                                <div>
+                                    <label className="block text-sm font-medium text-rcDarkGray">Betroffenes Datum (original)</label>
+                                    {upcomingDatesForSeries.length > 0 ? (
+                                        <select
+                                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                            value={exceptionForm.originalDate}
+                                            onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
+                                            required
+                                        >
+                                            <option value="">– Datum wählen –</option>
+                                            {upcomingDatesForSeries.map((dateKey) => {
+                                                const d = parseLocalDate(dateKey);
+                                                const label = d ? formatDateLabel(d) : dateKey;
+                                                const alreadyHasException = exceptions.some(
+                                                    (ex) => ex.recurring_entry_id === exceptionForm.recurringEntryId && ex.original_date === dateKey
+                                                );
+                                                return (
+                                                    <option key={dateKey} value={dateKey}>
+                                                        {label}{alreadyHasException ? ' ⚠ bereits geändert' : ''}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="date"
+                                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                            value={exceptionForm.originalDate}
+                                            onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
+                                            required
+                                        />
+                                    )}
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        {upcomingDatesForSeries.length > 0
+                                            ? 'Nächste 6 Monate der Serie werden angezeigt.'
+                                            : 'Bitte zuerst eine Terminserie auswählen.'}
+                                    </p>
+                                </div>
+
+                                {/* Exception type */}
+                                <div>
+                                    <label className="block text-sm font-medium text-rcDarkGray">Art der Ausnahme</label>
+                                    <div className="mt-2 flex flex-col gap-2">
+                                        <label className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 cursor-pointer hover:bg-gray-50">
+                                            <input
+                                                type="radio"
+                                                name="exceptionType"
+                                                value="cancelled"
+                                                checked={exceptionForm.exceptionType === 'cancelled'}
+                                                onChange={() => handleExceptionChange('exceptionType', 'cancelled')}
+                                                className="text-rcBlue"
+                                            />
+                                            <span className="text-sm font-medium text-gray-800">🚫 Termin fällt aus (Absage)</span>
+                                        </label>
+                                        <label className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 cursor-pointer hover:bg-gray-50">
+                                            <input
+                                                type="radio"
+                                                name="exceptionType"
+                                                value="rescheduled"
+                                                checked={exceptionForm.exceptionType === 'rescheduled'}
+                                                onChange={() => handleExceptionChange('exceptionType', 'rescheduled')}
+                                                className="text-rcBlue"
+                                            />
+                                            <span className="text-sm font-medium text-gray-800">📅 Termin wird verschoben</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Reschedule fields */}
+                            {exceptionForm.exceptionType === 'rescheduled' && (
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 rounded-lg border border-orange-300 bg-white p-4">
+                                    <p className="md:col-span-3 text-sm font-semibold text-orange-700">Neuer Termin</p>
+                                    <FormInput
+                                        label="Neues Datum"
+                                        type="date"
+                                        value={exceptionForm.newDate}
+                                        onChange={(e) => handleExceptionChange('newDate', e.target.value)}
+                                        required
+                                    />
+                                    <FormInput
+                                        label="Neue Uhrzeit (Beginn)"
+                                        type="time"
+                                        value={exceptionForm.newStartTime}
+                                        onChange={(e) => handleExceptionChange('newStartTime', e.target.value)}
+                                    />
+                                    <FormInput
+                                        label="Neue Uhrzeit (Ende)"
+                                        type="time"
+                                        value={exceptionForm.newEndTime}
+                                        onChange={(e) => handleExceptionChange('newEndTime', e.target.value)}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Note */}
+                            <FormInput
+                                label="Hinweis (optional, z. B. Grund der Absage)"
+                                value={exceptionForm.note}
+                                onChange={(e) => handleExceptionChange('note', e.target.value)}
+                                placeholder="z.B. Wegen Feiertag, Raumwechsel, ..."
+                            />
+
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="inline-flex items-center rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    <FaBan className="mr-2" />
+                                    {editingExceptionId ? 'Ausnahme aktualisieren' : 'Ausnahme speichern'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={resetExceptionForm}
+                                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                                >
+                                    Formular zurücksetzen
+                                </button>
+                            </div>
+                        </form>
+
+                        {/* Exceptions list */}
+                        <div className="overflow-x-auto rounded-xl border border-gray-200">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Terminserie</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Datum (original)</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Art</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Neues Datum</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Hinweis</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">Lade Ausnahmen...</td>
+                                        </tr>
+                                    ) : exceptions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">
+                                                Keine Ausnahmen vorhanden. Alle Termine laufen wie geplant.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        exceptions.map((ex) => {
+                                            const series = recurringEntries.find((e) => e.id === ex.recurring_entry_id);
+                                            const originalDate = parseLocalDate(ex.original_date);
+                                            const newDate = ex.new_date ? parseLocalDate(ex.new_date) : null;
+                                            return (
+                                                <tr key={ex.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-4 align-top">
+                                                        <div className="font-medium text-rcDarkGray">{series?.title || '–'}</div>
+                                                        <div className="text-xs text-gray-500">{series ? formatRecurrenceRule(series) : ''}</div>
+                                                    </td>
+                                                    <td className="px-4 py-4 align-top text-sm text-gray-700">
+                                                        {originalDate ? originalDate.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : ex.original_date}
+                                                    </td>
+                                                    <td className="px-4 py-4 align-top">
+                                                        {ex.exception_type === 'cancelled' ? (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+                                                                🚫 Abgesagt
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                                                                📅 Verschoben
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-4 align-top text-sm text-gray-700">
+                                                        {newDate ? (
+                                                            <div>
+                                                                <div>{newDate.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
+                                                                {(ex.new_start_time || ex.new_end_time) && (
+                                                                    <div className="text-xs text-gray-500">{formatTimeRange(ex.new_start_time, ex.new_end_time)}</div>
+                                                                )}
+                                                            </div>
+                                                        ) : '–'}
+                                                    </td>
+                                                    <td className="px-4 py-4 align-top text-sm text-gray-500 max-w-[180px]">
+                                                        {ex.note || '–'}
+                                                    </td>
+                                                    <td className="px-4 py-4 align-top text-right text-sm">
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditException(ex)}
+                                                                className="text-rcBlue hover:text-blue-700"
+                                                                title="Bearbeiten"
+                                                            >
+                                                                <FaEdit />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete('calendar_recurring_exceptions', ex.id, `Ausnahme vom ${ex.original_date}`)}
+                                                                className="text-rcRed hover:text-red-700"
+                                                                title="Löschen"
+                                                                disabled={submitting}
+                                                            >
+                                                                <FaTrashAlt />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
     );

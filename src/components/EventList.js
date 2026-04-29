@@ -108,6 +108,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
     const [events, setEvents] = useState([]);
     const [recurringEntries, setRecurringEntries] = useState([]);
     const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -122,7 +123,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             const todayKey = dateToKey(today);
             const horizonKey = dateToKey(horizon);
             
-            const [eventsResponse, recurringResponse, singleResponse] = await Promise.all([
+            const [eventsResponse, recurringResponse, singleResponse, exceptionsResponse] = await Promise.all([
                 supabase
                     .from('ereignisse')
                     .select('*')
@@ -144,6 +145,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                     .gte('entry_date', todayKey)
                     .lte('entry_date', horizonKey)
                     .order('entry_date', { ascending: true }),
+                supabase.from('calendar_recurring_exceptions').select('*'),
             ]);
 
             if (eventsResponse.error || recurringResponse.error || singleResponse.error) {
@@ -153,6 +155,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                 setEvents(eventsResponse.data || []);
                 setRecurringEntries(recurringResponse.data || []);
                 setSingleEntries(singleResponse.data || []);
+                setExceptions(exceptionsResponse.data || []);
             }
             setLoading(false);
         };
@@ -215,7 +218,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
                 };
             });
 
-        const recurringOccurrences = expandRecurringEntries(filteredRecurring, parseLocalDate(new Date()), parseLocalDate(horizon)).map((item) => {
+        const recurringOccurrences = expandRecurringEntries(filteredRecurring, parseLocalDate(new Date()), parseLocalDate(horizon), exceptions).map((item) => {
             const directDescription = archiveDescriptionByKey.get(getDescriptionLookupKey(item.title, item.category));
             const similarityDescription = findDescriptionBySimilarity(filteredArchive, item.title, item.category);
 
@@ -281,7 +284,7 @@ const EventList = ({ filterCategory = 'Alle', archiveView = 'card', maxUpcomingE
             upcomingEvents: upcoming,
             pastEvents: past,
         };
-    }, [events, recurringEntries, singleEntries, filterCategory, maxUpcomingEvents]); 
+    }, [events, recurringEntries, singleEntries, exceptions, filterCategory, maxUpcomingEvents]);
 
     const latestPastEventWithPhotos = useMemo(() => {
         return pastEvents.find(

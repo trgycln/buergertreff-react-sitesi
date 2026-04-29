@@ -129,6 +129,7 @@ export default function Terminkalender() {
     const [selectedDateKey, setSelectedDateKey] = useState(() => getDefaultSelectedKey(new Date()));
     const [recurringEntries, setRecurringEntries] = useState([]);
     const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [detailsHighlight, setDetailsHighlight] = useState(false);
@@ -149,7 +150,7 @@ export default function Terminkalender() {
             const startKey = dateToKey(rangeStart);
             const endKey = dateToKey(rangeEnd);
 
-            const [recurringResponse, singleResponse] = await Promise.all([
+            const [recurringResponse, singleResponse, exceptionsResponse] = await Promise.all([
                 supabase
                     .from('calendar_recurring_entries')
                     .select('*')
@@ -166,6 +167,7 @@ export default function Terminkalender() {
                     .gte('entry_date', startKey)
                     .lte('entry_date', endKey)
                     .order('entry_date', { ascending: true }),
+                supabase.from('calendar_recurring_exceptions').select('*'),
             ]);
 
             if (recurringResponse.error || singleResponse.error) {
@@ -175,6 +177,7 @@ export default function Terminkalender() {
             } else {
                 setRecurringEntries(recurringResponse.data || []);
                 setSingleEntries(singleResponse.data || []);
+                setExceptions(exceptionsResponse.data || []);
             }
 
             setLoading(false);
@@ -199,7 +202,7 @@ export default function Terminkalender() {
     }, []);
 
     const entriesByDay = useMemo(() => {
-        const recurringOccurrences = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd);
+        const recurringOccurrences = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd, exceptions);
         const singleOccurrences = buildSingleOccurrences(singleEntries);
         const groupedEntries = {};
 
@@ -212,7 +215,7 @@ export default function Terminkalender() {
         });
 
         return groupedEntries;
-    }, [rangeEnd, rangeStart, recurringEntries, singleEntries]);
+    }, [rangeEnd, rangeStart, recurringEntries, singleEntries, exceptions]);
 
     const selectedDate = useMemo(() => parseLocalDate(selectedDateKey), [selectedDateKey]);
     const selectedEntries = entriesByDay[selectedDateKey] || [];

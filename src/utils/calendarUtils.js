@@ -226,9 +226,21 @@ export const getCalendarGridDays = (currentMonth) => {
     });
 };
 
-export const expandRecurringEntries = (seriesEntries = [], rangeStart, rangeEnd) => {
+export const expandRecurringEntries = (seriesEntries = [], rangeStart, rangeEnd, exceptions = []) => {
     const occurrences = [];
     const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+    // Build exception lookup maps keyed by "recurringEntryId|originalDate"
+    const cancelledKeys = new Set();
+    const rescheduleMap = new Map();
+    exceptions.forEach((ex) => {
+        const key = `${ex.recurring_entry_id}|${ex.original_date}`;
+        if (ex.exception_type === 'cancelled') {
+            cancelledKeys.add(key);
+        } else if (ex.exception_type === 'rescheduled') {
+            rescheduleMap.set(key, ex);
+        }
+    });
 
     seriesEntries.forEach((entry) => {
         const entryStart = parseLocalDate(entry.start_date);
@@ -248,40 +260,41 @@ export const expandRecurringEntries = (seriesEntries = [], rangeStart, rangeEnd)
         for (let cursor = new Date(effectiveStart); cursor <= effectiveEnd; cursor.setDate(cursor.getDate() + 1)) {
             if (recurrenceUnit === 'month') {
                 const monthsElapsed = getMonthsBetween(entryStart, cursor);
-
-                if (monthsElapsed < 0 || monthsElapsed % recurrenceInterval !== 0) {
-                    continue;
-                }
-
-                if (cursor.getDate() !== anchorDayOfMonth) {
-                    continue;
-                }
+                if (monthsElapsed < 0 || monthsElapsed % recurrenceInterval !== 0) continue;
+                if (cursor.getDate() !== anchorDayOfMonth) continue;
             } else {
-                if (!weekdays.includes(cursor.getDay())) {
-                    continue;
-                }
-
+                if (!weekdays.includes(cursor.getDay())) continue;
                 const daysElapsed = Math.floor((cursor.getTime() - entryStart.getTime()) / millisecondsPerDay);
                 const weeksElapsed = Math.floor(daysElapsed / 7);
-                if (weeksElapsed % recurrenceInterval !== 0) {
-                    continue;
-                }
+                if (weeksElapsed % recurrenceInterval !== 0) continue;
             }
 
             const dateKey = dateToKey(cursor);
+            const exKey = `${entry.id}|${dateKey}`;
+
+            // Skip cancelled occurrences
+            if (cancelledKeys.has(exKey)) continue;
+
+            // Apply reschedule if exists
+            const reschedule = rescheduleMap.get(exKey);
+            const effectiveDateKey = reschedule?.new_date ? dateToKey(parseLocalDate(reschedule.new_date)) : dateKey;
+            const effectiveStartTime = reschedule?.new_start_time || entry.start_time;
+            const effectiveEndTime = reschedule?.new_end_time || entry.end_time;
 
             occurrences.push({
                 id: `recurring-${entry.id}-${dateKey}`,
                 sourceType: 'recurring',
                 sourceId: entry.id,
-                dateKey,
+                dateKey: effectiveDateKey,
                 title: entry.title,
                 category: entry.category,
                 location: entry.location,
                 description: entry.description,
-                startTime: entry.start_time,
-                endTime: entry.end_time,
+                startTime: effectiveStartTime,
+                endTime: effectiveEndTime,
                 color: entry.color || 'red',
+                isException: !!reschedule,
+                exceptionNote: reschedule?.note || null,
             });
         }
     });

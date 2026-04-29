@@ -48,7 +48,7 @@ const Header = () => {
             const todayKey = dateToKey(today);
             const horizonKey = dateToKey(horizon);
 
-            const [recurringResponse, singleResponse, ereignisseResponse] = await Promise.all([
+            const [recurringResponse, singleResponse, ereignisseResponse, exceptionsResponse] = await Promise.all([
                 supabase
                     .from('calendar_recurring_entries')
                     .select('*')
@@ -68,6 +68,7 @@ const Header = () => {
                     .select('id, title, category, location, event_date, end_time, is_big_event')
                     .eq('is_public', true)
                     .order('event_date', { ascending: true }),
+                supabase.from('calendar_recurring_exceptions').select('*'),
             ]);
 
             if (recurringResponse.error || singleResponse.error) {
@@ -97,7 +98,7 @@ const Header = () => {
                     };
                 });
 
-            const recurringOccurrences = expandRecurringEntries(recurringResponse.data || [], today, horizon).map((entry) => ({
+            const recurringOccurrences = expandRecurringEntries(recurringResponse.data || [], today, horizon, exceptionsResponse.data || []).map((entry) => ({
                 dateKey: entry.dateKey,
                 title: entry.title,
                 category: entry.category,
