@@ -134,6 +134,24 @@ export default function BuchhaltungContacts() {
     });
   };
 
+  const getLastName = (fullName) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts[parts.length - 1];
+  };
+
+  const getFirstName = (fullName) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(/\s+/);
+    return parts.slice(0, -1).join(' ');
+  };
+
+  const formatNameAsLastFirst = (fullName) => {
+    const firstName = getFirstName(fullName);
+    const lastName = getLastName(fullName);
+    return firstName ? `${lastName}, ${firstName}` : lastName;
+  };
+
   const escapeHtml = (value) => {
     if (value === null || value === undefined || value === '') return '-';
 
@@ -146,8 +164,8 @@ export default function BuchhaltungContacts() {
   };
 
   const printMembersList = async () => {
-    const members = contacts.filter(c => c.type === 'member').sort((a, b) => a.name.localeCompare(b.name));
-    
+    const members = contacts.filter(c => c.type === 'member');
+
     // Her üye için ilk ödeme tarihini ve yıllık aidatları al
     const membersWithFirstPayment = await Promise.all(
       members.map(async (member) => {
@@ -159,18 +177,18 @@ export default function BuchhaltungContacts() {
           .eq('type', 'income')
           .order('date', { ascending: true })
           .limit(1);
-        
+
         // Tüm işlemleri al (2025 ve 2026 için)
         const { data: allTransactions } = await supabase
           .from('accounting_transactions')
           .select('amount, date, description, accounting_categories(name)')
           .eq('contact_id', member.id)
           .eq('type', 'income');
-        
+
         // 2025 ve 2026 aidatlarını hesapla
         const calculateYearPayment = (year) => {
           if (!allTransactions) return 0;
-          
+
           return allTransactions
             .filter(t => {
               const catName = t.accounting_categories?.name?.toLowerCase() || '';
@@ -186,7 +204,7 @@ export default function BuchhaltungContacts() {
             })
             .reduce((sum, t) => sum + parseFloat(t.amount), 0);
         };
-        
+
         return {
           ...member,
           first_payment_date: firstPaymentData && firstPaymentData.length > 0 ? firstPaymentData[0].date : null,
@@ -195,8 +213,13 @@ export default function BuchhaltungContacts() {
         };
       })
     );
-    
-    printContactList(membersWithFirstPayment, 'Mitgliederliste', true);
+
+    // Soyadına göre alfabetik sıralama
+    const sortedMembers = membersWithFirstPayment.sort((a, b) =>
+      getLastName(a.name).localeCompare(getLastName(b.name), 'de-DE')
+    );
+
+    printContactList(sortedMembers, 'Mitgliederliste', true);
   };
 
   const printSponsorsList = async () => {
@@ -254,7 +277,7 @@ export default function BuchhaltungContacts() {
         donation_dates: Array.from(new Set(stats.donationDates)).sort()
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name, 'de-DE'));
 
     printContactList(donorsWithFirstPayment, 'Spenderliste', false);
   };
@@ -263,6 +286,7 @@ export default function BuchhaltungContacts() {
     const printWindow = window.open('', '_blank', 'width=1100,height=800');
     if (!printWindow) return;
     const isDonorList = title === 'Spenderliste';
+    const isMemberList = title === 'Mitgliederliste';
     const totalDonationSum = isDonorList
       ? contactList.reduce((sum, contact) => sum + (parseFloat(contact.total_donation_amount) || 0), 0)
       : 0;
@@ -273,7 +297,7 @@ export default function BuchhaltungContacts() {
 
     let tableRows = '';
     contactList.forEach((contact, index) => {
-      const seitDate = showFirstPayment && contact.first_payment_date 
+      const seitDate = showFirstPayment && contact.first_payment_date
         ? formatDateDE(contact.first_payment_date)
         : (contact.member_since ? formatDateDE(contact.member_since) : '-');
       const donorTotalAmount = typeof contact.total_donation_amount === 'number'
@@ -282,7 +306,8 @@ export default function BuchhaltungContacts() {
       const donorDates = Array.isArray(contact.donation_dates) && contact.donation_dates.length > 0
         ? contact.donation_dates.map((date) => formatDateDE(date)).join(', ')
         : '-';
-      const safeName = escapeHtml(contact.name);
+      const displayName = isMemberList ? formatNameAsLastFirst(contact.name) : contact.name;
+      const safeName = escapeHtml(displayName);
       const safeEmail = escapeHtml(contact.email);
       const safePhone = escapeHtml(contact.phone);
       const safeAddress = escapeHtml(contact.address);
