@@ -438,50 +438,79 @@ export default function BuchhaltungDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="border-b pb-2 text-lg font-bold text-gray-800">Jahresübersicht: Einnahmen, Ausgaben und Saldoentwicklung</h3>
-        <p className="mb-4 mt-2 text-xs text-gray-500">Darlehen sowie Sammelglas- und Spendenbox-Einnahmen sind in der Spalte „Sonstiges“ enthalten.</p>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div className="mb-6 border-b border-slate-200 pb-4">
+          <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+            <FaLandmark className="text-blue-600" />
+            Jahresübersicht
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Detaillierte Entwicklung von Einnahmen, Ausgaben und dem Gesamtsaldo über die Jahre.
+            Darlehen sowie Sammelglas- und Spendenbox-Einnahmen sind in der Spalte <span className="font-semibold text-slate-700">„Sonstiges“</span> enthalten.
+          </p>
+        </div>
+        
         {yearlyContributionSummary.length === 0 ? (
-          <p className="text-gray-500 text-sm">Keine Buchungsdaten für die Jahresübersicht gefunden.</p>
+          <div className="rounded-lg bg-slate-50 p-8 text-center text-slate-500 border border-slate-200">
+            <p>Keine Buchungsdaten für die Jahresübersicht gefunden.</p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm tabular-nums">
-              <thead>
-                <tr className="border-b text-left text-gray-600">
-                  <th className="py-2 pr-4 font-semibold">Jahr</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Spende</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Mitgliederbeitrag</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Sonstiges</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Ausgaben</th>
-                  <th className="py-2 pr-4 text-right font-semibold">Jahresergebnis</th>
-                  <th className="py-2 text-right font-semibold">Kontostand Ende Jahr</th>
-                </tr>
-              </thead>
-              <tbody>
-                {yearlyContributionSummary.map((item) => (
-                  <tr key={item.year} className="border-b last:border-b-0">
-                    <td className="py-2 pr-4 font-medium text-gray-800">{item.year}</td>
-                    <td className="whitespace-nowrap py-2 pr-4 text-right text-gray-700">{formatAmount(item.spende)}</td>
-                    <td className="whitespace-nowrap py-2 pr-4 text-right text-gray-700">{formatAmount(item.mitgliederbeitrag)}</td>
-                    <td className={`whitespace-nowrap py-2 pr-4 text-right ${item.sonstiges >= 0 ? 'text-gray-700' : 'text-red-600'}`}>{formatAmount(item.sonstiges)}</td>
-                    <td className="whitespace-nowrap py-2 pr-4 text-right text-gray-700">{formatAmount(item.ausgaben)}</td>
-                    <td className={`whitespace-nowrap py-2 pr-4 text-right font-semibold ${item.total >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatAmount(item.total)}</td>
-                    <td className={`whitespace-nowrap py-2 text-right font-semibold ${item.closingBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatAmount(item.closingBalance)}</td>
+          <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm tabular-nums border-collapse">
+                <thead>
+                  <tr>
+                    <th rowSpan={2} className="bg-slate-50 border-b border-r border-slate-200 p-4 text-left font-bold text-slate-800 align-bottom uppercase tracking-wider text-xs">Jahr</th>
+                    <th colSpan={3} className="bg-emerald-50/50 border-b border-r border-slate-200 py-3 text-center font-bold text-emerald-800 uppercase tracking-wider text-xs">Einnahmen</th>
+                    <th rowSpan={2} className="bg-rose-50/50 border-b border-r border-slate-200 p-4 text-right font-bold text-rose-800 align-bottom uppercase tracking-wider text-xs">Ausgaben</th>
+                    <th colSpan={2} className="bg-blue-50/50 border-b border-slate-200 py-3 text-center font-bold text-blue-800 uppercase tracking-wider text-xs">Saldo & Bestand</th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-gray-300 bg-gray-50">
-                  <td className="py-2 pr-4 font-bold text-gray-900">Gesamt / aktuell</td>
-                  <td className="whitespace-nowrap py-2 pr-4 text-right font-bold text-gray-900">{formatAmount(summaryTotals.spende)}</td>
-                  <td className="whitespace-nowrap py-2 pr-4 text-right font-bold text-gray-900">{formatAmount(summaryTotals.mitgliederbeitrag)}</td>
-                  <td className={`whitespace-nowrap py-2 pr-4 text-right font-bold ${summaryTotals.sonstiges >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatAmount(summaryTotals.sonstiges)}</td>
-                  <td className="whitespace-nowrap py-2 pr-4 text-right font-bold text-gray-900">{formatAmount(summaryTotals.ausgaben)}</td>
-                  <td className={`whitespace-nowrap py-2 pr-4 text-right font-bold ${stats.totalBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatAmount(stats.totalBalance)}</td>
-                  <td className={`whitespace-nowrap py-2 text-right font-bold ${stats.totalBalance >= 0 ? 'text-gray-900' : 'text-red-600'}`}>{formatAmount(stats.totalBalance)}</td>
-                </tr>
-              </tfoot>
-            </table>
+                  <tr>
+                    <th className="bg-emerald-50/30 border-b border-r border-slate-200 px-4 py-2 text-right font-semibold text-emerald-700">Spenden</th>
+                    <th className="bg-emerald-50/30 border-b border-r border-slate-200 px-4 py-2 text-right font-semibold text-emerald-700">Beiträge</th>
+                    <th className="bg-emerald-50/30 border-b border-r border-slate-200 px-4 py-2 text-right font-semibold text-emerald-700">Sonstiges</th>
+                    <th className="bg-blue-50/30 border-b border-r border-slate-200 px-4 py-2 text-right font-semibold text-blue-700">Jahresergebnis</th>
+                    <th className="bg-blue-50/30 border-b border-slate-200 px-4 py-2 text-right font-semibold text-blue-700">Bestand (Ende Jahr)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {yearlyContributionSummary.map((item) => (
+                    <tr key={item.year} className="hover:bg-slate-50 transition-colors">
+                      <td className="border-r border-slate-100 px-4 py-3 font-bold text-slate-800">{item.year}</td>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600">{formatAmount(item.spende)}</td>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600">{formatAmount(item.mitgliederbeitrag)}</td>
+                      <td className={`border-r border-slate-100 px-4 py-3 text-right ${item.sonstiges >= 0 ? 'text-slate-600' : 'text-rose-600'}`}>
+                        {formatAmount(item.sonstiges)}
+                      </td>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right font-medium text-rose-700">{formatAmount(item.ausgaben)}</td>
+                      <td className={`border-r border-slate-100 px-4 py-3 text-right font-bold ${item.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {item.total > 0 && '+'}{formatAmount(item.total)}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-extrabold ${item.closingBalance >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                        {formatAmount(item.closingBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-100 border-t-2 border-slate-300 shadow-sm">
+                    <td className="border-r border-slate-200 px-4 py-4 font-black text-slate-900">Gesamt / Aktuell</td>
+                    <td className="border-r border-slate-200 px-4 py-4 text-right font-bold text-emerald-800">{formatAmount(summaryTotals.spende)}</td>
+                    <td className="border-r border-slate-200 px-4 py-4 text-right font-bold text-emerald-800">{formatAmount(summaryTotals.mitgliederbeitrag)}</td>
+                    <td className={`border-r border-slate-200 px-4 py-4 text-right font-bold ${summaryTotals.sonstiges >= 0 ? 'text-emerald-800' : 'text-rose-700'}`}>
+                      {formatAmount(summaryTotals.sonstiges)}
+                    </td>
+                    <td className="border-r border-slate-200 px-4 py-4 text-right font-bold text-rose-800">{formatAmount(summaryTotals.ausgaben)}</td>
+                    <td className={`border-r border-slate-200 px-4 py-4 text-right font-black ${stats.totalBalance >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {stats.totalBalance > 0 && '+'}{formatAmount(stats.totalBalance)}
+                    </td>
+                    <td className={`px-4 py-4 text-right font-black ${stats.totalBalance >= 0 ? 'text-blue-800' : 'text-rose-800'}`}>
+                      {formatAmount(stats.totalBalance)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         )}
       </div>

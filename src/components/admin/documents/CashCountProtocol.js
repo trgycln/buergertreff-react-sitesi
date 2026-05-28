@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPrint } from 'react-icons/fa';
+import { FaPrint, FaSave, FaPlus, FaList, FaEdit } from 'react-icons/fa';
 import { supabase } from '../../../supabaseClient';
 
 const formatCurrency = (value) => {
@@ -60,7 +60,13 @@ export default function CashCountProtocol() {
     treasurer_name: 'Turgay Celen',
   });
 
-  const [formData, setFormData] = useState({
+  const [protocols, setProtocols] = useState([]);
+  const [selectedProtocolId, setSelectedProtocolId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'form'
+
+  const initialFormState = {
     documentNumber: buildDocumentNumber(today),
     date: today,
     location: 'Wissen',
@@ -72,38 +78,52 @@ export default function CashCountProtocol() {
     note: 'Die Aufteilung auf wirtschaftlichen Geschäftsbetrieb und ideellen Bereich wurde sachgerecht vorgenommen.',
     secondSigner: '',
     secondSignerRole: 'Weiteres Vorstands- oder Vereinsmitglied',
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
 
   useEffect(() => {
-    const fetchOrgSettings = async () => {
-      const { data, error } = await supabase
+    const fetchOrgSettingsAndProtocols = async () => {
+      // 1. Fetch settings
+      const { data: settingsData, error: settingsError } = await supabase
         .from('site_settings')
         .select('key, value')
         .in('key', ['org_name', 'org_address', 'org_postal_code', 'org_city', 'treasurer_name']);
 
-      if (error || !data) return;
+      let settingsMap = {};
+      if (!settingsError && settingsData) {
+        settingsMap = settingsData.reduce((acc, item) => {
+          acc[item.key] = item.value;
+          return acc;
+        }, {});
+        
+        setOrgSettings((prev) => ({ ...prev, ...settingsMap }));
+        
+        setFormData((prev) => ({
+          ...prev,
+          location: prev.location || settingsMap.org_city || 'Wissen',
+        }));
+      }
 
-      setOrgSettings((prev) => {
-        const next = { ...prev };
-        data.forEach((item) => {
-          next[item.key] = item.value || prev[item.key];
-        });
-        return next;
-      });
-
-      const settingsMap = {};
-      data.forEach((item) => {
-        settingsMap[item.key] = item.value;
-      });
-
-      setFormData((prev) => ({
-        ...prev,
-        location: prev.location || settingsMap.org_city || 'Wissen',
-      }));
+      // 2. Fetch saved protocols
+      await fetchProtocols();
     };
 
-    fetchOrgSettings();
+    fetchOrgSettingsAndProtocols();
   }, []);
+
+  const fetchProtocols = async () => {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from('accounting_cash_count_protocols')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (!error && data) {
+      setProtocols(data);
+    }
+    setIsLoading(false);
+  };
 
   const orgName = orgSettings.org_name || 'Bürgertreff Wissen e.V.';
   const treasurerName = orgSettings.treasurer_name || 'Turgay Celen';
@@ -133,6 +153,93 @@ export default function CashCountProtocol() {
 
       return next;
     });
+  };
+
+  const handleNew = () => {
+    setFormData({
+      ...initialFormState,
+      documentNumber: buildDocumentNumber(today),
+      date: today,
+      location: orgSettings.org_city || 'Wissen'
+    });
+    setSelectedProtocolId(null);
+    setViewMode('form');
+  };
+
+  const handleEdit = (protocol) => {
+    setFormData({
+      documentNumber: protocol.document_number,
+      date: protocol.date,
+      location: protocol.location,
+      title: protocol.title,
+      description: protocol.description,
+      total: protocol.total === null ? '' : protocol.total.toString(),
+      businessIncome: protocol.business_income.toString(),
+      donations: protocol.donations.toString(),
+      note: protocol.note,
+      secondSigner: protocol.second_signer || '',
+      secondSignerRole: protocol.second_signer_role || '',
+    });
+    setSelectedProtocolId(protocol.id);
+    setViewMode('form');
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    
+    // Check if doc number already exists when inserting
+    if (!selectedProtocolId) {
+      const { data: existing } = await supabase
+        .from('accounting_cash_count_protocols')
+        .select('id')
+        .eq('document_number', formData.documentNumber)
+        .maybeSingle();
+        
+      if (existing) {
+        alert('Ein Beleg mit dieser Beleg-Nr. existiert bereits. Bitte wählen Sie eine andere Nummer.');
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    const payload = {
+      document_number: formData.documentNumber,
+      date: formData.date,
+      location: formData.location,
+      title: formData.title,
+      description: formData.description,
+      total: effectiveTotal,
+      business_income: businessAmount,
+      donations: donationAmount,
+      note: formData.note,
+      second_signer: formData.secondSigner,
+      second_signer_role: formData.secondSignerRole
+    };
+
+    let saveError = null;
+
+    if (selectedProtocolId) {
+      const { error } = await supabase
+        .from('accounting_cash_count_protocols')
+        .update(payload)
+        .eq('id', selectedProtocolId);
+      saveError = error;
+    } else {
+      const { error } = await supabase
+        .from('accounting_cash_count_protocols')
+        .insert([payload]);
+      saveError = error;
+    }
+
+    setIsSaving(false);
+
+    if (saveError) {
+      alert('Fehler beim Speichern: ' + saveError.message);
+    } else {
+      alert('Beleg erfolgreich gespeichert!');
+      await fetchProtocols();
+      setViewMode('list');
+    }
   };
 
   const handlePrint = () => {
@@ -377,6 +484,84 @@ export default function CashCountProtocol() {
     printWindow.document.close();
   };
 
+  if (viewMode === 'list') {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <span className="inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
+              Eigenbeleg Liste
+            </span>
+            <h3 className="mt-3 text-xl font-bold text-slate-900">Gespeicherte Kassenzählprotokolle</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Übersicht aller bisher erstellten und gespeicherten Eigenbelege.
+            </p>
+          </div>
+
+          <button
+            onClick={handleNew}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm"
+          >
+            <FaPlus />
+            Neuer Beleg
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900">Datum</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900">Beleg-Nr.</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900">Beschreibung</th>
+                  <th className="px-4 py-3 text-right font-semibold text-slate-900">Gesamtbetrag</th>
+                  <th className="px-4 py-3 text-center font-semibold text-slate-900">Aktion</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                      Daten werden geladen...
+                    </td>
+                  </tr>
+                ) : protocols.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500">
+                      Noch keine Belege gespeichert.
+                    </td>
+                  </tr>
+                ) : (
+                  protocols.map((protocol) => (
+                    <tr key={protocol.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-700">{formatDisplayDate(protocol.date)}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">{protocol.document_number}</td>
+                      <td className="px-4 py-3 text-slate-700">{protocol.description}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                        {formatCurrency(protocol.total)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => handleEdit(protocol)}
+                          className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition"
+                        >
+                          <FaEdit />
+                          Bearbeiten / Drucken
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // FORM VIEW
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -384,19 +569,38 @@ export default function CashCountProtocol() {
           <span className="inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
             Eigenbeleg
           </span>
-          <h3 className="mt-3 text-xl font-bold text-slate-900">Kassenzählprotokoll für Bareinnahmen</h3>
+          <h3 className="mt-3 text-xl font-bold text-slate-900">
+            {selectedProtocolId ? 'Beleg bearbeiten' : 'Neues Kassenzählprotokoll erstellen'}
+          </h3>
           <p className="mt-1 text-sm text-slate-600">
-            Tragen Sie Datum, Beträge und Beschreibung ein und drucken Sie den Beleg anschließend zur physischen Ablage aus.
+            Tragen Sie Datum, Beträge und Beschreibung ein, speichern Sie die Daten und drucken Sie den Beleg.
           </p>
         </div>
 
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
-        >
-          <FaPrint />
-          Druckansicht öffnen
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setViewMode('list')}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <FaList />
+            Zurück zur Liste
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+          >
+            <FaSave />
+            {isSaving ? 'Speichert...' : 'Speichern'}
+          </button>
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
+          >
+            <FaPrint />
+            Drucken
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
