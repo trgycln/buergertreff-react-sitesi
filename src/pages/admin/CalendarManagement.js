@@ -62,7 +62,9 @@ const categoryOptions = [
     'Nachbarschaftsbörse',
     'Sonntagsgespräch',
     'Beratung',
+    'Psychosoziale Beratung',
     'Nachhilfe',
+    'Sprachkurs',
     'Bürgertreff unterwegs',
     'Sonstiges',
 ];

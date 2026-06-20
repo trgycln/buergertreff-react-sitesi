@@ -18,6 +18,14 @@ export default function BuchhaltungDashboard() {
       .replace(/ß/g, 'ss')
       .replace(/[\s\-_]/g, '');
 
+  const escapeHtml = (value = '') =>
+    String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalIncome: 0,
@@ -31,6 +39,8 @@ export default function BuchhaltungDashboard() {
   const [accountBalances, setAccountBalances] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
   const [yearlyContributionSummary, setYearlyContributionSummary] = useState([]);
+  const [detailedStats, setDetailedStats] = useState({});
+  const [showDetails, setShowDetails] = useState(false);
 
   const toFiniteNumber = (value) => {
     if (typeof value === 'number') {
@@ -92,6 +102,7 @@ export default function BuchhaltungDashboard() {
     let totalLoanIncome = 0;
     let totalLoanRepayment = 0;
     const yearlySummaryMap = {};
+    const detailedSummaryMap = {};
     
     const currentYear = new Date().getFullYear().toString(); // "2026"
     const accMap = {}; // Hesap bazlı toplamlar için
@@ -102,6 +113,23 @@ export default function BuchhaltungDashboard() {
       const dateValue = t.date || '';
       const isCurrentYear = dateValue.startsWith(currentYear);
       const trxYear = /^\d{4}/.test(dateValue) ? dateValue.slice(0, 4) : 'Ohne Datum';
+
+      if (!detailedSummaryMap[trxYear]) {
+        detailedSummaryMap[trxYear] = { incomes: {}, expenses: {} };
+      }
+      
+      let catName = t.accounting_categories?.name || 'Sonstige / Unbekannt';
+      
+      // Benzer kategorileri tek bir isim altında toplama (Örn: Veranstaltungen ve Veranstaltungskosten)
+      if (catName.toLowerCase().includes('veranstaltung')) {
+        catName = 'Veranstaltungen';
+      }
+
+      if (isIncome) {
+        detailedSummaryMap[trxYear].incomes[catName] = (detailedSummaryMap[trxYear].incomes[catName] || 0) + amount;
+      } else {
+        detailedSummaryMap[trxYear].expenses[catName] = (detailedSummaryMap[trxYear].expenses[catName] || 0) + amount;
+      }
 
       // Genel Toplamlar
       if (isIncome) totalInc += amount;
@@ -208,6 +236,7 @@ export default function BuchhaltungDashboard() {
       });
 
     setYearlyContributionSummary(yearlySummary);
+    setDetailedStats(detailedSummaryMap);
 
     setAccountBalances(Object.values(accMap));
     setLoading(false);
@@ -332,6 +361,125 @@ export default function BuchhaltungDashboard() {
     }
   };
 
+  const handlePrintDetails = () => {
+    const printWindow = window.open('', '_blank', 'width=900,height=1200');
+    if (!printWindow) {
+      alert('Bitte erlauben Sie Pop-ups, um die Druckansicht zu öffnen.');
+      return;
+    }
+
+    let contentHtml = `
+      <!DOCTYPE html>
+      <html lang="de">
+      <head>
+        <meta charset="utf-8" />
+        <title>Bilanz-Details nach Kategorien</title>
+        <style>
+          @page { size: A4 portrait; margin: 15mm; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.5; }
+          .header { text-align: center; margin-bottom: 10mm; border-bottom: 2px solid #cbd5e1; padding-bottom: 5mm; }
+          .header h1 { margin: 0 0 2mm 0; color: #0f172a; font-size: 20pt; }
+          .header p { margin: 0; color: #64748b; font-size: 10pt; }
+          .year-block { page-break-inside: avoid; margin-bottom: 15mm; }
+          .year-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #94a3b8; margin-bottom: 4mm; padding-bottom: 2mm; }
+          .year-header h2 { margin: 0; font-size: 16pt; color: #334155; }
+          .net-result { font-size: 12pt; font-weight: bold; padding: 4px 12px; border-radius: 4px; }
+          .net-positive { background-color: #d1fae5; color: #065f46; }
+          .net-negative { background-color: #ffe4e6; color: #9f1239; }
+          .grid { display: table; width: 100%; table-layout: fixed; border-spacing: 5mm 0; margin-left: -5mm; margin-right: -5mm; }
+          .col { display: table-cell; width: 50%; vertical-align: top; }
+          .box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 4mm; background: #f8fafc; }
+          .box h3 { margin: 0 0 3mm 0; font-size: 12pt; border-bottom: 1px solid #cbd5e1; padding-bottom: 2mm; display: flex; justify-content: space-between; }
+          .text-emerald { color: #059669; }
+          .text-rose { color: #e11d48; }
+          table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+          td { padding: 4px 0; border-bottom: 1px dashed #cbd5e1; }
+          tr:last-child td { border-bottom: none; }
+          .amount { text-align: right; font-weight: 500; }
+          .cat-name { color: #475569; }
+          .empty { color: #94a3b8; font-style: italic; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Bürgertreff Wissen e.V.</h1>
+          <h2 style="margin: 0 0 2mm 0; color: #475569; font-size: 16pt; font-weight: normal;">Bilanz-Details nach Kategorien</h2>
+          <p style="margin-bottom: 4mm;">Stand: ${new Date().toLocaleDateString('de-DE')}</p>
+          <div style="display: inline-block; padding: 6px 16px; background-color: #f1f5f9; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 6px; font-weight: bold; font-size: 14pt;">
+            Aktueller Gesamtsaldo: <span style="color: ${stats.totalBalance >= 0 ? '#059669' : '#e11d48'};">${formatAmount(stats.totalBalance)} €</span>
+          </div>
+        </div>
+    `;
+
+    Object.keys(detailedStats).sort((a, b) => b.localeCompare(a)).forEach(year => {
+      const yearData = detailedStats[year];
+      const incEntries = Object.entries(yearData.incomes).sort((a, b) => b[1] - a[1]);
+      const expEntries = Object.entries(yearData.expenses).sort((a, b) => b[1] - a[1]);
+      const totalInc = incEntries.reduce((acc, curr) => acc + curr[1], 0);
+      const totalExp = expEntries.reduce((acc, curr) => acc + curr[1], 0);
+      const netResult = totalInc - totalExp;
+
+      const resultClass = netResult >= 0 ? 'net-positive' : 'net-negative';
+      const resultSign = netResult > 0 ? '+' : '';
+
+      contentHtml += `
+        <div class="year-block">
+          <div class="year-header">
+            <h2>Geschäftsjahr ${year}</h2>
+            <div class="net-result ${resultClass}">Ergebnis: ${resultSign}${formatAmount(netResult)} €</div>
+          </div>
+          <div class="grid">
+            <div class="col">
+              <div class="box">
+                <h3 class="text-emerald"><span>Einnahmen</span> <span>${formatAmount(totalInc)} €</span></h3>
+                <table>
+                  <tbody>
+                    ${incEntries.length === 0 ? '<tr><td class="empty">Keine Einnahmen gebucht</td></tr>' : 
+                      incEntries.map(([cat, amt]) => `
+                        <tr>
+                          <td class="cat-name">${escapeHtml(cat)}</td>
+                          <td class="amount">${formatAmount(amt)}</td>
+                        </tr>
+                      `).join('')
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="col">
+              <div class="box">
+                <h3 class="text-rose"><span>Ausgaben</span> <span>${formatAmount(totalExp)} €</span></h3>
+                <table>
+                  <tbody>
+                    ${expEntries.length === 0 ? '<tr><td class="empty">Keine Ausgaben gebucht</td></tr>' : 
+                      expEntries.map(([cat, amt]) => `
+                        <tr>
+                          <td class="cat-name">${escapeHtml(cat)}</td>
+                          <td class="amount">${formatAmount(amt)}</td>
+                        </tr>
+                      `).join('')
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    contentHtml += `
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(contentHtml);
+    printWindow.document.close();
+  };
+
   const summaryTotals = yearlyContributionSummary.reduce(
     (acc, item) => {
       acc.spende += item.spende;
@@ -377,7 +525,7 @@ export default function BuchhaltungDashboard() {
 
       <div ref={dashboardRef} className="mx-auto max-w-4xl space-y-4 rounded-xl bg-gray-50 p-4 sm:p-5">
         <div className="border-b border-gray-200 pb-3">
-          <h3 className="text-lg font-bold text-gray-800">Buchhaltung – Übersicht</h3>
+          <h3 className="text-lg font-bold text-gray-800">Bürgertreff Wissen e.V. – Buchhaltung Übersicht</h3>
           <p className="text-sm text-gray-500">Stand: {new Date().toLocaleDateString('de-DE')}</p>
         </div>
       
@@ -439,15 +587,23 @@ export default function BuchhaltungDashboard() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-        <div className="mb-6 border-b border-slate-200 pb-4">
-          <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-            <FaLandmark className="text-blue-600" />
-            Jahresübersicht
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Detaillierte Entwicklung von Einnahmen, Ausgaben und dem Gesamtsaldo über die Jahre.
-            Darlehen sowie Sammelglas- und Spendenbox-Einnahmen sind in der Spalte <span className="font-semibold text-slate-700">„Sonstiges“</span> enthalten.
-          </p>
+        <div className="mb-6 border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+              <FaLandmark className="text-blue-600" />
+              Jahresübersicht
+            </h3>
+            <p className="mt-1 text-sm text-slate-500 max-w-2xl">
+              Detaillierte Entwicklung von Einnahmen, Ausgaben und dem Gesamtsaldo über die Jahre.
+              Darlehen sowie Sammelglas- und Spendenbox-Einnahmen sind in der Spalte <span className="font-semibold text-slate-700">„Sonstiges“</span> enthalten.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 border border-blue-200 shadow-sm"
+          >
+            {showDetails ? 'Details ausblenden' : 'Bilanz-Details einblenden'}
+          </button>
         </div>
         
         {yearlyContributionSummary.length === 0 ? (
@@ -510,6 +666,90 @@ export default function BuchhaltungDashboard() {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* DETAILS SECTION */}
+        {showDetails && (
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-6 gap-4">
+              <div>
+                <h4 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                  Bilanz-Details nach Kategorien
+                </h4>
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-800 font-bold border border-slate-200 shadow-sm text-sm">
+                  <FaWallet className="text-slate-500" />
+                  Aktueller Gesamtsaldo: <span className={stats.totalBalance >= 0 ? 'text-emerald-700' : 'text-rose-700'}>{formatAmount(stats.totalBalance)} €</span>
+                </div>
+              </div>
+              <button
+                onClick={handlePrintDetails}
+                className="shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 shadow-sm"
+              >
+                <FaFilePdf />
+                Als PDF exportieren (Drucken)
+              </button>
+            </div>
+            
+            <div className="space-y-6">
+              {Object.keys(detailedStats).sort((a,b) => b.localeCompare(a)).map(year => {
+                const yearData = detailedStats[year];
+                const incEntries = Object.entries(yearData.incomes).sort((a,b) => b[1] - a[1]);
+                const expEntries = Object.entries(yearData.expenses).sort((a,b) => b[1] - a[1]);
+                const totalInc = incEntries.reduce((acc, curr) => acc + curr[1], 0);
+                const totalExp = expEntries.reduce((acc, curr) => acc + curr[1], 0);
+                const netResult = totalInc - totalExp;
+
+                return (
+                  <div key={year} className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
+                      <h5 className="text-xl font-black text-slate-700">Geschäftsjahr {year}</h5>
+                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${netResult >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        Ergebnis: {netResult > 0 && '+'}{formatAmount(netResult)} €
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      {/* Einnahmen */}
+                      <div className="bg-white rounded-lg p-4 border border-emerald-100 shadow-sm">
+                        <h6 className="font-bold text-emerald-700 mb-3 flex justify-between border-b border-emerald-100 pb-2">
+                          <span>Einnahmen</span>
+                          <span>{formatAmount(totalInc)} €</span>
+                        </h6>
+                        <ul className="space-y-2">
+                          {incEntries.length === 0 ? <li className="text-sm text-slate-500 italic">Keine Einnahmen gebucht</li> : 
+                            incEntries.map(([cat, amt]) => (
+                              <li key={cat} className="flex justify-between text-sm items-center">
+                                <span className="text-slate-600 font-medium">{cat}</span>
+                                <span className="font-semibold text-slate-900">{formatAmount(amt)}</span>
+                              </li>
+                            ))
+                          }
+                        </ul>
+                      </div>
+                      
+                      {/* Ausgaben */}
+                      <div className="bg-white rounded-lg p-4 border border-rose-100 shadow-sm">
+                        <h6 className="font-bold text-rose-700 mb-3 flex justify-between border-b border-rose-100 pb-2">
+                          <span>Ausgaben</span>
+                          <span>{formatAmount(totalExp)} €</span>
+                        </h6>
+                        <ul className="space-y-2">
+                          {expEntries.length === 0 ? <li className="text-sm text-slate-500 italic">Keine Ausgaben gebucht</li> : 
+                            expEntries.map(([cat, amt]) => (
+                              <li key={cat} className="flex justify-between text-sm items-center">
+                                <span className="text-slate-600 font-medium">{cat}</span>
+                                <span className="font-semibold text-slate-900">{formatAmount(amt)}</span>
+                              </li>
+                            ))
+                          }
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

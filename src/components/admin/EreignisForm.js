@@ -94,7 +94,7 @@ export default function EreignisForm() {
     const categoryOptions = [
         'OffeneTreff', 'Frühstück', 'Offene Treff', 'Ausstellungen', 'Spielen',
         'Singen', 'Handarbeiten', 'Schreibwerkstatt', 'Nachbarschaftsbörse',
-        'Sonntagsgespräch', 'Beratung', 'Nachhilfe', 'Bürgertreff unterwegs', 'Sonstiges',
+        'Sonntagsgespräch', 'Beratung', 'Psychosoziale Beratung', 'Nachhilfe', 'Sprachkurs', 'Bürgertreff unterwegs', 'Sonstiges',
         'Intern'
     ];
 
