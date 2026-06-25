@@ -16,6 +16,11 @@ export default function BuchhaltungDashboard() {
       .replace(/ö/g, 'oe')
       .replace(/ü/g, 'ue')
       .replace(/ß/g, 'ss')
+      .replace(/ğ/g, 'g')
+      .replace(/ı/g, 'i')
+      .replace(/i̇/g, 'i') // for dotted capital I
+      .replace(/ş/g, 's')
+      .replace(/ç/g, 'c')
       .replace(/[\s\-_]/g, '');
 
   const escapeHtml = (value = '') =>
@@ -41,6 +46,7 @@ export default function BuchhaltungDashboard() {
   const [yearlyContributionSummary, setYearlyContributionSummary] = useState([]);
   const [detailedStats, setDetailedStats] = useState({});
   const [showDetails, setShowDetails] = useState(false);
+  const [selectedDetailYear, setSelectedDetailYear] = useState(new Date().getFullYear().toString());
 
   const toFiniteNumber = (value) => {
     if (typeof value === 'number') {
@@ -72,7 +78,7 @@ export default function BuchhaltungDashboard() {
     // Ancak şimdilik basitlik adına React tarafında topluyoruz.
     const { data: allTrx, error } = await supabase
       .from('accounting_transactions')
-      .select('amount, type, date, description, account_id, accounting_accounts(name), accounting_categories(name)');
+      .select('amount, type, date, description, account_id, subcategory, accounting_accounts(name), accounting_categories(name)');
 
     if (error) {
       console.error('Error fetching transactions:', error);
@@ -125,10 +131,20 @@ export default function BuchhaltungDashboard() {
         catName = 'Veranstaltungen';
       }
 
+      const subName = t.subcategory || 'Allgemein';
+
       if (isIncome) {
-        detailedSummaryMap[trxYear].incomes[catName] = (detailedSummaryMap[trxYear].incomes[catName] || 0) + amount;
+        if (!detailedSummaryMap[trxYear].incomes[catName]) {
+          detailedSummaryMap[trxYear].incomes[catName] = { total: 0, subs: {} };
+        }
+        detailedSummaryMap[trxYear].incomes[catName].total += amount;
+        detailedSummaryMap[trxYear].incomes[catName].subs[subName] = (detailedSummaryMap[trxYear].incomes[catName].subs[subName] || 0) + amount;
       } else {
-        detailedSummaryMap[trxYear].expenses[catName] = (detailedSummaryMap[trxYear].expenses[catName] || 0) + amount;
+        if (!detailedSummaryMap[trxYear].expenses[catName]) {
+          detailedSummaryMap[trxYear].expenses[catName] = { total: 0, subs: {} };
+        }
+        detailedSummaryMap[trxYear].expenses[catName].total += amount;
+        detailedSummaryMap[trxYear].expenses[catName].subs[subName] = (detailedSummaryMap[trxYear].expenses[catName].subs[subName] || 0) + amount;
       }
 
       // Genel Toplamlar
@@ -142,21 +158,20 @@ export default function BuchhaltungDashboard() {
       }
 
       const normalizedCategoryName = normalizeCategoryName(t.accounting_categories?.name || '');
-      const normalizedDescription = normalizeCategoryName(t.description || '');
-      const normalizedTransactionText = `${normalizedCategoryName} ${normalizedDescription}`;
+      
       const isCashJarIncome =
-        normalizedTransactionText.includes('spendenbox') ||
-        normalizedTransactionText.includes('sammelglas') ||
-        normalizedTransactionText.includes('kavanoz') ||
-        normalizedTransactionText.includes('tischglas');
+        normalizedCategoryName.includes('spendenbox') ||
+        normalizedCategoryName.includes('sammelglas') ||
+        normalizedCategoryName.includes('kavanoz') ||
+        normalizedCategoryName.includes('tischglas');
       const isDonation = !isCashJarIncome && (
-        normalizedTransactionText.includes('spende') ||
-        normalizedTransactionText.includes('zuwendung') ||
-        normalizedTransactionText.includes('bagis') ||
-        normalizedTransactionText.includes('donation')
+        normalizedCategoryName.includes('spende') ||
+        normalizedCategoryName.includes('zuwendung') ||
+        normalizedCategoryName.includes('bagis') ||
+        normalizedCategoryName.includes('donation')
       );
-      const isMembership = (normalizedTransactionText.includes('mitglied') && normalizedTransactionText.includes('beitrag')) || normalizedTransactionText.includes('aidat');
-      const isLoanTransaction = normalizedTransactionText.includes('darlehen') || normalizedTransactionText.includes('kredit') || normalizedTransactionText.includes('loan');
+      const isMembership = (normalizedCategoryName.includes('mitglied') && normalizedCategoryName.includes('beitrag')) || normalizedCategoryName.includes('aidat');
+      const isLoanTransaction = normalizedCategoryName.includes('darlehen') || normalizedCategoryName.includes('kredit') || normalizedCategoryName.includes('loan');
 
       if (!yearlySummaryMap[trxYear]) {
         yearlySummaryMap[trxYear] = {
@@ -164,10 +179,19 @@ export default function BuchhaltungDashboard() {
           spende: 0,
           mitgliederbeitrag: 0,
           sonstiges: 0,
+          sonstigesBreakdown: {},
           ausgaben: 0,
           netChange: 0
         };
       }
+
+      const trackSonstiges = (val, catName) => {
+        yearlySummaryMap[trxYear].sonstiges += val;
+        if (!yearlySummaryMap[trxYear].sonstigesBreakdown[catName]) {
+          yearlySummaryMap[trxYear].sonstigesBreakdown[catName] = 0;
+        }
+        yearlySummaryMap[trxYear].sonstigesBreakdown[catName] += val;
+      };
 
       yearlySummaryMap[trxYear].netChange += isIncome ? amount : -amount;
 
@@ -175,14 +199,14 @@ export default function BuchhaltungDashboard() {
         if (isMembership) {
           yearlySummaryMap[trxYear].mitgliederbeitrag += amount;
         } else if (isCashJarIncome) {
-          yearlySummaryMap[trxYear].sonstiges += amount;
+          trackSonstiges(amount, t.accounting_categories?.name || 'Spendenbox');
         } else if (isDonation) {
           yearlySummaryMap[trxYear].spende += amount;
         } else {
-          yearlySummaryMap[trxYear].sonstiges += amount;
+          trackSonstiges(amount, t.accounting_categories?.name || 'Sonstiges');
         }
       } else if (isLoanTransaction) {
-        yearlySummaryMap[trxYear].sonstiges -= amount;
+        trackSonstiges(-amount, t.accounting_categories?.name || 'Darlehen');
       } else {
         yearlySummaryMap[trxYear].ausgaben += amount;
       }
@@ -237,6 +261,11 @@ export default function BuchhaltungDashboard() {
 
     setYearlyContributionSummary(yearlySummary);
     setDetailedStats(detailedSummaryMap);
+    
+    const availableYears = Object.keys(detailedSummaryMap).sort((a,b) => b.localeCompare(a));
+    if (availableYears.length > 0 && !availableYears.includes(selectedDetailYear)) {
+      setSelectedDetailYear(availableYears[0]);
+    }
 
     setAccountBalances(Object.values(accMap));
     setLoading(false);
@@ -413,10 +442,10 @@ export default function BuchhaltungDashboard() {
 
     Object.keys(detailedStats).sort((a, b) => b.localeCompare(a)).forEach(year => {
       const yearData = detailedStats[year];
-      const incEntries = Object.entries(yearData.incomes).sort((a, b) => b[1] - a[1]);
-      const expEntries = Object.entries(yearData.expenses).sort((a, b) => b[1] - a[1]);
-      const totalInc = incEntries.reduce((acc, curr) => acc + curr[1], 0);
-      const totalExp = expEntries.reduce((acc, curr) => acc + curr[1], 0);
+      const incEntries = Object.entries(yearData.incomes).sort((a, b) => b[1].total - a[1].total);
+      const expEntries = Object.entries(yearData.expenses).sort((a, b) => b[1].total - a[1].total);
+      const totalInc = incEntries.reduce((acc, curr) => acc + curr[1].total, 0);
+      const totalExp = expEntries.reduce((acc, curr) => acc + curr[1].total, 0);
       const netResult = totalInc - totalExp;
 
       const resultClass = netResult >= 0 ? 'net-positive' : 'net-negative';
@@ -435,11 +464,18 @@ export default function BuchhaltungDashboard() {
                 <table>
                   <tbody>
                     ${incEntries.length === 0 ? '<tr><td class="empty">Keine Einnahmen gebucht</td></tr>' : 
-                      incEntries.map(([cat, amt]) => `
+                      incEntries.map(([cat, dataObj]) => `
                         <tr>
                           <td class="cat-name">${escapeHtml(cat)}</td>
-                          <td class="amount">${formatAmount(amt)}</td>
+                          <td class="amount">${formatAmount(dataObj.total)}</td>
                         </tr>
+                        ${Object.keys(dataObj.subs).length > 1 || (Object.keys(dataObj.subs).length === 1 && Object.keys(dataObj.subs)[0] !== 'Allgemein') ? 
+                          Object.entries(dataObj.subs).map(([sub, subAmt]) => `
+                            <tr>
+                              <td class="cat-name" style="padding-left: 10px; font-size: 9pt; color: #64748b;">↳ ${escapeHtml(sub)}</td>
+                              <td class="amount" style="font-size: 9pt; color: #64748b;">${formatAmount(subAmt)}</td>
+                            </tr>
+                          `).join('') : ''}
                       `).join('')
                     }
                   </tbody>
@@ -452,11 +488,18 @@ export default function BuchhaltungDashboard() {
                 <table>
                   <tbody>
                     ${expEntries.length === 0 ? '<tr><td class="empty">Keine Ausgaben gebucht</td></tr>' : 
-                      expEntries.map(([cat, amt]) => `
+                      expEntries.map(([cat, dataObj]) => `
                         <tr>
                           <td class="cat-name">${escapeHtml(cat)}</td>
-                          <td class="amount">${formatAmount(amt)}</td>
+                          <td class="amount">${formatAmount(dataObj.total)}</td>
                         </tr>
+                        ${Object.keys(dataObj.subs).length > 1 || (Object.keys(dataObj.subs).length === 1 && Object.keys(dataObj.subs)[0] !== 'Allgemein') ? 
+                          Object.entries(dataObj.subs).map(([sub, subAmt]) => `
+                            <tr>
+                              <td class="cat-name" style="padding-left: 10px; font-size: 9pt; color: #64748b;">↳ ${escapeHtml(sub)}</td>
+                              <td class="amount" style="font-size: 9pt; color: #64748b;">${formatAmount(subAmt)}</td>
+                            </tr>
+                          `).join('') : ''}
                       `).join('')
                     }
                   </tbody>
@@ -632,17 +675,27 @@ export default function BuchhaltungDashboard() {
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {yearlyContributionSummary.map((item) => (
                     <tr key={item.year} className="hover:bg-slate-50 transition-colors">
-                      <td className="border-r border-slate-100 px-4 py-3 font-bold text-slate-800">{item.year}</td>
-                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600">{formatAmount(item.spende)}</td>
-                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600">{formatAmount(item.mitgliederbeitrag)}</td>
-                      <td className={`border-r border-slate-100 px-4 py-3 text-right ${item.sonstiges >= 0 ? 'text-slate-600' : 'text-rose-600'}`}>
-                        {formatAmount(item.sonstiges)}
+                      <td className="border-r border-slate-100 px-4 py-3 font-bold text-slate-800 align-top">{item.year}</td>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600 align-top">{formatAmount(item.spende)}</td>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right text-slate-600 align-top">{formatAmount(item.mitgliederbeitrag)}</td>
+                      <td className={`border-r border-slate-100 px-4 py-3 text-right align-top ${item.sonstiges >= 0 ? 'text-slate-600' : 'text-rose-600'}`}>
+                        <div className="font-bold">{formatAmount(item.sonstiges)}</div>
+                        {Object.keys(item.sonstigesBreakdown || {}).length > 0 && (
+                          <div className="mt-1 flex flex-col gap-0.5 text-[10px] text-slate-400">
+                            {Object.entries(item.sonstigesBreakdown).filter(([_, val]) => val !== 0).map(([name, val]) => (
+                              <div key={name} className="flex justify-end gap-1 items-center">
+                                <span className="truncate max-w-[90px]" title={name}>{name}:</span>
+                                <span className={val > 0 ? 'text-emerald-500' : 'text-rose-500'}>{val > 0 ? '+' : ''}{formatAmount(val)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </td>
-                      <td className="border-r border-slate-100 px-4 py-3 text-right font-medium text-rose-700">{formatAmount(item.ausgaben)}</td>
-                      <td className={`border-r border-slate-100 px-4 py-3 text-right font-bold ${item.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      <td className="border-r border-slate-100 px-4 py-3 text-right font-medium text-rose-700 align-top">{formatAmount(item.ausgaben)}</td>
+                      <td className={`border-r border-slate-100 px-4 py-3 text-right font-bold align-top ${item.total >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {item.total > 0 && '+'}{formatAmount(item.total)}
                       </td>
-                      <td className={`px-4 py-3 text-right font-extrabold ${item.closingBalance >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
+                      <td className={`px-4 py-3 text-right font-extrabold align-top ${item.closingBalance >= 0 ? 'text-blue-700' : 'text-rose-700'}`}>
                         {formatAmount(item.closingBalance)}
                       </td>
                     </tr>
@@ -692,22 +745,65 @@ export default function BuchhaltungDashboard() {
               </button>
             </div>
             
+            {/* Yıl Seçme Sekmeleri */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {Object.keys(detailedStats).sort((a,b) => b.localeCompare(a)).map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedDetailYear(year)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    selectedDetailYear === year 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+
             <div className="space-y-6">
-              {Object.keys(detailedStats).sort((a,b) => b.localeCompare(a)).map(year => {
+              {Object.keys(detailedStats)
+                .filter(year => year === selectedDetailYear)
+                .map(year => {
                 const yearData = detailedStats[year];
-                const incEntries = Object.entries(yearData.incomes).sort((a,b) => b[1] - a[1]);
-                const expEntries = Object.entries(yearData.expenses).sort((a,b) => b[1] - a[1]);
-                const totalInc = incEntries.reduce((acc, curr) => acc + curr[1], 0);
-                const totalExp = expEntries.reduce((acc, curr) => acc + curr[1], 0);
+                const incEntries = Object.entries(yearData.incomes).sort((a,b) => b[1].total - a[1].total);
+                const expEntries = Object.entries(yearData.expenses).sort((a,b) => b[1].total - a[1].total);
+                const totalInc = incEntries.reduce((acc, curr) => acc + curr[1].total, 0);
+                const totalExp = expEntries.reduce((acc, curr) => acc + curr[1].total, 0);
                 const netResult = totalInc - totalExp;
+
+                const summaryItem = yearlyContributionSummary.find(s => s.year === year) || { total: netResult, closingBalance: netResult };
+                const uebertrag = summaryItem.closingBalance - summaryItem.total;
+                const neuerBestand = summaryItem.closingBalance;
 
                 return (
                   <div key={year} className="bg-slate-50/50 rounded-xl p-5 border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-2">
                       <h5 className="text-xl font-black text-slate-700">Geschäftsjahr {year}</h5>
-                      <span className={`px-3 py-1 rounded-full text-sm font-bold ${netResult >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                        Ergebnis: {netResult > 0 && '+'}{formatAmount(netResult)} €
-                      </span>
+                    </div>
+
+                    <div className="bg-blue-50/60 rounded-xl p-4 mb-8 border border-blue-100 flex flex-col md:flex-row justify-between items-center shadow-sm">
+                      <div className="text-center md:text-left mb-4 md:mb-0">
+                        <div className="text-xs uppercase tracking-wider font-bold text-blue-600/70 mb-1">Übertrag aus Vorjahr</div>
+                        <div className="text-xl font-extrabold text-blue-800">{formatAmount(uebertrag)} €</div>
+                      </div>
+                      
+                      <div className="hidden md:block text-blue-200 text-3xl font-light">+</div>
+                      
+                      <div className="text-center mb-4 md:mb-0">
+                        <div className="text-xs uppercase tracking-wider font-bold text-blue-600/70 mb-1">Jahresergebnis</div>
+                        <div className={`text-xl font-extrabold ${netResult >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {netResult > 0 && '+'}{formatAmount(netResult)} €
+                        </div>
+                      </div>
+                      
+                      <div className="hidden md:block text-blue-200 text-3xl font-light">=</div>
+                      
+                      <div className="bg-white rounded-xl px-6 py-3 shadow-sm border border-blue-100/50 text-center md:text-right">
+                        <div className="text-xs uppercase tracking-wider font-extrabold text-slate-400 mb-1">Neuer Bestand (Kasa)</div>
+                        <div className="text-2xl font-black text-blue-700">{formatAmount(neuerBestand)} €</div>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -717,12 +813,24 @@ export default function BuchhaltungDashboard() {
                           <span>Einnahmen</span>
                           <span>{formatAmount(totalInc)} €</span>
                         </h6>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {incEntries.length === 0 ? <li className="text-sm text-slate-500 italic">Keine Einnahmen gebucht</li> : 
-                            incEntries.map(([cat, amt]) => (
-                              <li key={cat} className="flex justify-between text-sm items-center">
-                                <span className="text-slate-600 font-medium">{cat}</span>
-                                <span className="font-semibold text-slate-900">{formatAmount(amt)}</span>
+                            incEntries.map(([cat, dataObj]) => (
+                              <li key={cat}>
+                                <div className="flex justify-between text-sm items-center">
+                                  <span className="text-slate-600 font-medium">{cat}</span>
+                                  <span className="font-semibold text-slate-900">{formatAmount(dataObj.total)}</span>
+                                </div>
+                                {(Object.keys(dataObj.subs).length > 1 || (Object.keys(dataObj.subs).length === 1 && Object.keys(dataObj.subs)[0] !== 'Allgemein')) && (
+                                  <ul className="mt-1 pl-3 space-y-1">
+                                    {Object.entries(dataObj.subs).map(([sub, subAmt]) => (
+                                      <li key={sub} className="flex justify-between text-xs items-center text-slate-500">
+                                        <span>↳ {sub}</span>
+                                        <span>{formatAmount(subAmt)}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
                               </li>
                             ))
                           }
@@ -735,12 +843,24 @@ export default function BuchhaltungDashboard() {
                           <span>Ausgaben</span>
                           <span>{formatAmount(totalExp)} €</span>
                         </h6>
-                        <ul className="space-y-2">
+                        <ul className="space-y-3">
                           {expEntries.length === 0 ? <li className="text-sm text-slate-500 italic">Keine Ausgaben gebucht</li> : 
-                            expEntries.map(([cat, amt]) => (
-                              <li key={cat} className="flex justify-between text-sm items-center">
-                                <span className="text-slate-600 font-medium">{cat}</span>
-                                <span className="font-semibold text-slate-900">{formatAmount(amt)}</span>
+                            expEntries.map(([cat, dataObj]) => (
+                              <li key={cat}>
+                                <div className="flex justify-between text-sm items-center">
+                                  <span className="text-slate-600 font-medium">{cat}</span>
+                                  <span className="font-semibold text-slate-900">{formatAmount(dataObj.total)}</span>
+                                </div>
+                                {(Object.keys(dataObj.subs).length > 1 || (Object.keys(dataObj.subs).length === 1 && Object.keys(dataObj.subs)[0] !== 'Allgemein')) && (
+                                  <ul className="mt-1 pl-3 space-y-1">
+                                    {Object.entries(dataObj.subs).map(([sub, subAmt]) => (
+                                      <li key={sub} className="flex justify-between text-xs items-center text-slate-500">
+                                        <span>↳ {sub}</span>
+                                        <span>{formatAmount(subAmt)}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
                               </li>
                             ))
                           }
@@ -805,7 +925,10 @@ export default function BuchhaltungDashboard() {
           recentTransactions.map((trx) => (
             <div key={trx.id} className="flex flex-col md:flex-row md:justify-between md:items-center text-sm border-b last:border-0 pb-2 last:pb-0 gap-1">
               <div className="flex-1">
-                <div className="font-medium text-gray-800">{trx.accounting_categories?.name || 'Unbekannt'}</div>
+                <div className="font-medium text-gray-800">
+                  {trx.accounting_categories?.name || 'Unbekannt'}
+                  {trx.subcategory && <span className="text-xs text-gray-500 font-normal ml-1">(↳ {trx.subcategory})</span>}
+                </div>
                 <div className="text-xs text-gray-500">
                   {new Date(trx.date).toLocaleDateString('de-DE')}
                   {trx.accounting_contacts && ` • ${trx.accounting_contacts.name}`}

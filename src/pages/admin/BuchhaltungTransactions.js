@@ -104,7 +104,8 @@ export default function BuchhaltungTransactions() {
     receipt_no: '',
     file_no: '',
     description: '',
-    document_url: ''
+    document_url: '',
+    subcategory: ''
   });
 
   const normalizeCategoryName = (name = '') =>
@@ -995,7 +996,7 @@ export default function BuchhaltungTransactions() {
       date: trx.date, type: trx.type, amount: trx.amount, category_id: trx.category_id,
       account_id: trx.account_id, contact_id: trx.contact_id || '', receipt_no: trx.receipt_no || '',
       file_no: trx.file_no || '', description: trx.description || '', document_url: trx.document_url || '',
-      target_year: '' 
+      target_year: '', subcategory: trx.subcategory || ''
     });
     setEditingId(trx.id);
     setIsFormOpen(true);
@@ -1010,7 +1011,7 @@ export default function BuchhaltungTransactions() {
   const resetForm = () => {
     setFormData({
       date: new Date().toISOString().slice(0, 10), type: 'expense', amount: '', category_id: '',
-      account_id: '', contact_id: '', receipt_no: '', file_no: '', description: '', document_url: '', target_year: ''
+      account_id: '', contact_id: '', receipt_no: '', file_no: '', description: '', document_url: '', target_year: '', subcategory: ''
     });
     setEditingId(null);
     setIsFormOpen(false);
@@ -1107,6 +1108,18 @@ export default function BuchhaltungTransactions() {
                 </select>
               </div>
 
+              {formData.category_id && categories.find(c => c.id == formData.category_id)?.subcategories && (
+                <div className="bg-gray-50 p-3 border border-gray-200 rounded-lg">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Unterkategorie (Optional)</label>
+                  <select name="subcategory" value={formData.subcategory || ''} onChange={handleInputChange} className="border p-2 rounded w-full text-sm">
+                    <option value="">Keine Auswahl (Allgemein)</option>
+                    {categories.find(c => c.id == formData.category_id).subcategories.split(',').map((sub, i) => (
+                      <option key={i} value={sub.trim()}>{sub.trim()}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {formData.type === 'income' && (
                 <div className="bg-blue-50 p-2 rounded border border-blue-200">
                   <label className="block text-xs font-bold text-blue-800 mb-1">Beitragsjahr (Optional)</label>
@@ -1168,6 +1181,7 @@ export default function BuchhaltungTransactions() {
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
                   {trx.accounting_categories?.name}
+                  {trx.subcategory && <div className="text-xs text-gray-500">↳ {trx.subcategory}</div>}
                   <div className="text-xs text-gray-500">{trx.description}</div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
