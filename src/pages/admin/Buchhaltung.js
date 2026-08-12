@@ -7,7 +7,9 @@ import BuchhaltungDashboard from './BuchhaltungDashboard';
 // YENİ: Rapor bileşenini import ediyoruz
 import BuchhaltungReports from './BuchhaltungReports';
 // YENİ: Resmi belgeler bileşenini import ediyoruz
-import BuchhaltungDocuments from './BuchhaltungDocuments'; 
+import BuchhaltungDocuments from './BuchhaltungDocuments';
+import BuchhaltungInvoices from './BuchhaltungInvoices';
+
 
 export default function Buchhaltung() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -15,6 +17,7 @@ export default function Buchhaltung() {
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
     { id: 'transactions', label: 'Transaktionen' },
+    { id: 'invoices', label: 'Rechnungen' },
     { id: 'documents', label: 'Offizielle Unterlagen' },
     { id: 'reports', label: 'Berichte' },
     { id: 'contacts', label: 'Kontakte' },
@@ -51,6 +54,7 @@ export default function Buchhaltung() {
       <div className="mt-4">
         {activeTab === 'dashboard' && <BuchhaltungDashboard />}
         {activeTab === 'transactions' && <BuchhaltungTransactions />}
+        {activeTab === 'invoices' && <BuchhaltungInvoices />}
         {activeTab === 'documents' && <BuchhaltungDocuments />}
         {activeTab === 'reports' && <BuchhaltungReports />}
         {activeTab === 'contacts' && <BuchhaltungContacts />}

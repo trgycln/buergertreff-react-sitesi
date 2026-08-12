@@ -36,8 +36,15 @@ export default function BuchhaltungSettings() {
     org_tax_id: '',
     exemption_date: '',
     exemption_office: '',
+    vereinsregister: '',
     
-    // Sorumlu Kişi
+    // Banka Bilgileri
+    bank_name: '',
+    bank_iban: '',
+    bank_bic: '',
+    
+    // Sorumlu Kişiler
+    vorsitzende_name: '',
     treasurer_name: '',
     
     // Amaçlar
@@ -71,8 +78,9 @@ export default function BuchhaltungSettings() {
         'org_name', 'org_address', 'org_postal_code', 'org_city',
         'org_phone', 'org_email', 'org_website',
         'org_facebook', 'org_instagram', 'org_twitter',
-        'org_tax_id', 'exemption_date', 'exemption_office',
-        'treasurer_name', 'org_purpose'
+        'org_tax_id', 'exemption_date', 'exemption_office', 'vereinsregister',
+        'bank_name', 'bank_iban', 'bank_bic',
+        'vorsitzende_name', 'treasurer_name', 'org_purpose'
       ]);
 
     if (catData) setCategories(catData);
@@ -374,19 +382,43 @@ export default function BuchhaltungSettings() {
                 <input type="text" name="org_tax_id" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_tax_id} onChange={handleOrgSettingChange} />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vereinsregister-Nr.</label>
+                <input type="text" name="vereinsregister" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vereinsregister} onChange={handleOrgSettingChange} placeholder="z.B. VR 1234 Amtsgericht Wissen" />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Datum Freistellungsbescheid</label>
                 <input type="date" name="exemption_date" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_date} onChange={handleOrgSettingChange} />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Finanzamt</label>
                 <input type="text" name="exemption_office" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_office} onChange={handleOrgSettingChange} />
               </div>
 
               <div className="md:col-span-2 mb-2 mt-4">
+                <h3 className="text-sm font-bold text-blue-800 bg-blue-50 p-2 rounded">🏦 Bankverbindung (für Rechnungen & Bescheinigungen)</h3>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bankname</label>
+                <input type="text" name="bank_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_name} onChange={handleOrgSettingChange} placeholder="z.B. Volksbank Wissen" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
+                <input type="text" name="bank_iban" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_iban} onChange={handleOrgSettingChange} placeholder="DE00 0000 0000 0000 0000 00" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">BIC / SWIFT</label>
+                <input type="text" name="bank_bic" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_bic} onChange={handleOrgSettingChange} placeholder="z.B. GENODEM1WIS" />
+              </div>
+
+              <div className="md:col-span-2 mb-2 mt-4">
                 <h3 className="text-sm font-bold text-blue-800 bg-blue-50 p-2 rounded">🎯 Verantwortliche & Zweck</h3>
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in (für Unterschrift)</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">1. Vorsitzende/r (vollständiger Name)</label>
+                <input type="text" name="vorsitzende_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vorsitzende_name} onChange={handleOrgSettingChange} placeholder="z.B. Erika Uber" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in</label>
                 <input type="text" name="treasurer_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.treasurer_name} onChange={handleOrgSettingChange} />
               </div>
               <div className="md:col-span-2">
