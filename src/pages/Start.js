@@ -6,49 +6,176 @@ import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
 import AktuellesTeaser from '../components/AktuellesTeaser';
 import ActivityShowcase from '../components/ActivityShowcase';
-import WhatsAppBanner from '../components/WhatsAppBanner';
+import CommunityConnect from '../components/CommunityConnect';
+import MultilingualWelcome from '../components/MultilingualWelcome';
+import HeroSpotlightCard from '../components/HeroSpotlightCard';
 import BigEventBanner from '../components/BigEventBanner';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
+import { isEventInPast, dateToKey, expandRecurringEntries, getComparableEventDate, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 import heroVideo from '../assets/images/hero-background.mp4'; 
 import foto1 from '../assets/images/wirUberUns-4.jpg';
 import { Helmet } from 'react-helmet-async';
 
+const formatTickerDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('de-DE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit',
+        });
+    } catch (e) {
+        return '';
+    }
+};
+
 const Start = () => {
-    const welcomeMessages = useMemo(() => [ "Herzlich willkommen", "Hoş geldiniz", "добро пожаловать", "Welcome", "Ласкаво просимо!", "Bienvenu", "اهلا وسهلا","Serdecznie witamy","Hûn bi xêr hatinî"],[]);
-    const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
     const [bigEvent, setBigEvent] = useState(null);
     const [showBanner, setShowBanner] = useState(false);
+    const [latestPastEvent, setLatestPastEvent] = useState(null);
+    const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
 
-    // Büyük etkinliği Supabase'den çek
+    // Büyük etkinliği, son fotoğraflı faaliyeti ve kayan yazı duyurularını çek
     useEffect(() => {
-        const fetchBigEvent = async () => {
-            const now = new Date().toISOString();
-            const { data, error } = await supabase
-                .from('ereignisse')
-                .select('id, title, event_date, end_time, location, description, image_url, program_details')
-                .eq('is_big_event', true)
-                .eq('is_public', true)
-                .gte('event_date', now)
-                .order('event_date', { ascending: true })
-                .limit(1)
-                .maybeSingle();
+        const fetchHeroData = async () => {
+            const today = parseLocalDate(new Date());
+            const horizon = new Date(today);
+            horizon.setDate(horizon.getDate() + 30);
+            const todayKey = dateToKey(today);
+            const horizonKey = dateToKey(horizon);
+            const now = new Date();
+            const nowIso = now.toISOString();
+            
+            const [bigEventRes, pastEventsRes, recurringRes, singleRes, exceptionsRes] = await Promise.all([
+                supabase
+                    .from('ereignisse')
+                    .select('id, title, event_date, end_time, location, description, image_url, program_details')
+                    .eq('is_big_event', true)
+                    .eq('is_public', true)
+                    .gte('event_date', nowIso)
+                    .order('event_date', { ascending: true })
+                    .limit(1)
+                    .maybeSingle(),
+                supabase
+                    .from('ereignisse')
+                    .select('id, title, category, location, event_date, end_time, description, image_url, archive_photos, archive_summary, is_big_event')
+                    .eq('is_public', true)
+                    .order('event_date', { ascending: false })
+                    .limit(10),
+                supabase
+                    .from('calendar_recurring_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('end_date', todayKey)
+                    .lte('start_date', horizonKey),
+                supabase
+                    .from('calendar_single_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('entry_date', todayKey)
+                    .lte('entry_date', horizonKey),
+                supabase.from('calendar_recurring_exceptions').select('*')
+            ]);
 
-            if (!error && data) {
-                setBigEvent(data);
+            if (!bigEventRes.error && bigEventRes.data) {
+                setBigEvent(bigEventRes.data);
                 setShowBanner(true);
             }
-        };
-        fetchBigEvent();
-    }, []);
 
-    useEffect(() => {
-        const intervalId = setInterval(() => {
-            setCurrentMessageIndex((prevIndex) => (prevIndex + 1) % welcomeMessages.length);
-        }, 1500); 
-        return () => clearInterval(intervalId);
-    }, [welcomeMessages]);
+            if (!pastEventsRes.error && pastEventsRes.data) {
+                const withPhotos = pastEventsRes.data.find((e) => {
+                    const isPast = e.event_date ? isEventInPast(e.event_date, now) : true;
+                    return isPast && Array.isArray(e.archive_photos) && e.archive_photos.length > 0;
+                }) || pastEventsRes.data.find((e) => {
+                    const isPast = e.event_date ? isEventInPast(e.event_date, now) : true;
+                    return isPast && (e.archive_summary || e.image_url);
+                });
+
+                if (withPhotos) {
+                    setLatestPastEvent(withPhotos);
+                }
+
+                // Ticker duyurularını hazırla
+                const ereignisseOccurrences = pastEventsRes.data
+                    .filter((e) => e.event_date && !isEventInPast(e.event_date, now))
+                    .map((e) => {
+                        const eventDate = getComparableEventDate(e.event_date);
+                        return {
+                            dateKey: eventDate ? dateToKey(eventDate) : null,
+                            title: e.title,
+                            category: e.category,
+                            location: e.location,
+                            startTime: eventDate ? String(eventDate.toTimeString()).slice(0, 5) : null,
+                            endTime: e.end_time ? String(e.end_time).slice(0, 5) : null,
+                            sortKey: eventDate ? eventDate.getTime() : Number.MAX_SAFE_INTEGER,
+                            isPriority: true,
+                            isBigEvent: e.is_big_event || false,
+                        };
+                    });
+
+                const recurringOccurrences = expandRecurringEntries(recurringRes.data || [], today, horizon, exceptionsRes.data || []).map((entry) => ({
+                    dateKey: entry.dateKey,
+                    title: entry.title,
+                    category: entry.category,
+                    location: entry.location,
+                    startTime: entry.startTime,
+                    sortKey: parseLocalDate(entry.dateKey)?.getTime() || Number.MAX_SAFE_INTEGER,
+                    isPriority: false,
+                }));
+
+                const singleOccurrences = (singleRes.data || []).map((entry) => ({
+                    dateKey: entry.entry_date,
+                    title: entry.title,
+                    category: entry.category,
+                    location: entry.location,
+                    startTime: entry.start_time,
+                    sortKey: parseLocalDate(entry.entry_date)?.getTime() || Number.MAX_SAFE_INTEGER,
+                    isPriority: false,
+                }));
+
+                const sortByDateKey = (a, b) => {
+                    if (a.dateKey !== b.dateKey) return (a.dateKey || '').localeCompare(b.dateKey || '');
+                    const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
+                    const rightTime = b.startTime ? String(b.startTime).slice(0, 5) : '99:99';
+                    if (leftTime !== rightTime) return leftTime.localeCompare(rightTime);
+                    return String(a.title || '').localeCompare(String(b.title || ''), 'de');
+                };
+
+                const allMerged = mergeUpcomingEvents([...ereignisseOccurrences, ...recurringOccurrences, ...singleOccurrences]);
+                const priorityItems = allMerged.filter((e) => e.isPriority).sort(sortByDateKey);
+                const calendarItems = allMerged.filter((e) => !e.isPriority).sort(sortByDateKey);
+                const combined = [...priorityItems, ...calendarItems.slice(0, 5)];
+
+                const formattedAnnouncements = combined.map((entry) => {
+                    const date = formatTickerDate(entry.dateKey);
+                    const startTime = entry.startTime ? String(entry.startTime).slice(0, 5) : null;
+                    const endTime = entry.endTime ? String(entry.endTime).slice(0, 5) : null;
+                    let timeText = null;
+                    if (startTime && endTime) {
+                        timeText = `${startTime}–${endTime} Uhr`;
+                    } else if (startTime) {
+                        timeText = `${startTime} Uhr`;
+                    }
+                    let text = `${date}: ${entry.title}`;
+                    if (timeText) {
+                        text += ` (${timeText})`;
+                    }
+                    if (entry.location) {
+                        text += ` – ${entry.location}`;
+                    }
+                    return { text, isBig: entry.isBigEvent || false };
+                });
+
+                setTickerAnnouncements(formattedAnnouncements);
+            }
+        };
+        fetchHeroData();
+    }, []);
 
     const contentBlockBlobs = [
         {
@@ -78,27 +205,37 @@ const Start = () => {
             )}
 
         <div>
-            <Hero videoUrl={heroVideo}>
-                <div className='flex flex-col items-center justify-center'>
-                    <h1 className="text-7xl md:text-8xl font-dancing">
-                        “Komm ren„
-                    </h1>
-                    <h2 className="text-2xl md:text-3xl font-bold mt-2 ml-20 md:ml-24 whitespace-nowrap">
-                        Bürgertreff Wissen
-                    </h2>
-                </div>
-                
-                <h3 
-                    key={currentMessageIndex}
-                    className="text-2xl md:text-4xl font-semibold mt-8 animate-fade-in-out"
-                >
-                    {welcomeMessages[currentMessageIndex]}
-                </h3>
+            <Hero videoUrl={heroVideo} tickerItems={tickerAnnouncements}>
+                <div className={`w-full ${latestPastEvent ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center' : 'flex flex-col items-center justify-center text-center'}`}>
+                    {/* Sol Sütun: Karşılama & Buton (Sol alanın tam ortasında dengeli) */}
+                    <div className={`${latestPastEvent ? 'lg:col-span-7' : 'w-full'} flex flex-col items-center justify-center text-center px-2`}>
+                        <div className='flex flex-col items-center justify-center text-center'>
+                            <h1 className="text-5xl sm:text-7xl md:text-8xl font-dancing leading-tight">
+                                “Komm ren„
+                            </h1>
+                            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 whitespace-nowrap">
+                                Bürgertreff Wissen
+                            </h2>
+                        </div>
+                        
+                        {/* Modern Çok Dilli Karşılama Kapsülü */}
+                        <div className="w-full flex justify-center mt-6 sm:mt-8">
+                            <MultilingualWelcome />
+                        </div>
 
-                <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
-                    <Link to="/machen-sie-mit" className="bg-rcRed text-white text-lg font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                        Jetzt mitmachen
-                    </Link>
+                        <div className="mt-6 sm:mt-8 flex justify-center">
+                            <Link to="/machen-sie-mit" className="bg-rcRed text-white text-base sm:text-lg font-bold py-3 sm:py-3.5 px-6 sm:px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 inline-block">
+                                Jetzt mitmachen
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Sağ Sütun: Son Fotoğraflı Faaliyet Vitrin Kartı */}
+                    {latestPastEvent && (
+                        <div className="lg:col-span-5 flex justify-center w-full mt-2 lg:mt-0 px-2">
+                            <HeroSpotlightCard event={latestPastEvent} />
+                        </div>
+                    )}
                 </div>
             </Hero>
 
@@ -108,8 +245,8 @@ const Start = () => {
             {/* Yaklaşan Program ve Etkinlikler */}
             <AktuellesTeaser />
 
-            {/* WhatsApp Grubu Katılım Alanı */}
-            <WhatsAppBanner />
+            {/* WhatsApp Grubu ve Instagram Topluluk Alanı */}
+            <CommunityConnect />
 
             <ContentBlock 
                 title="Schön, dass Sie da sind!" 

@@ -180,14 +180,16 @@ const Header = () => {
     // Ana sayfa için özel ticker mesajı
     const staticTickerMessage = [];
 
-    // Sadece Start sayfasında özel mesajı göster
+    // Sadece alt sayfalarda (Start sayfası dışında) Header üzerinde göster
     const isStartPage = window.location.pathname === "/";
     const tickerItems = announcements.length > 0 ? announcements : (isStartPage ? staticTickerMessage : []);
 
     return (
         <>
-            {/* Kayan yazı bandı (Her sayfada admin tarafından girilen duyurular) */}
-            <AnnouncementTicker items={tickerItems} />
+            {/* Kayan yazı bandı (Sadece alt sayfalarda; Start sayfasında doğrudan Hero içine entegre edilmiştir) */}
+            {!isStartPage && tickerItems.length > 0 && (
+                <AnnouncementTicker items={tickerItems} />
+            )}
             
             <header className="bg-white shadow-md sticky top-0 z-50">
                 <div className="bg-rcBlue text-gray-300 py-2">

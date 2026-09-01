@@ -1,7 +1,6 @@
-// src/components/ActivityShowcase.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaRegCalendarAlt, FaImages, FaArrowRight } from 'react-icons/fa';
+import { FaRegCalendarAlt, FaImages, FaArrowRight, FaInstagram } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import fallbackImage from '../assets/images/ana_logo.jpg';
 import { isEventInPast } from '../utils/calendarUtils';
@@ -144,6 +143,20 @@ const ActivityShowcase = () => {
                             </Link>
                         );
                     })}
+                </div>
+
+                {/* Instagram Yönlendirme İpucu */}
+                <div className="mt-8 text-center">
+                    <a
+                        href="https://www.instagram.com/buergertreff.wissen/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-[#d62976] transition-colors group"
+                    >
+                        <FaInstagram className="text-lg text-[#d62976] group-hover:scale-110 transition-transform" />
+                        <span>Weitere Impressionen und aktuelle Stories auf Instagram: <strong>@buergertreff.wissen</strong></span>
+                        <FaArrowRight className="text-xs transition-transform duration-300 group-hover:translate-x-1" />
+                    </a>
                 </div>
             </div>
         </section>
