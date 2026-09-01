@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { supabase } from '../supabaseClient'; // Supabase istemcisini import et
 import logoImage from '../assets/images/logo.jpg';
-import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaChevronDown, FaYoutube } from 'react-icons/fa';
+import { FaFacebookF, FaInstagram, FaTiktok, FaMastodon, FaChevronDown, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
@@ -196,6 +196,7 @@ const Header = () => {
                             <p className="font-dancing text-xl text-white">"Miteinander füreinander"</p>
                         </div>
                         <div className="flex items-center gap-5">
+                            <a href="https://chat.whatsapp.com/FqBNBrOmcnL7CTXPL9yRnm" target="_blank" rel="noopener noreferrer" title="WhatsApp Gruppe" className="hover:text-green-400 transform hover:-translate-y-1 transition-all flex items-center text-green-400"><FaWhatsapp size={17} /></a>
                             <a href="https://www.facebook.com/profile.php?id=61585385846803" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaFacebookF size={16} /></a>
                             <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaYoutube size={16} /></a>
                             <a href="https://www.instagram.com/buergertreff.wissen/" target="_blank" rel="noopener noreferrer" className="hover:text-white transform hover:-translate-y-1 transition-all"><FaInstagram size={16} /></a>

@@ -5,6 +5,8 @@ import Hero from '../components/Hero';
 import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
 import AktuellesTeaser from '../components/AktuellesTeaser';
+import ActivityShowcase from '../components/ActivityShowcase';
+import WhatsAppBanner from '../components/WhatsAppBanner';
 import BigEventBanner from '../components/BigEventBanner';
 import { FaUsers, FaCalendarAlt, FaBullhorn } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
@@ -77,13 +79,10 @@ const Start = () => {
 
         <div>
             <Hero videoUrl={heroVideo}>
-                {/* GÜNCELLENDİ: Metin yapısı ve fontlar isteğinize göre düzeltildi */}
                 <div className='flex flex-col items-center justify-center'>
-                    {/* GÜNCELLENDİ: 'font-dancing' kullanıldı, 'font-bold' kaldırıldı ve boyut ayarlandı */}
                     <h1 className="text-7xl md:text-8xl font-dancing">
                         “Komm ren„
                     </h1>
-                    {/* GÜNCELLENDİ: 'whitespace-nowrap' ile tek satırda kalması sağlandı */}
                     <h2 className="text-2xl md:text-3xl font-bold mt-2 ml-20 md:ml-24 whitespace-nowrap">
                         Bürgertreff Wissen
                     </h2>
@@ -96,12 +95,21 @@ const Start = () => {
                     {welcomeMessages[currentMessageIndex]}
                 </h3>
 
-                <div className="mt-8">
-                    <Link to="/machen-sie-mit" className="bg-rcRed text-white text-lg font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition-colors">
+                <div className="mt-8 flex flex-col sm:flex-row items-center gap-4">
+                    <Link to="/machen-sie-mit" className="bg-rcRed text-white text-lg font-bold py-3 px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                         Jetzt mitmachen
                     </Link>
                 </div>
             </Hero>
+
+            {/* Geçmiş ve Görsel Faaliyetler Vitrini */}
+            <ActivityShowcase />
+
+            {/* Yaklaşan Program ve Etkinlikler */}
+            <AktuellesTeaser />
+
+            {/* WhatsApp Grubu Katılım Alanı */}
+            <WhatsAppBanner />
 
             <ContentBlock 
                 title="Schön, dass Sie da sind!" 
@@ -127,8 +135,6 @@ Ganz nach unserem Motto: miteinander füreinander.
                     <p className="text-gray-800 font-bold text-lg">57537 Wissen</p>
                 </div>
             </ContentBlock>
-
-            <AktuellesTeaser />
 
             <section className="bg-gray-50 py-12 md:py-20">
                 <div className="container mx-auto px-6">

@@ -1,8 +1,8 @@
+// src/components/AktuellesTeaser.js
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaRegCalendarAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaRegCalendarAlt, FaMapMarkerAlt, FaArrowRight } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
-import ImageCarousel from './ImageCarousel';
 import { dateToKey, expandRecurringEntries, getComparableEventDate, isEventInPast, mergeUpcomingEvents, parseLocalDate } from '../utils/calendarUtils';
 
 const formatDate = (dateString) => {
@@ -101,7 +101,7 @@ const AktuellesTeaser = () => {
         fetchEvents();
     }, []);
 
-    const { upcoming, latestWithPhotos } = useMemo(() => {
+    const upcoming = useMemo(() => {
         const now = new Date();
         const nowTimestamp = now.getTime();
         const rangeStart = parseLocalDate(now);
@@ -173,22 +173,8 @@ const AktuellesTeaser = () => {
 
         const priorityEvents = allMerged.filter((e) => e.isPriority).sort(sortByDate);
         const calendarEvents = allMerged.filter((e) => !e.isPriority).sort(sortByDate);
-        const remainingSlots = Math.max(0, 5 - priorityEvents.length);
-        const upcomingEvents = [...priorityEvents, ...calendarEvents.slice(0, remainingSlots)];
-
-        const latestPastWithPhotos = events
-            .filter((e) => e.event_date && isEventInPast(e.event_date, now))
-            .sort((a, b) => {
-                const left = getComparableEventDate(a.event_date)?.getTime() || 0;
-                const right = getComparableEventDate(b.event_date)?.getTime() || 0;
-                return right - left;
-            })
-            .find((e) => Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || null;
-
-        return {
-            upcoming: upcomingEvents,
-            latestWithPhotos: latestPastWithPhotos
-        };
+        const remainingSlots = Math.max(0, 6 - priorityEvents.length);
+        return [...priorityEvents, ...calendarEvents.slice(0, remainingSlots)];
     }, [events, recurringEntries, singleEntries, exceptions]);
 
     return (
@@ -196,95 +182,76 @@ const AktuellesTeaser = () => {
             <div className="container mx-auto px-6">
                 <div className="flex items-end justify-between mb-6 pb-3 border-b-2 border-rcLightBlue">
                     <h2 className="text-3xl font-bold text-rcDarkGray">Aktuelles</h2>
-                    <Link to="/angebote" className="text-sm md:text-base font-semibold text-rcBlue hover:underline">
-                        Alle Veranstaltungen anzeigen &rarr;
+                    <Link to="/angebote" className="text-sm md:text-base font-semibold text-rcBlue hover:underline inline-flex items-center gap-1 group">
+                        <span>Alle Veranstaltungen anzeigen</span>
+                        <FaArrowRight className="text-xs transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
                 </div>
 
                 {loading ? (
                     <p className="text-gray-600">Aktuelles wird geladen...</p>
                 ) : (
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
-                        <div className="xl:col-span-2 bg-rcGray p-5 rounded-lg border border-gray-200">
-                            <h3 className="text-xl font-semibold text-rcDarkGray mb-4">Nächste Termine</h3>
+                    <div className="bg-rcGray p-6 md:p-8 rounded-2xl border border-gray-200 shadow-sm">
+                        <h3 className="text-xl font-semibold text-rcDarkGray mb-6">Nächste Termine</h3>
 
-                            {upcoming.length === 0 ? (
-                                <p className="text-gray-500 italic">Aktuell sind keine kommenden Termine geplant.</p>
-                            ) : (
-                                <ul className="space-y-3 divide-y divide-gray-200">
-                                    {upcoming.map((event) => (
-                                        <li key={event.id} className="pt-3 first:pt-0">
-                                            {event.linkTo ? (
-                                                <Link to={event.linkTo} className="block group">
-                                                    <h4 className="text-lg font-semibold text-rcDarkGray group-hover:text-rcBlue mb-1">
-                                                        {event.title}
-                                                    </h4>
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 text-sm text-gray-600">
-                                                        <span className="flex items-center">
-                                                            <FaRegCalendarAlt className="mr-1.5" />
-                                                            {formatUpcomingDate(event)}
-                                                        </span>
-                                                        {event.location && (
-                                                            <span className="flex items-center">
-                                                                <FaMapMarkerAlt className="mr-1.5" />
-                                                                {event.location}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {event.description && (
-                                                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
-                                                    )}
-                                                </Link>
-                                            ) : (
-                                                <div className="block">
-                                                    <h4 className="text-lg font-semibold text-rcDarkGray mb-1">
-                                                        {event.title}
-                                                    </h4>
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-x-4 text-sm text-gray-600">
-                                                        <span className="flex items-center">
-                                                            <FaRegCalendarAlt className="mr-1.5" />
-                                                            {formatUpcomingDate(event)}
-                                                        </span>
-                                                        {event.location && (
-                                                            <span className="flex items-center">
-                                                                <FaMapMarkerAlt className="mr-1.5" />
-                                                                {event.location}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {event.description && (
-                                                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
-                                                    )}
+                        {upcoming.length === 0 ? (
+                            <p className="text-gray-500 italic">Aktuell sind keine kommenden Termine geplant.</p>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {upcoming.map((event) => {
+                                    const cardContent = (
+                                        <div className="flex flex-col h-full bg-white p-5 rounded-xl border border-gray-200 hover:border-rcBlue/40 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                                            <div className="flex items-center justify-between gap-2 mb-2">
+                                                <span className="flex items-center text-xs font-semibold text-rcBlue bg-blue-50 px-2.5 py-1 rounded-md">
+                                                    <FaRegCalendarAlt className="mr-1.5 text-rcRed" />
+                                                    {formatUpcomingDate(event)}
+                                                </span>
+                                                {event.category && (
+                                                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                                                        {event.category === 'Offene Treff' ? 'Offener Treff' : event.category}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <h4 className="text-base font-bold text-rcDarkGray group-hover:text-rcBlue transition-colors line-clamp-2 mb-2 mt-1">
+                                                {event.title}
+                                            </h4>
+
+                                            {event.location && (
+                                                <div className="flex items-center text-xs text-gray-600 mb-2">
+                                                    <FaMapMarkerAlt className="mr-1.5 text-gray-400 flex-shrink-0" />
+                                                    <span className="truncate">{event.location}</span>
                                                 </div>
                                             )}
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
 
-                        {latestWithPhotos && (
-                            <aside className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
-                                <h3 className="text-xl font-semibold text-rcDarkGray mb-2">Letzte Aktivität</h3>
-                                <p className="text-sm text-gray-600 mb-3">{latestWithPhotos.title}</p>
-                                <ImageCarousel images={latestWithPhotos.archive_photos} objectFit="contain" />
-                                {latestWithPhotos.archive_summary && (
-                                    <blockquote className="mt-4 border-l-[3px] border-rcBlue pl-3">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-rcBlue mb-1.5">Kurzbericht</p>
-                                        <p className="text-sm text-gray-600 leading-relaxed">
-                                            {latestWithPhotos.archive_summary}
-                                        </p>
-                                    </blockquote>
-                                )}
-                                <div className="mt-4 text-right">
-                                    <Link
-                                        to={`/angebote/${latestWithPhotos.id}`}
-                                        className="text-sm font-semibold text-rcBlue hover:underline"
-                                    >
-                                        Zum Rückblick &rarr;
-                                    </Link>
-                                </div>
-                            </aside>
+                                            {event.description && (
+                                                <p className="text-xs text-gray-600 line-clamp-2 mt-1 mb-3">
+                                                    {event.description}
+                                                </p>
+                                            )}
+
+                                            {event.linkTo && (
+                                                <div className="text-right mt-auto pt-2 border-t border-gray-100">
+                                                    <span className="text-xs font-semibold text-rcBlue group-hover:underline inline-flex items-center gap-1">
+                                                        <span>Mehr erfahren</span>
+                                                        <FaArrowRight className="text-[10px]" />
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+
+                                    return event.linkTo ? (
+                                        <Link key={event.id} to={event.linkTo} className="group block h-full">
+                                            {cardContent}
+                                        </Link>
+                                    ) : (
+                                        <div key={event.id} className="h-full">
+                                            {cardContent}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 )}

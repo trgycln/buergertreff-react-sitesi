@@ -7,6 +7,7 @@ import {
   FaTiktok,
   FaMastodon,
   FaYoutube,
+  FaWhatsapp,
 } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { supabase } from "../supabaseClient";
@@ -73,6 +74,7 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-bold mb-4">Folgen Sie uns</h3>
             <div className="flex flex-wrap items-center gap-5">
+              <a href="https://chat.whatsapp.com/FqBNBrOmcnL7CTXPL9yRnm" target="_blank" rel="noopener noreferrer" title="WhatsApp Gruppe" className="text-green-400 hover:text-green-300 transition-colors"><FaWhatsapp size={20} /></a>
               <a href="https://www.facebook.com/profile.php?id=61585385846803" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
               <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaYoutube size={24} /></a>
               <a href="https://www.instagram.com/buergertreff.wissen/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>

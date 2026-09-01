@@ -49,9 +49,11 @@ import SponsorManagement from './pages/admin/SponsorManagement';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLayout from './components/admin/AdminLayout';
 
+import FloatingWhatsAppButton from './components/FloatingWhatsAppButton';
+
 // Public Layout
 const MainLayout = ({ children }) => (
-  <> <Header /> {children} <Footer /> </>
+  <> <Header /> {children} <FloatingWhatsAppButton /> <Footer /> </>
 );
 
 function App() {
