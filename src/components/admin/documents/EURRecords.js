@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner, FaPrint } from 'react-icons/fa';
 
-export default function EURRecords() {
+export default function EURRecords({ readOnly }) {
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(true);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -313,3 +313,4 @@ export default function EURRecords() {
     </div>
   );
 }
+

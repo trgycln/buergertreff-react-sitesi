@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner, FaPaperclip, FaExternalLinkAlt } from 'react-icons/fa';
 
-export default function Vouchers() {
+export default function Vouchers({ readOnly }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
@@ -102,3 +102,4 @@ export default function Vouchers() {
     </div>
   );
 }
+

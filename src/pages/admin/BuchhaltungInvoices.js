@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { FaPlus, FaPrint, FaTrash, FaCheck, FaTimes, FaFileInvoice } from 'react-icons/fa';
+import { FaPlus, FaPrint, FaTrash, FaCheck, FaTimes, FaFileInvoice, FaEdit } from 'react-icons/fa';
 
 const formatCurrency = (value) =>
   Number(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -12,11 +12,21 @@ const formatDate = (dateStr) => {
 
 function printInvoiceWindow(invoice, items, contact, settings) {
   // Gerçek site_settings anahtarlarından oku, yoksa derneğin gerçek bilgilerini kullan
-  const orgName        = settings?.org_name          || 'Bürgertreff Wissen e.V.';
-  const orgStreet      = settings?.org_address        || 'Marktstr. 8';
-  const orgPostal      = settings?.org_postal_code    || '57537';
-  const orgCity        = settings?.org_city           || 'Wissen/Sieg';
-  const orgFullAddress = `${orgStreet}, ${orgPostal} ${orgCity}`;
+  const orgName   = settings?.org_name || 'Bürgertreff Wissen e.V.';
+  const orgPostal = settings?.org_postal_code || '57537';
+
+  // Şehir adını temizle (içinde PLZ olabilir)
+  const rawCity = settings?.org_city || 'Wissen';
+  const orgCity = rawCity.replace(/\d{5}/g, '').replace(/[,\s]+$/, '').trim() || 'Wissen';
+
+  // Sokak adını temizle (içinde PLZ veya şehir adı olabilir)
+  const rawStreet = settings?.org_address || 'Marktstr. 8';
+  const orgStreet = rawStreet
+    .replace(/\d{5}/g, '')                                          // PLZ çıkar
+    .replace(new RegExp(`\\b${orgCity}\\b`, 'i'), '')               // Şehir adı çıkar
+    .replace(/[,\s]+$/, '').trim();                                  // Sondaki virgül/boşluk temizle
+
+  const orgHeaderAddress = `${orgStreet} • ${orgPostal} ${orgCity}`;
 
   const bankName       = settings?.bank_name          || 'Sparkasse Westerwald-Sieg';
   const iban           = settings?.bank_iban          || 'DE27 5735 1030 0055 0844 38';
@@ -87,7 +97,7 @@ function printInvoiceWindow(invoice, items, contact, settings) {
     <div class="header-left">
       <img src="/logo.png" alt="Logo" onerror="this.style.display='none'" />
       <h1>${orgName}</h1>
-      <p>${orgFullAddress}</p>
+      <p>${orgHeaderAddress}</p>
     </div>
     <div class="header-right">
       <h2>RECHNUNG</h2>
@@ -97,7 +107,6 @@ function printInvoiceWindow(invoice, items, contact, settings) {
   </div>
 
   <div class="recipient">
-    <div class="sender-line">${orgName} • ${orgFullAddress}</div>
     <div class="name">${contact.name || ''}</div>
     <div class="address">${contact.address || ''}</div>
   </div>
@@ -166,12 +175,13 @@ function printInvoiceWindow(invoice, items, contact, settings) {
   printWindow.document.close();
 }
 
-export default function BuchhaltungInvoices() {
+export default function BuchhaltungInvoices({ readOnly }) {
   const [invoices, setInvoices] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [settings, setSettings] = useState({});
+  const [editingId, setEditingId] = useState(null); // null = yeni fatura, UUID = düzenleme modu
 
   const [formData, setFormData] = useState({
     contact_id: '',
@@ -254,28 +264,55 @@ export default function BuchhaltungInvoices() {
 
     try {
       const totalAmount = calculateTotal();
-      const dataToInsert = { ...formData, total_amount: totalAmount, due_date: null };
 
-      const { data: invoiceData, error: invoiceError } = await supabase
-        .from('accounting_invoices')
-        .insert([dataToInsert])
-        .select()
-        .single();
-      if (invoiceError) throw invoiceError;
+      if (editingId) {
+        // --- GÜNCELLEME ---
+        const { error: updateError } = await supabase
+          .from('accounting_invoices')
+          .update({ ...formData, total_amount: totalAmount, due_date: null })
+          .eq('id', editingId);
+        if (updateError) throw updateError;
 
-      const itemsToInsert = items.map((item, idx) => ({
-        invoice_id: invoiceData.id,
-        description: item.description,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        total_price: Number(item.quantity) * Number(item.unit_price),
-        sort_order: idx
-      }));
-      const { error: itemsError } = await supabase.from('accounting_invoice_items').insert(itemsToInsert);
-      if (itemsError) throw itemsError;
+        // Eski kalemleri sil, yenilerini ekle
+        await supabase.from('accounting_invoice_items').delete().eq('invoice_id', editingId);
+        const itemsToInsert = items.map((item, idx) => ({
+          invoice_id: editingId,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: Number(item.quantity) * Number(item.unit_price),
+          sort_order: idx
+        }));
+        const { error: itemsError } = await supabase.from('accounting_invoice_items').insert(itemsToInsert);
+        if (itemsError) throw itemsError;
 
-      alert('Rechnung erfolgreich erstellt!');
+        alert('Rechnung erfolgreich aktualisiert!');
+      } else {
+        // --- YENİ KAYIT ---
+        const dataToInsert = { ...formData, total_amount: totalAmount, due_date: null };
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from('accounting_invoices')
+          .insert([dataToInsert])
+          .select()
+          .single();
+        if (invoiceError) throw invoiceError;
+
+        const itemsToInsert = items.map((item, idx) => ({
+          invoice_id: invoiceData.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: Number(item.quantity) * Number(item.unit_price),
+          sort_order: idx
+        }));
+        const { error: itemsError } = await supabase.from('accounting_invoice_items').insert(itemsToInsert);
+        if (itemsError) throw itemsError;
+
+        alert('Rechnung erfolgreich erstellt!');
+      }
+
       setShowModal(false);
+      setEditingId(null);
       setFormData({
         contact_id: '',
         invoice_no: `RE-${new Date().getFullYear()}-${String(invoices.length + 2).padStart(3, '0')}`,
@@ -289,6 +326,47 @@ export default function BuchhaltungInvoices() {
     } catch (error) {
       console.error('Error saving invoice:', error);
       alert('Fehler beim Speichern der Rechnung: ' + error.message);
+    }
+  };
+
+  const handleEdit = async (invoice) => {
+    try {
+      // Faturanın kalemlerini çek
+      const { data: itemsData, error } = await supabase
+        .from('accounting_invoice_items')
+        .select('*')
+        .eq('invoice_id', invoice.id)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+
+      setEditingId(invoice.id);
+      setFormData({
+        contact_id: String(invoice.contact_id),
+        invoice_no: invoice.invoice_no,
+        invoice_date: invoice.invoice_date,
+        due_date: null,
+        notes: invoice.notes || '',
+        status: invoice.status
+      });
+      setItems(itemsData && itemsData.length > 0
+        ? itemsData.map(i => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price }))
+        : [{ description: '', quantity: 1, unit_price: 0 }]
+      );
+      setShowModal(true);
+    } catch (error) {
+      alert('Fehler beim Laden der Rechnung: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (invoice) => {
+    if (!window.confirm(`Rechnung "${invoice.invoice_no}" wirklich löschen?`)) return;
+    try {
+      await supabase.from('accounting_invoice_items').delete().eq('invoice_id', invoice.id);
+      const { error } = await supabase.from('accounting_invoices').delete().eq('id', invoice.id);
+      if (error) throw error;
+      fetchData();
+    } catch (error) {
+      alert('Fehler beim Löschen: ' + error.message);
     }
   };
 
@@ -345,12 +423,14 @@ export default function BuchhaltungInvoices() {
           <FaFileInvoice className="text-blue-600" />
           Rechnungen
         </h2>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
-        >
-          <FaPlus /> Neue Rechnung
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
+          >
+            <FaPlus /> Neue Rechnung
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -389,7 +469,8 @@ export default function BuchhaltungInvoices() {
                     <select
                       value={invoice.status}
                       onChange={(e) => updateStatus(invoice.id, e.target.value)}
-                      className={`text-xs font-semibold rounded-full px-3 py-1 border-0 cursor-pointer ${getStatusColor(invoice.status)}`}
+                      disabled={readOnly}
+                      className={`text-xs font-semibold rounded-full px-3 py-1 border-0 ${!readOnly ? 'cursor-pointer' : 'cursor-not-allowed'} ${getStatusColor(invoice.status)}`}
                     >
                       <option value="Entwurf">Entwurf</option>
                       <option value="Gesendet">Gesendet</option>
@@ -397,13 +478,27 @@ export default function BuchhaltungInvoices() {
                       <option value="Storniert">Storniert</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-1">
+                    <button
+                      onClick={() => handleEdit(invoice)}
+                      className="text-yellow-600 hover:text-yellow-900 bg-yellow-50 p-2 rounded"
+                      title="Bearbeiten"
+                    >
+                      <FaEdit />
+                    </button>
                     <button
                       onClick={() => triggerPrint(invoice)}
-                      className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded ml-2"
+                      className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded"
                       title="Drucken / PDF"
                     >
                       <FaPrint />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(invoice)}
+                      className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded"
+                      title="Löschen"
+                    >
+                      <FaTrash />
                     </button>
                   </td>
                 </tr>
@@ -418,8 +513,10 @@ export default function BuchhaltungInvoices() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full my-8">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Neue Rechnung erstellen</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">
+              <h3 className="text-lg font-bold">
+                {editingId ? '✏️ Rechnung bearbeiten' : '➕ Neue Rechnung erstellen'}
+              </h3>
+              <button onClick={() => { setShowModal(false); setEditingId(null); }} className="text-gray-500 hover:text-gray-700">
                 <FaTimes />
               </button>
             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FaLock } from 'react-icons/fa';
 
-export default function TaxExemptions() {
+export default function TaxExemptions({ readOnly }) {
   return (
     <div className="space-y-6">
       <h3 className="text-xl font-bold text-gray-800">Freistellungsbescheid</h3>
@@ -15,3 +15,4 @@ export default function TaxExemptions() {
     </div>
   );
 }
+

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { FaPlus, FaTrash, FaCheck, FaTimes, FaSave } from 'react-icons/fa';
 
-export default function BuchhaltungSettings() {
+export default function BuchhaltungSettings({ readOnly }) {
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +105,7 @@ export default function BuchhaltungSettings() {
 
   const saveOrgSettings = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     const updates = Object.keys(orgSettings).map(key => ({
       key: key,
       value: orgSettings[key]
@@ -124,6 +125,7 @@ export default function BuchhaltungSettings() {
   // --- KATEGORİ İŞLEMLERİ ---
   const addCategory = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     if (!newCatName.trim()) return;
 
     const { data, error } = await supabase
@@ -141,6 +143,7 @@ export default function BuchhaltungSettings() {
   };
 
   const editSubcategories = async (cat) => {
+    if (readOnly) return;
     const newSubs = window.prompt('Unterkategorien (Komma-getrennt):', cat.subcategories || '');
     if (newSubs !== null) {
       const { error } = await supabase
@@ -157,6 +160,7 @@ export default function BuchhaltungSettings() {
   };
 
   const toggleCategoryStatus = async (id, currentStatus) => {
+    if (readOnly) return;
     const { error } = await supabase
       .from('accounting_categories')
       .update({ is_active: !currentStatus })
@@ -168,6 +172,7 @@ export default function BuchhaltungSettings() {
   };
 
   const cleanDuplicates = async () => {
+    if (readOnly) return;
     if (!window.confirm("Möchten Sie doppelte Kategorien automatisch zusammenführen? (Kopien werden gelöscht und deren Buchungen auf das Original übertragen)")) return;
 
     try {
@@ -210,6 +215,7 @@ export default function BuchhaltungSettings() {
   // --- HESAP İŞLEMLERİ ---
   const addAccount = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     if (!newAccName.trim()) return;
 
     const { data, error } = await supabase
@@ -226,6 +232,7 @@ export default function BuchhaltungSettings() {
   };
 
   const toggleAccountStatus = async (id, currentStatus) => {
+    if (readOnly) return;
     const { error } = await supabase
       .from('accounting_accounts')
       .update({ is_active: !currentStatus })
@@ -240,40 +247,44 @@ export default function BuchhaltungSettings() {
     <div key={cat.id} className={`p-4 rounded-lg border ${!cat.is_active ? 'bg-gray-50 border-gray-200 opacity-60' : `bg-white border-${colorTheme}-200 shadow-sm`}`}>
       <div className="flex justify-between items-start mb-2">
         <div className="font-bold text-gray-800 text-base">{cat.name}</div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => toggleCategoryStatus(cat.id, cat.is_active)}
-            className={`text-xs px-2 py-1 rounded border ${cat.is_active ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
-          >
-            {cat.is_active ? 'Deaktivieren' : 'Aktivieren'}
-          </button>
-          <button 
-            onClick={async () => {
-              if (window.confirm(`Möchten Sie die Kategorie "${cat.name}" wirklich endgültig löschen? (Nur möglich, wenn keine Buchungen damit verknüpft sind)`)) {
-                const { error } = await supabase.from('accounting_categories').delete().eq('id', cat.id);
-                if (error) {
-                  alert('Fehler beim Löschen! Wahrscheinlich sind dieser Kategorie noch Buchungen zugeordnet.');
-                } else {
-                  setCategories(prev => prev.filter(c => c.id !== cat.id));
+        {!readOnly && (
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => toggleCategoryStatus(cat.id, cat.is_active)}
+              className={`text-xs px-2 py-1 rounded border ${cat.is_active ? 'text-red-600 border-red-200 hover:bg-red-50' : 'text-green-600 border-green-200 hover:bg-green-50'}`}
+            >
+              {cat.is_active ? 'Deaktivieren' : 'Aktivieren'}
+            </button>
+            <button 
+              onClick={async () => {
+                if (window.confirm(`Möchten Sie die Kategorie "${cat.name}" wirklich endgültig löschen? (Nur möglich, wenn keine Buchungen damit verknüpft sind)`)) {
+                  const { error } = await supabase.from('accounting_categories').delete().eq('id', cat.id);
+                  if (error) {
+                    alert('Fehler beim Löschen! Wahrscheinlich sind dieser Kategorie noch Buchungen zugeordnet.');
+                  } else {
+                    setCategories(prev => prev.filter(c => c.id !== cat.id));
+                  }
                 }
-              }
-            }}
-            className="text-xs px-2 py-1 rounded border text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-1"
-          >
-            <FaTrash size={10} /> Löschen
-          </button>
-        </div>
+              }}
+              className="text-xs px-2 py-1 rounded border text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-1"
+            >
+              <FaTrash size={10} /> Löschen
+            </button>
+          </div>
+        )}
       </div>
       
       <div className="mt-3 bg-gray-50 rounded p-2 border border-gray-100">
         <div className="flex justify-between items-center mb-2">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unterkategorien</span>
-          <button 
-            onClick={() => editSubcategories(cat)}
-            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-          >
-            Bearbeiten
-          </button>
+          {!readOnly && (
+            <button 
+              onClick={() => editSubcategories(cat)}
+              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Bearbeiten
+            </button>
+          )}
         </div>
         {cat.subcategories ? (
           <div className="flex flex-wrap gap-2">
@@ -339,19 +350,19 @@ export default function BuchhaltungSettings() {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vereinsname (Offiziell)</label>
-                <input type="text" name="org_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_name} onChange={handleOrgSettingChange} placeholder="z.B. Bürgertreff Wissen e.V." />
+                <input disabled={readOnly} type="text" name="org_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_name} onChange={handleOrgSettingChange} placeholder="z.B. Bürgertreff Wissen e.V." />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Straße / Hausnummer</label>
-                <input type="text" name="org_address" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_address} onChange={handleOrgSettingChange} placeholder="z.B. Hauptstr. 42" />
+                <input disabled={readOnly} type="text" name="org_address" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_address} onChange={handleOrgSettingChange} placeholder="z.B. Hauptstr. 42" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Postleitzahl</label>
-                <input type="text" name="org_postal_code" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_postal_code} onChange={handleOrgSettingChange} placeholder="z.B. 57612" />
+                <input disabled={readOnly} type="text" name="org_postal_code" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_postal_code} onChange={handleOrgSettingChange} placeholder="z.B. 57612" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Stadt</label>
-                <input type="text" name="org_city" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_city} onChange={handleOrgSettingChange} placeholder="z.B. Altenkirchen" />
+                <input disabled={readOnly} type="text" name="org_city" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_city} onChange={handleOrgSettingChange} placeholder="z.B. Altenkirchen" />
               </div>
 
               <div className="md:col-span-2 mb-2 mt-4">
@@ -359,19 +370,19 @@ export default function BuchhaltungSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                <input type="tel" name="org_phone" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_phone} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="tel" name="org_phone" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_phone} onChange={handleOrgSettingChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email-Adresse</label>
-                <input type="email" name="org_email" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_email} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="email" name="org_email" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_email} onChange={handleOrgSettingChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                <input type="url" name="org_website" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_website} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="url" name="org_website" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_website} onChange={handleOrgSettingChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Facebook / Instagram</label>
-                <input type="url" name="org_facebook" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_facebook} onChange={handleOrgSettingChange} placeholder="Link zum Profil" />
+                <input disabled={readOnly} type="url" name="org_facebook" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_facebook} onChange={handleOrgSettingChange} placeholder="Link zum Profil" />
               </div>
 
               <div className="md:col-span-2 mb-2 mt-4">
@@ -379,19 +390,19 @@ export default function BuchhaltungSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Steuernummer</label>
-                <input type="text" name="org_tax_id" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_tax_id} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="text" name="org_tax_id" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_tax_id} onChange={handleOrgSettingChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vereinsregister-Nr.</label>
-                <input type="text" name="vereinsregister" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vereinsregister} onChange={handleOrgSettingChange} placeholder="z.B. VR 1234 Amtsgericht Wissen" />
+                <input disabled={readOnly} type="text" name="vereinsregister" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vereinsregister} onChange={handleOrgSettingChange} placeholder="z.B. VR 1234 Amtsgericht Wissen" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Datum Freistellungsbescheid</label>
-                <input type="date" name="exemption_date" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_date} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="date" name="exemption_date" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_date} onChange={handleOrgSettingChange} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Finanzamt</label>
-                <input type="text" name="exemption_office" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_office} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="text" name="exemption_office" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.exemption_office} onChange={handleOrgSettingChange} />
               </div>
 
               <div className="md:col-span-2 mb-2 mt-4">
@@ -399,15 +410,15 @@ export default function BuchhaltungSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bankname</label>
-                <input type="text" name="bank_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_name} onChange={handleOrgSettingChange} placeholder="z.B. Volksbank Wissen" />
+                <input disabled={readOnly} type="text" name="bank_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_name} onChange={handleOrgSettingChange} placeholder="z.B. Volksbank Wissen" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">IBAN</label>
-                <input type="text" name="bank_iban" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_iban} onChange={handleOrgSettingChange} placeholder="DE00 0000 0000 0000 0000 00" />
+                <input disabled={readOnly} type="text" name="bank_iban" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_iban} onChange={handleOrgSettingChange} placeholder="DE00 0000 0000 0000 0000 00" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">BIC / SWIFT</label>
-                <input type="text" name="bank_bic" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_bic} onChange={handleOrgSettingChange} placeholder="z.B. GENODEM1WIS" />
+                <input disabled={readOnly} type="text" name="bank_bic" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.bank_bic} onChange={handleOrgSettingChange} placeholder="z.B. GENODEM1WIS" />
               </div>
 
               <div className="md:col-span-2 mb-2 mt-4">
@@ -415,22 +426,24 @@ export default function BuchhaltungSettings() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">1. Vorsitzende/r (vollständiger Name)</label>
-                <input type="text" name="vorsitzende_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vorsitzende_name} onChange={handleOrgSettingChange} placeholder="z.B. Erika Uber" />
+                <input disabled={readOnly} type="text" name="vorsitzende_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vorsitzende_name} onChange={handleOrgSettingChange} placeholder="z.B. Erika Uber" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in</label>
-                <input type="text" name="treasurer_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.treasurer_name} onChange={handleOrgSettingChange} />
+                <input disabled={readOnly} type="text" name="treasurer_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.treasurer_name} onChange={handleOrgSettingChange} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Satzungszweck (Verwendungszweck)</label>
-                <textarea name="org_purpose" rows="3" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_purpose} onChange={handleOrgSettingChange} />
+                <textarea disabled={readOnly} name="org_purpose" rows="3" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.org_purpose} onChange={handleOrgSettingChange} />
               </div>
 
-              <div className="md:col-span-2 flex justify-end mt-4 pt-4 border-t border-gray-100">
-                <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 shadow-sm font-medium flex items-center gap-2">
-                  <FaSave /> Vereinsdaten Speichern
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="md:col-span-2 flex justify-end mt-4 pt-4 border-t border-gray-100">
+                  <button type="submit" className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 shadow-sm font-medium flex items-center gap-2">
+                    <FaSave /> Vereinsdaten Speichern
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         )}
@@ -440,40 +453,42 @@ export default function BuchhaltungSettings() {
           <div className="space-y-8">
             
             {/* Yeni Kategori Ekle */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
-              <div className="flex justify-between items-center mb-4 border-b pb-2">
-                <h2 className="text-lg font-bold text-gray-800">Neue Kategorie Hinzufügen</h2>
-                <button 
-                  onClick={cleanDuplicates}
-                  type="button" 
-                  className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-200 transition-colors"
-                >
-                  🧹 Doppelte Kategorien Bereinigen
-                </button>
-              </div>
-              <form onSubmit={addCategory} className="flex flex-col lg:flex-row gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Kategoriename</label>
-                  <input type="text" placeholder="z.B. Sommerfest" className="w-full border rounded-lg px-3 py-2 focus:ring-2 ring-blue-100 outline-none" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} required />
-                </div>
-                <div className="w-full lg:w-48">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Art</label>
-                  <select className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 ring-blue-100 outline-none" value={newCatType} onChange={(e) => setNewCatType(e.target.value)}>
-                    <option value="income">Einnahme (+)</option>
-                    <option value="expense">Ausgabe (-)</option>
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Unterkategorien (Komma-getrennt)</label>
-                  <input type="text" placeholder="z.B. Tee, Kaffee, Kuchen" className="w-full border rounded-lg px-3 py-2 focus:ring-2 ring-blue-100 outline-none" value={newCatSubcategories} onChange={(e) => setNewCatSubcategories(e.target.value)} />
-                </div>
-                <div className="flex items-end">
-                  <button type="submit" className="w-full lg:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2 h-[42px]">
-                    <FaPlus /> Speichern
+            {!readOnly && (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-800">Neue Kategorie Hinzufügen</h2>
+                  <button 
+                    onClick={cleanDuplicates}
+                    type="button" 
+                    className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-200 transition-colors"
+                  >
+                    🧹 Doppelte Kategorien Bereinigen
                   </button>
                 </div>
-              </form>
-            </div>
+                <form onSubmit={addCategory} className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Kategoriename</label>
+                    <input type="text" placeholder="z.B. Sommerfest" className="w-full border rounded-lg px-3 py-2 focus:ring-2 ring-blue-100 outline-none" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} required />
+                  </div>
+                  <div className="w-full lg:w-48">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Art</label>
+                    <select className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:ring-2 ring-blue-100 outline-none" value={newCatType} onChange={(e) => setNewCatType(e.target.value)}>
+                      <option value="income">Einnahme (+)</option>
+                      <option value="expense">Ausgabe (-)</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Unterkategorien (Komma-getrennt)</label>
+                    <input type="text" placeholder="z.B. Tee, Kaffee, Kuchen" className="w-full border rounded-lg px-3 py-2 focus:ring-2 ring-blue-100 outline-none" value={newCatSubcategories} onChange={(e) => setNewCatSubcategories(e.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <button type="submit" className="w-full lg:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center gap-2 h-[42px]">
+                      <FaPlus /> Speichern
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* Listeler (İki Kolon) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -513,12 +528,14 @@ export default function BuchhaltungSettings() {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-2xl">
             <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Konten (Kasse & Bank)</h2>
             
-            <form onSubmit={addAccount} className="mb-6 flex gap-3">
-              <input type="text" placeholder="Neues Konto (z.B. PayPal)" className="flex-1 border rounded-lg px-4 py-2 focus:ring-2 ring-blue-100 outline-none" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} required />
-              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
-                <FaPlus /> Konto Hinzufügen
-              </button>
-            </form>
+            {!readOnly && (
+              <form onSubmit={addAccount} className="mb-6 flex gap-3">
+                <input type="text" placeholder="Neues Konto (z.B. PayPal)" className="flex-1 border rounded-lg px-4 py-2 focus:ring-2 ring-blue-100 outline-none" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} required />
+                <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2">
+                  <FaPlus /> Konto Hinzufügen
+                </button>
+              </form>
+            )}
 
             <div className="space-y-3">
               {accounts.map((acc) => (
@@ -529,9 +546,11 @@ export default function BuchhaltungSettings() {
                     </div>
                     <span className="font-semibold text-gray-800">{acc.name}</span>
                   </div>
-                  <button onClick={() => toggleAccountStatus(acc.id, acc.is_active)} className={`text-sm px-4 py-1.5 rounded-lg border font-medium ${acc.is_active ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}>
-                    {acc.is_active ? 'Deaktivieren' : 'Aktivieren'}
-                  </button>
+                  {!readOnly && (
+                    <button onClick={() => toggleAccountStatus(acc.id, acc.is_active)} className={`text-sm px-4 py-1.5 rounded-lg border font-medium ${acc.is_active ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}>
+                      {acc.is_active ? 'Deaktivieren' : 'Aktivieren'}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner, FaPaperclip, FaExternalLinkAlt, FaHandHoldingHeart } from 'react-icons/fa';
 
-export default function DonationConfirmations() {
+export default function DonationConfirmations({ readOnly }) {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
@@ -296,3 +296,4 @@ export default function DonationConfirmations() {
     </div>
   );
 }
+

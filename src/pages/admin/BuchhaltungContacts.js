@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaUser, FaBuilding, FaHandHoldingHeart, FaPrint } from 'react-icons/fa';
 
-export default function BuchhaltungContacts() {
+export default function BuchhaltungContacts({ readOnly }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +44,7 @@ export default function BuchhaltungContacts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (readOnly) return;
     
     // Clean empty date fields - convert empty strings to null
     const dataToSave = {
@@ -80,6 +81,7 @@ export default function BuchhaltungContacts() {
   };
 
   const handleEdit = (contact) => {
+    if (readOnly) return;
     setFormData({
       name: contact.name,
       type: contact.type || 'member',
@@ -95,6 +97,7 @@ export default function BuchhaltungContacts() {
   };
 
   const handleDelete = async (id) => {
+    if (readOnly) return;
     if (!window.confirm('Sind Sie sicher, dass Sie diesen Kontakt löschen möchten?')) return;
 
     const { error } = await supabase
@@ -546,17 +549,19 @@ export default function BuchhaltungContacts() {
           >
             <FaPrint /> <span className="hidden sm:inline">Spender</span>
           </button>
-          <button 
-            onClick={() => { resetForm(); setIsFormOpen(true); }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
-          >
-            <FaPlus /> <span className="hidden md:inline">Neuer Kontakt</span>
-          </button>
+          {!readOnly && (
+            <button 
+              onClick={() => { resetForm(); setIsFormOpen(true); }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <FaPlus /> <span className="hidden md:inline">Neuer Kontakt</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* FORM MODAL (Simple overlay) */}
-      {isFormOpen && (
+      {isFormOpen && !readOnly && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -692,13 +697,15 @@ export default function BuchhaltungContacts() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kontakt</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+              {!readOnly && (
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredContacts.length === 0 ? (
               <tr>
-                <td colSpan="4" className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={readOnly ? "3" : "4"} className="px-6 py-4 text-center text-gray-500">
                   Keine Kontakte gefunden.
                 </td>
               </tr>
@@ -720,22 +727,24 @@ export default function BuchhaltungContacts() {
                       <div className="text-sm text-gray-900">{contact.email}</div>
                       <div className="text-sm text-gray-500">{contact.phone}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
-                        onClick={() => handleEdit(contact)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                        title="Bearbeiten"
-                      >
-                        <FaEdit />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(contact.id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Löschen"
-                      >
-                        <FaTrash />
-                      </button>
-                    </td>
+                    {!readOnly && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button 
+                          onClick={() => handleEdit(contact)}
+                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          title="Bearbeiten"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(contact.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Löschen"
+                        >
+                          <FaTrash />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })

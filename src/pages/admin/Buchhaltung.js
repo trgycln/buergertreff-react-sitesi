@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 import BuchhaltungSettings from './BuchhaltungSettings';
 import BuchhaltungContacts from './BuchhaltungContacts';
 import BuchhaltungTransactions from './BuchhaltungTransactions';
@@ -10,9 +11,21 @@ import BuchhaltungReports from './BuchhaltungReports';
 import BuchhaltungDocuments from './BuchhaltungDocuments';
 import BuchhaltungInvoices from './BuchhaltungInvoices';
 
-
 export default function Buchhaltung() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [readOnly, setReadOnly] = useState(true);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email === 'turgaycelen03@gmail.com') {
+        setReadOnly(false);
+      } else {
+        setReadOnly(true);
+      }
+    };
+    checkUser();
+  }, []);
 
   const tabs = [
     { id: 'dashboard', label: 'Übersicht' },
@@ -29,7 +42,7 @@ export default function Buchhaltung() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Buchhaltung</h1>
         <div className="text-sm text-gray-500">
-          Verwaltung für den Kassierer/in
+          Verwaltung {readOnly ? '(Nur Lesen)' : 'für den Kassierer/in'}
         </div>
       </div>
 
@@ -52,13 +65,13 @@ export default function Buchhaltung() {
 
       {/* İçerik Alanı */}
       <div className="mt-4">
-        {activeTab === 'dashboard' && <BuchhaltungDashboard />}
-        {activeTab === 'transactions' && <BuchhaltungTransactions />}
-        {activeTab === 'invoices' && <BuchhaltungInvoices />}
-        {activeTab === 'documents' && <BuchhaltungDocuments />}
-        {activeTab === 'reports' && <BuchhaltungReports />}
-        {activeTab === 'contacts' && <BuchhaltungContacts />}
-        {activeTab === 'settings' && <BuchhaltungSettings />}
+        {activeTab === 'dashboard' && <BuchhaltungDashboard readOnly={readOnly} />}
+        {activeTab === 'transactions' && <BuchhaltungTransactions readOnly={readOnly} />}
+        {activeTab === 'invoices' && <BuchhaltungInvoices readOnly={readOnly} />}
+        {activeTab === 'documents' && <BuchhaltungDocuments readOnly={readOnly} />}
+        {activeTab === 'reports' && <BuchhaltungReports readOnly={readOnly} />}
+        {activeTab === 'contacts' && <BuchhaltungContacts readOnly={readOnly} />}
+        {activeTab === 'settings' && <BuchhaltungSettings readOnly={readOnly} />}
       </div>
     </div>
   );

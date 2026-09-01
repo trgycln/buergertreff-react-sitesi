@@ -133,10 +133,10 @@ function App() {
             <Route path="presse/neu" element={<PresseForm />} />
             <Route path="presse/:id" element={<PresseForm />} />
 
-            {/* MUHASEBE (Sadece Sayman) */}
+            {/* MUHASEBE (Sadece Sayman ve Admins için, Buchhaltung componenti içinde yetki kontrolü var) */}
             <Route 
               path="buchhaltung" 
-              element={ <ProtectedRoute level="treasurer"><Buchhaltung /></ProtectedRoute> } 
+              element={ <ProtectedRoute level="admin"><Buchhaltung /></ProtectedRoute> } 
             />
 
             <Route

@@ -19,7 +19,7 @@ import Payroll from '../../components/admin/documents/Payroll';
 import Decisions from '../../components/admin/documents/Decisions';
 import CashCountProtocol from '../../components/admin/documents/CashCountProtocol';
 
-export default function BuchhaltungDocuments() {
+export default function BuchhaltungDocuments({ readOnly }) {
   const [activeDocument, setActiveDocument] = useState(null);
 
   // Automatisch aus Transaktionen erstellte Belege (Oberer Bereich)
@@ -183,18 +183,18 @@ export default function BuchhaltungDocuments() {
 
         {/* Dinamik olarak doğru bileşeni render et */}
         <div className="bg-white rounded-lg shadow p-6">
-          {activeDocument === 'eur' && <EURRecords />}
-          {activeDocument === 'cash_journal' && <CashJournal />}
-          {activeDocument === 'vouchers' && <Vouchers />}
-          {activeDocument === 'donations' && <DonationConfirmations />}
-          {activeDocument === 'donation_registry' && <DonationRegistry />}
-          {activeDocument === 'noncash_donations' && <NonCashDonations />}
-          {activeDocument === 'members' && <MemberTracking />}
-          {activeDocument === 'cash_count_protocol' && <CashCountProtocol />}
-          {activeDocument === 'tax_exemptions' && <TaxExemptions />}
-          {activeDocument === 'reserves' && <Reserves />}
-          {activeDocument === 'payroll' && <Payroll />}
-          {activeDocument === 'decisions' && <Decisions />}
+          {activeDocument === 'eur' && <EURRecords readOnly={readOnly} />}
+          {activeDocument === 'cash_journal' && <CashJournal readOnly={readOnly} />}
+          {activeDocument === 'vouchers' && <Vouchers readOnly={readOnly} />}
+          {activeDocument === 'donations' && <DonationConfirmations readOnly={readOnly} />}
+          {activeDocument === 'donation_registry' && <DonationRegistry readOnly={readOnly} />}
+          {activeDocument === 'noncash_donations' && <NonCashDonations readOnly={readOnly} />}
+          {activeDocument === 'members' && <MemberTracking readOnly={readOnly} />}
+          {activeDocument === 'cash_count_protocol' && <CashCountProtocol readOnly={readOnly} />}
+          {activeDocument === 'tax_exemptions' && <TaxExemptions readOnly={readOnly} />}
+          {activeDocument === 'reserves' && <Reserves readOnly={readOnly} />}
+          {activeDocument === 'payroll' && <Payroll readOnly={readOnly} />}
+          {activeDocument === 'decisions' && <Decisions readOnly={readOnly} />}
         </div>
       </div>
     );

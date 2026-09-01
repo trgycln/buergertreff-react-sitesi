@@ -67,7 +67,7 @@ const formatDateDE = (dateString) => {
   });
 };
 
-export default function BuchhaltungTransactions() {
+export default function BuchhaltungTransactions({ readOnly }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -1017,21 +1017,8 @@ export default function BuchhaltungTransactions() {
     setIsFormOpen(false);
   };
 
-  const filteredCategories = categories.filter(c => c.type === formData.type);
-  const allowedIncomeCategoryNameChecks = [
-    name => name.includes('mitglied') && name.includes('beitrag'),
-    name => name.includes('spende'),
-    name => name.includes('darlehen'),
-    name => name.includes('sonstiges'),
-  ];
-  // Tüm aktif gider kategorilerini göster (manuel liste yok)
-  const displayedCategories = formData.type === 'expense'
-    ? categories.filter(c => c.type === 'expense' && c.is_active !== false)
-    : filteredCategories.filter(category => {
-        const normalizedName = normalizeCategoryName(category.name);
-        if (normalizedName.includes('sponsor')) return false;
-        return allowedIncomeCategoryNameChecks.some(check => check(normalizedName));
-      });
+  // Seçilen tipe (Einnahme / Ausgabe) göre tüm aktif kategorileri göster
+  const displayedCategories = categories.filter(c => c.type === formData.type && c.is_active !== false);
   const uniqueDisplayedCategories = displayedCategories.filter(
     (category, index, array) =>
       index === array.findIndex((item) => normalizeCategoryName(item.name) === normalizeCategoryName(category.name))
@@ -1079,7 +1066,9 @@ export default function BuchhaltungTransactions() {
         <div className="flex gap-2">
           <button onClick={printList} className="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Liste</button>
           <button onClick={printIndex} className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Verzeichnis</button>
-          <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
+          {!readOnly && (
+            <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
+          )}
         </div>
       </div>
 
@@ -1196,8 +1185,12 @@ export default function BuchhaltungTransactions() {
                   {trx.type === 'income' && parseFloat(trx.amount) >= 50 && (
                     <button onClick={() => printDonationReceipt(trx)} className="text-pink-600 hover:text-pink-900" title="Spendenbescheinigung"><FaHandHoldingHeart /></button>
                   )}
-                  <button onClick={() => handleEdit(trx)} className="text-blue-600 hover:text-blue-900"><FaEdit /></button>
-                  <button onClick={() => handleDelete(trx.id)} className="text-red-600 hover:text-red-900"><FaTrash /></button>
+                  {!readOnly && (
+                    <>
+                      <button onClick={() => handleEdit(trx)} className="text-blue-600 hover:text-blue-900"><FaEdit /></button>
+                      <button onClick={() => handleDelete(trx.id)} className="text-red-600 hover:text-red-900"><FaTrash /></button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

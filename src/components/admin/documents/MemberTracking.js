@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner, FaPrint } from 'react-icons/fa';
 
-export default function MemberTracking() {
+export default function MemberTracking({ readOnly }) {
   const [memberRows, setMemberRows] = useState([]);
   const [yearColumns, setYearColumns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -388,3 +388,4 @@ export default function MemberTracking() {
     </div>
   );
 }
+

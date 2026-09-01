@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaPlus, FaTrash, FaPrint, FaSpinner, FaUpload, FaEye } from 'react-icons/fa';
 
-export default function NonCashDonations() {
+export default function NonCashDonations({ readOnly }) {
   // Dernek Bilgileri (Settings'ten çekilecek)
   const [orgSettings, setOrgSettings] = useState({
     name: 'Bürgertreff Wissen e.V.',
@@ -152,7 +152,7 @@ export default function NonCashDonations() {
     setUploading(false);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => { if (readOnly) return;
     e.preventDefault();
 
     if (!formData.donor_contact_id || !formData.description || !formData.estimated_value) {
@@ -196,7 +196,7 @@ export default function NonCashDonations() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id) => { if (readOnly) return;
     if (!window.confirm('Sind Sie sicher?')) return;
 
     try {
@@ -752,7 +752,7 @@ export default function NonCashDonations() {
                 <input
                   type="file"
                   onChange={handleFileUpload}
-                  disabled={uploading}
+                  disabled={uploading || readOnly}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
                   accept="image/*,.pdf"
                 />
@@ -859,3 +859,5 @@ export default function NonCashDonations() {
     </div>
   );
 }
+
+

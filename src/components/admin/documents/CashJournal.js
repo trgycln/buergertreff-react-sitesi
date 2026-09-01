@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner } from 'react-icons/fa';
 
-export default function CashJournal() {
+export default function CashJournal({ readOnly }) {
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear());
   const [years, setYears] = useState([]);
@@ -190,3 +190,4 @@ export default function CashJournal() {
     </div>
   );
 }
+

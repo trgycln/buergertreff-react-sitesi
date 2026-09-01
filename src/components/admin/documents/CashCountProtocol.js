@@ -49,7 +49,7 @@ const escapeHtml = (value = '') =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-export default function CashCountProtocol() {
+export default function CashCountProtocol({ readOnly }) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [orgSettings, setOrgSettings] = useState({
@@ -142,6 +142,7 @@ export default function CashCountProtocol() {
   const isTotalMismatch = Number.isFinite(enteredTotal) && Math.abs(enteredTotal - calculatedTotal) > 0.009;
 
   const handleInputChange = (e) => {
+    if (readOnly) return;
     const { name, value } = e.target;
 
     setFormData((prev) => {
@@ -156,6 +157,7 @@ export default function CashCountProtocol() {
   };
 
   const handleNew = () => {
+    if (readOnly) return;
     setFormData({
       ...initialFormState,
       documentNumber: buildDocumentNumber(today),
@@ -184,7 +186,8 @@ export default function CashCountProtocol() {
     setViewMode('form');
   };
 
-  const handleSave = async () => {
+  const handleSave = async () => { if (readOnly) return;
+    if (readOnly) return;
     setIsSaving(true);
     
     // Check if doc number already exists when inserting
@@ -498,13 +501,15 @@ export default function CashCountProtocol() {
             </p>
           </div>
 
-          <button
-            onClick={handleNew}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm"
-          >
-            <FaPlus />
-            Neuer Beleg
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleNew}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 shadow-sm"
+            >
+              <FaPlus />
+              Neuer Beleg
+            </button>
+          )}
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
@@ -547,7 +552,7 @@ export default function CashCountProtocol() {
                           className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 transition"
                         >
                           <FaEdit />
-                          Bearbeiten / Drucken
+                          {readOnly ? 'Drucken' : 'Bearbeiten / Drucken'}
                         </button>
                       </td>
                     </tr>
@@ -585,14 +590,16 @@ export default function CashCountProtocol() {
             <FaList />
             Zurück zur Liste
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
-          >
-            <FaSave />
-            {isSaving ? 'Speichert...' : 'Speichern'}
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving || readOnly}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-50"
+            >
+              <FaSave />
+              {isSaving ? 'Speichert...' : 'Speichern'}
+            </button>
+          )}
           <button
             onClick={handlePrint}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
@@ -864,3 +871,4 @@ export default function CashCountProtocol() {
     </div>
   );
 }
+

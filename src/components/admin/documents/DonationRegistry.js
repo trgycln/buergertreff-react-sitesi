@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { FaSpinner, FaChartBar, FaPrint } from 'react-icons/fa';
 
-export default function DonationRegistry() {
+export default function DonationRegistry({ readOnly }) {
   const [summary, setSummary] = useState({
     totalDonations: 0,
     totalDonors: 0,
@@ -490,3 +490,4 @@ export default function DonationRegistry() {
     </div>
   );
 }
+
