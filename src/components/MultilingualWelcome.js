@@ -61,9 +61,9 @@ const MultilingualWelcome = () => {
     const currentItem = welcomeList[currentIndex];
 
     return (
-        <div className="mt-8 flex flex-col items-center">
+        <div className="mt-6 sm:mt-8 flex flex-col items-center w-full max-w-full">
             {/* Glassmorphism Karşılama Kapsülü (360px mobil uyumlu) */}
-            <div className="relative inline-flex items-center gap-2.5 sm:gap-4 md:gap-5 px-4 sm:px-7 md:px-8 py-2 sm:py-3 md:py-3.5 rounded-full bg-white/20 backdrop-blur-md border border-white/35 shadow-2xl transition-all duration-300 hover:bg-white/25 max-w-[95vw] sm:max-w-none">
+            <div className="relative inline-flex items-center gap-2.5 sm:gap-4 md:gap-5 px-3.5 sm:px-7 md:px-8 py-2 sm:py-3 md:py-3.5 rounded-full bg-white/20 backdrop-blur-md border border-white/35 shadow-2xl transition-all duration-300 hover:bg-white/25 max-w-[95vw] sm:max-w-none">
                 {/* Yuvarlak Gerçek Bayrak Rozeti */}
                 <div 
                     key={`flag-${currentIndex}`} 
@@ -83,23 +83,23 @@ const MultilingualWelcome = () => {
                 </div>
 
                 {/* Akıcı Kayarak Gelen Karşılama Metni */}
-                <div className="overflow-hidden min-h-[30px] sm:min-h-[38px] flex items-center justify-center">
+                <div className="overflow-hidden min-h-[28px] sm:min-h-[38px] flex items-center justify-center">
                     <h3
                         key={`text-${currentIndex}`}
-                        className="text-lg sm:text-2xl md:text-4xl font-bold tracking-wide text-white drop-shadow-lg animate-slide-up-fade text-center whitespace-nowrap"
+                        className="text-base sm:text-2xl md:text-4xl font-bold tracking-wide text-white drop-shadow-lg animate-slide-up-fade text-center whitespace-nowrap"
                     >
                         {currentItem.text}
                     </h3>
                 </div>
             </div>
 
-            {/* Minik Geçiş Noktaları (Dots) */}
-            <div className="flex items-center gap-1.5 mt-3.5 opacity-75">
+            {/* Minik Geçiş Çizgisi (Asla 2 satıra kırılmaz, tek satırda pürüzsüz) */}
+            <div className="flex flex-nowrap items-center justify-center gap-1 mt-3 opacity-70 max-w-full overflow-hidden px-2">
                 {welcomeList.map((_, idx) => (
                     <span
                         key={idx}
-                        className={`h-1.5 rounded-full transition-all duration-500 ${
-                            idx === currentIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/40'
+                        className={`h-1 rounded-full transition-all duration-300 flex-shrink-0 ${
+                            idx === currentIndex ? 'w-4 bg-white shadow' : 'w-1 bg-white/40'
                         }`}
                     />
                 ))}

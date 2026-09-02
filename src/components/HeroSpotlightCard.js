@@ -32,7 +32,7 @@ const HeroSpotlightCard = ({ event }) => {
         };
         if (lightboxOpen) {
             window.addEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = 'hidden'; // Arka plan kaymasını engelle
+            document.body.style.overflow = 'hidden';
         }
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
@@ -54,36 +54,36 @@ const HeroSpotlightCard = ({ event }) => {
 
     return (
         <>
-            {/* Buzlu Cam (Glassmorphism) Entegre Kart (360px mobil uyumlu) */}
+            {/* Buzlu Cam (Glassmorphism) Entegre Kart (Tüm ekran boyutlarında orantılı ölçeklenen responsive kart) */}
             <div
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="w-full max-w-lg bg-slate-900/40 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl text-left text-white transition-all duration-300 hover:bg-slate-900/50 hover:border-white/30"
+                className="w-full max-w-md sm:max-w-lg lg:max-w-none bg-slate-900/40 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 lg:p-7 xl:p-8 shadow-2xl text-left text-white transition-all duration-300 hover:bg-slate-900/50 hover:border-white/30"
             >
                 {/* Üst Başlık & Rozet */}
-                <div className="flex items-center justify-between gap-2 sm:gap-3 mb-3">
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs font-bold uppercase tracking-wider text-blue-100 border border-white/15">
+                <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-blue-100 border border-white/15 whitespace-nowrap">
                         <FaCameraRetro className="text-rcRed" />
                         <span>Letzte Aktivität</span>
                     </div>
 
                     {event.category && (
-                        <span className="text-[11px] sm:text-xs font-bold bg-rcRed text-white px-2.5 py-0.5 rounded-full shadow">
+                        <span className="text-[11px] sm:text-xs md:text-sm font-bold bg-rcRed text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shadow whitespace-nowrap">
                             {event.category === 'Offene Treff' ? 'Offener Treff' : event.category}
                         </span>
                     )}
                 </div>
 
                 {/* Başlık */}
-                <Link to={`/angebote/${event.id}`} className="block group mb-2.5 sm:mb-3">
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white group-hover:text-rcLightBlue transition-colors line-clamp-1">
+                <Link to={`/angebote/${event.id}`} className="block group mb-2.5 sm:mb-3.5">
+                    <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-white group-hover:text-rcLightBlue transition-colors line-clamp-1">
                         {event.title}
                     </h3>
                 </Link>
 
-                {/* İnteraktif Fotoğraf Vitrini */}
+                {/* İnteraktif Fotoğraf Vitrini (Geniş ekranlarda orantılı büyüyen dinamik çerçeve) */}
                 <div 
-                    className="relative h-44 sm:h-56 md:h-64 rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/15 cursor-pointer group shadow-inner"
+                    className="relative h-44 sm:h-56 md:h-64 lg:h-72 xl:h-80 2xl:h-96 rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/15 cursor-pointer group shadow-inner"
                     onClick={() => setLightboxOpen(true)}
                 >
                     {/* Yumuşak Fade Geçişli Fotoğraf */}
@@ -97,7 +97,7 @@ const HeroSpotlightCard = ({ event }) => {
 
                     {/* Fotoğraf Sayaç Rozeti */}
                     {photos.length > 1 && (
-                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-full border border-white/20 shadow">
+                        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 bg-black/60 backdrop-blur-md text-white text-[11px] sm:text-xs font-semibold px-2.5 py-0.5 sm:py-1 rounded-full border border-white/20 shadow whitespace-nowrap z-10">
                             {currentIndex + 1} / {photos.length}
                         </div>
                     )}
@@ -108,23 +108,23 @@ const HeroSpotlightCard = ({ event }) => {
                             <button
                                 onClick={prevPhoto}
                                 aria-label="Vorheriges Foto"
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10"
+                                className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10"
                             >
-                                <FaChevronLeft className="text-xs" />
+                                <FaChevronLeft className="text-xs sm:text-sm" />
                             </button>
                             <button
                                 onClick={nextPhoto}
                                 aria-label="Nächstes Foto"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10"
+                                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-110 shadow-lg z-10"
                             >
-                                <FaChevronRight className="text-xs" />
+                                <FaChevronRight className="text-xs sm:text-sm" />
                             </button>
                         </>
                     )}
 
                     {/* Alttaki Fotoğraf Gösterge Çizgileri */}
                     {photos.length > 1 && (
-                        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                        <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex flex-nowrap items-center justify-center gap-1.5 z-10 max-w-[80%] overflow-hidden px-2.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-full">
                             {photos.map((_, idx) => (
                                 <button
                                     key={idx}
@@ -133,8 +133,8 @@ const HeroSpotlightCard = ({ event }) => {
                                         setCurrentIndex(idx);
                                     }}
                                     aria-label={`Foto ${idx + 1}`}
-                                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                                        idx === currentIndex ? 'w-5 bg-white shadow' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                                    className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
+                                        idx === currentIndex ? 'w-5 sm:w-6 bg-white shadow' : 'w-1.5 sm:w-2 bg-white/40 hover:bg-white/70'
                                     }`}
                                 />
                             ))}
@@ -144,72 +144,72 @@ const HeroSpotlightCard = ({ event }) => {
 
                 {/* Kısa Özet (Kurzbericht) */}
                 {event.archive_summary ? (
-                    <p className="mt-3.5 text-xs sm:text-sm text-blue-50/90 leading-relaxed line-clamp-2">
+                    <p className="mt-3 sm:mt-4 text-xs sm:text-sm md:text-base text-blue-50/90 leading-relaxed line-clamp-2 sm:line-clamp-3">
                         {event.archive_summary}
                     </p>
                 ) : event.description ? (
-                    <p className="mt-3.5 text-xs sm:text-sm text-blue-50/90 leading-relaxed line-clamp-2">
+                    <p className="mt-3 sm:mt-4 text-xs sm:text-sm md:text-base text-blue-50/90 leading-relaxed line-clamp-2 sm:line-clamp-3">
                         {event.description}
                     </p>
                 ) : null}
 
                 {/* Aksiyon Bağlantısı */}
-                <div className="mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
-                    <span className="text-xs text-white/75">Klicken für Großansicht</span>
+                <div className="mt-3.5 sm:mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
+                    <span className="text-[11px] sm:text-xs md:text-sm text-white/75">Klicken für Großansicht</span>
                     <Link
                         to={`/angebote/${event.id}`}
-                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white hover:text-rcLightBlue transition-colors group/link"
+                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm md:text-base font-bold text-white hover:text-rcLightBlue transition-colors group/link"
                     >
                         <span>Zum Rückblick</span>
-                        <FaArrowRight className="text-xs transition-transform duration-300 group-hover/link:translate-x-1" />
+                        <FaArrowRight className="text-xs sm:text-sm transition-transform duration-300 group-hover/link:translate-x-1" />
                     </Link>
                 </div>
             </div>
 
-            {/* Gerçek Tam Ekran Lightbox (React Portal ile document.body'ye taşındı, hiçbir kayar yazı veya header altında kalmaz!) */}
+            {/* Gerçek Tam Ekran Lightbox (React Portal ile document.body'ye taşındı) */}
             {lightboxOpen && createPortal(
                 <div
-                    className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-6 md:p-8 select-none"
+                    className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-6 md:p-8 select-none"
                     onClick={() => setLightboxOpen(false)}
                 >
-                    {/* Üst Çubuk: Başlık, Sayaç ve Kapatma Butonu */}
+                    {/* Üst Çubuk */}
                     <div 
-                        className="w-full max-w-6xl flex items-center justify-between text-white z-20 pb-4 border-b border-white/15"
+                        className="w-full max-w-6xl flex flex-nowrap items-center justify-between text-white z-20 pb-3 border-b border-white/15 gap-2"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold uppercase tracking-wider bg-rcRed text-white px-3 py-1 rounded-full">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="hidden sm:inline-block text-[11px] sm:text-xs font-bold uppercase tracking-wider bg-rcRed text-white px-2.5 py-0.5 rounded-full flex-shrink-0">
                                 {event.category || 'Aktivität'}
                             </span>
-                            <h4 className="text-lg md:text-xl font-bold truncate max-w-md sm:max-w-xl text-white">
+                            <h4 className="text-sm sm:text-lg md:text-xl font-bold truncate text-white">
                                 {event.title}
                             </h4>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm font-medium text-gray-300 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <span className="text-xs sm:text-sm font-medium text-gray-200 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10 whitespace-nowrap">
                                 {currentIndex + 1} / {photos.length}
                             </span>
                             <button
                                 onClick={() => setLightboxOpen(false)}
-                                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center transition-colors shadow-lg"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center transition-colors shadow-lg"
                                 aria-label="Schließen"
                             >
-                                <FaTimes className="text-lg" />
+                                <FaTimes className="text-base sm:text-lg" />
                             </button>
                         </div>
                     </div>
 
                     {/* Orta Alan: Fotoğraf ve Gezinme Okları */}
                     <div 
-                        className="relative w-full max-w-6xl flex-grow flex items-center justify-center my-4 overflow-hidden"
+                        className="relative w-full max-w-6xl flex-grow flex items-center justify-center my-3 overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <img
                             key={currentIndex}
                             src={photos[currentIndex]}
                             alt={event.title}
-                            className="max-w-full max-h-[72vh] object-contain rounded-2xl shadow-2xl animate-slide-up-fade"
+                            className="max-w-full max-h-[72vh] object-contain rounded-xl sm:rounded-2xl shadow-2xl animate-slide-up-fade"
                         />
 
                         {photos.length > 1 && (
@@ -217,36 +217,36 @@ const HeroSpotlightCard = ({ event }) => {
                                 <button
                                     onClick={prevPhoto}
                                     aria-label="Vorheriges Foto"
-                                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 hover:bg-white/35 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:scale-110"
+                                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:scale-110"
                                 >
-                                    <FaChevronLeft className="text-lg" />
+                                    <FaChevronLeft className="text-base sm:text-lg" />
                                 </button>
                                 <button
                                     onClick={nextPhoto}
                                     aria-label="Nächstes Foto"
-                                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/15 hover:bg-white/35 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:scale-110"
+                                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition-all shadow-xl hover:scale-110"
                                 >
-                                    <FaChevronRight className="text-lg" />
+                                    <FaChevronRight className="text-base sm:text-lg" />
                                 </button>
                             </>
                         )}
                     </div>
 
-                    {/* Alt Çubuk: Küçük Fotoğraf Çizgileri & Bilgi */}
+                    {/* Alt Çubuk */}
                     <div 
-                        className="w-full max-w-6xl flex flex-col items-center gap-2 pt-3 border-t border-white/10"
+                        className="w-full max-w-6xl flex flex-col items-center gap-1.5 pt-2 border-t border-white/10"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {photos.length > 1 && (
-                            <div className="flex items-center gap-2 overflow-x-auto max-w-full py-1">
+                            <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
                                 {photos.map((photoUrl, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => setCurrentIndex(idx)}
                                         aria-label={`Foto ${idx + 1}`}
-                                        className={`w-12 h-8 rounded-md overflow-hidden border-2 transition-all duration-200 flex-shrink-0 ${
+                                        className={`w-10 h-7 sm:w-12 sm:h-8 rounded-md overflow-hidden border-2 transition-all duration-200 flex-shrink-0 ${
                                             idx === currentIndex
-                                                ? 'border-rcLightBlue scale-110 shadow-lg'
+                                                ? 'border-rcLightBlue scale-105 shadow-lg'
                                                 : 'border-white/30 opacity-50 hover:opacity-100'
                                         }`}
                                     >

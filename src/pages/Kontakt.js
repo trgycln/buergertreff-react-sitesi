@@ -11,7 +11,7 @@ import { Helmet } from 'react-helmet-async';
 
 const HEADER_SOCIAL_LINKS = {
     facebook: 'https://www.facebook.com/profile.php?id=61585385846803',
-    youtube: 'https://www.youtube.com/@buergertreff-wissen',
+    whatsapp: 'https://chat.whatsapp.com/FqBNBrOmcnL7CTXPL9yRnm',
     instagram: 'https://www.instagram.com/buergertreff.wissen/',
 };
 

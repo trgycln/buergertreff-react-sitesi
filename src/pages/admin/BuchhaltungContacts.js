@@ -10,15 +10,20 @@ export default function BuchhaltungContacts({ readOnly }) {
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
   const [formData, setFormData] = useState({
     name: '',
+    category: 'person', // 'person' = Privatperson, 'institution' = Unternehmen/Organisation
     type: 'member', // member, sponsor, supplier, other
     email: '',
     phone: '',
     address: '',
     tax_number: '',
     member_since: '',
-    notes: ''
+    notes: '',
+    logo_url: '',
+    website_url: ''
   });
 
   useEffect(() => {
@@ -42,41 +47,128 @@ export default function BuchhaltungContacts({ readOnly }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const uploadLogo = async (file) => {
+    const ext = file.name.split('.').pop();
+    const fileName = `sponsors/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('page_assets').upload(fileName, file);
+    if (error) throw new Error(`Logo-Upload fehlgeschlagen: ${error.message}`);
+    const { data: { publicUrl } } = supabase.storage.from('page_assets').getPublicUrl(fileName);
+    return publicUrl;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (readOnly) return;
     
-    // Clean empty date fields - convert empty strings to null
-    const dataToSave = {
-      ...formData,
-      member_since: formData.member_since || null
-    };
+    try {
+      let finalLogoUrl = formData.logo_url;
+      if (logoFile) {
+        finalLogoUrl = await uploadLogo(logoFile);
+      }
 
-    if (editingId) {
-      // Update
-      const { error } = await supabase
-        .from('accounting_contacts')
-        .update(dataToSave)
-        .eq('id', editingId);
-        
-      if (!error) {
-        fetchContacts();
-        resetForm();
+      // Clean empty date fields - convert empty strings to null
+      const dataToSave = {
+        ...formData,
+        category: formData.category || 'person',
+        logo_url: formData.category === 'person' ? null : (finalLogoUrl || null),
+        website_url: formData.website_url ? formData.website_url.trim() : null,
+        member_since: formData.member_since || null
+      };
+
+      if (editingId) {
+        // Update
+        let { error } = await supabase
+          .from('accounting_contacts')
+          .update(dataToSave)
+          .eq('id', editingId);
+          
+        if (error && (error.message.includes('category') || error.message.includes('logo_url') || error.message.includes('website_url'))) {
+          // Geriye dönük uyumluluk
+          const fallbackData = { ...dataToSave };
+          delete fallbackData.category;
+          delete fallbackData.logo_url;
+          delete fallbackData.website_url;
+          const retry = await supabase.from('accounting_contacts').update(fallbackData).eq('id', editingId);
+          error = retry.error;
+        }
+
+        if (!error) {
+          // Sponsors tablosu ile de senkronize et
+          try {
+            const { data: existingSponsor } = await supabase
+              .from('sponsors')
+              .select('id')
+              .ilike('name', `%${formData.name.trim()}%`)
+              .maybeSingle();
+
+            const sponsorPayload = {
+              name: formData.name.trim(),
+              category: formData.category || 'institution',
+              logo_url: finalLogoUrl || null,
+              website_url: formData.website_url ? formData.website_url.trim() : null,
+              is_active: true,
+              updated_at: new Date().toISOString()
+            };
+
+            if (existingSponsor) {
+              await supabase.from('sponsors').update(sponsorPayload).eq('id', existingSponsor.id);
+            } else if (formData.category === 'institution' || finalLogoUrl) {
+              await supabase.from('sponsors').insert([sponsorPayload]);
+            }
+          } catch (e) {
+            console.log('Sponsors sync:', e);
+          }
+
+          fetchContacts();
+          resetForm();
+        } else {
+          alert('Fehler beim Aktualisieren: ' + error.message);
+        }
       } else {
-        alert('Fehler beim Aktualisieren: ' + error.message);
+        // Insert
+        let { error } = await supabase
+          .from('accounting_contacts')
+          .insert([dataToSave]);
+          
+        if (error && (error.message.includes('category') || error.message.includes('logo_url') || error.message.includes('website_url'))) {
+          const fallbackData = { ...dataToSave };
+          delete fallbackData.category;
+          delete fallbackData.logo_url;
+          delete fallbackData.website_url;
+          const retry = await supabase.from('accounting_contacts').insert([fallbackData]);
+          error = retry.error;
+        }
+
+        if (!error) {
+          try {
+            if (formData.category === 'institution' || finalLogoUrl) {
+              await supabase.from('sponsors').insert([{
+                name: formData.name.trim(),
+                category: formData.category || 'institution',
+                logo_url: finalLogoUrl || null,
+                website_url: formData.website_url ? formData.website_url.trim() : null,
+                is_active: true
+              }]);
+            }
+          } catch (e) {
+            console.log('Sponsors sync insert:', e);
+          }
+
+          fetchContacts();
+          resetForm();
+        } else {
+          alert('Fehler beim Hinzufügen: ' + error.message);
+        }
       }
-    } else {
-      // Insert
-      const { error } = await supabase
-        .from('accounting_contacts')
-        .insert([dataToSave]);
-        
-      if (!error) {
-        fetchContacts();
-        resetForm();
-      } else {
-        alert('Fehler beim Hinzufügen: ' + error.message);
-      }
+    } catch (err) {
+      alert('Fehler: ' + err.message);
     }
   };
 
@@ -84,14 +176,19 @@ export default function BuchhaltungContacts({ readOnly }) {
     if (readOnly) return;
     setFormData({
       name: contact.name,
+      category: contact.category || (contact.logo_url || contact.type === 'supplier' || contact.type === 'sponsor' ? 'institution' : 'person'),
       type: contact.type || 'member',
       email: contact.email || '',
       phone: contact.phone || '',
       address: contact.address || '',
       tax_number: contact.tax_number || '',
       member_since: contact.member_since || '',
-      notes: contact.notes || ''
+      notes: contact.notes || '',
+      logo_url: contact.logo_url || '',
+      website_url: contact.website_url || ''
     });
+    setLogoFile(null);
+    setLogoPreview(contact.logo_url || '');
     setEditingId(contact.id);
     setIsFormOpen(true);
   };
@@ -115,14 +212,19 @@ export default function BuchhaltungContacts({ readOnly }) {
   const resetForm = () => {
     setFormData({
       name: '',
+      category: 'person',
       type: 'member',
       email: '',
       phone: '',
       address: '',
       tax_number: '',
       member_since: '',
-      notes: ''
+      notes: '',
+      logo_url: '',
+      website_url: ''
     });
+    setLogoFile(null);
+    setLogoPreview('');
     setEditingId(null);
     setIsFormOpen(false);
   };
@@ -570,9 +672,52 @@ export default function BuchhaltungContacts({ readOnly }) {
               </h3>
               
               <form onSubmit={handleSubmit} className="space-y-4">
+                
+                {/* Kategorie (Şahıs / Kurum) Seçimi */}
+                <div className="bg-blue-50/60 p-3 rounded-lg border border-blue-100">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                    Kategorie (Art des Kontakts) *
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
+                      formData.category === 'person' 
+                        ? 'bg-white border-blue-600 text-blue-900 font-bold shadow-sm' 
+                        : 'bg-white/50 border-gray-200 text-gray-600 hover:bg-white'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="category"
+                        value="person"
+                        checked={formData.category === 'person'}
+                        onChange={handleInputChange}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-xs">👤 Privatperson (Şahıs)</span>
+                    </label>
+
+                    <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
+                      formData.category === 'institution' 
+                        ? 'bg-white border-blue-600 text-blue-900 font-bold shadow-sm' 
+                        : 'bg-white/50 border-gray-200 text-gray-600 hover:bg-white'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="category"
+                        value="institution"
+                        checked={formData.category === 'institution'}
+                        onChange={handleInputChange}
+                        className="accent-blue-600"
+                      />
+                      <span className="text-xs">🏢 Unternehmen / Institution (Kurum)</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name / Firma *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {formData.category === 'person' ? 'Vor- und Nachname *' : 'Name des Unternehmens / der Institution *'}
+                    </label>
                     <input
                       type="text"
                       name="name"
@@ -580,10 +725,11 @@ export default function BuchhaltungContacts({ readOnly }) {
                       className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
                       value={formData.name}
                       onChange={handleInputChange}
+                      placeholder={formData.category === 'person' ? 'z. B. Armin Uber' : 'z. B. Sparkasse Westerwald-Sieg'}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Typ</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rolle im Verein</label>
                     <select
                       name="type"
                       className="w-full border rounded px-3 py-2 focus:outline-none focus:border-blue-500"
@@ -592,7 +738,7 @@ export default function BuchhaltungContacts({ readOnly }) {
                     >
                       <option value="member">Mitglied</option>
                       <option value="former_member">Ehem. Mitglied (ausgetreten)</option>
-                      <option value="sponsor">Sponsor</option>
+                      <option value="sponsor">Sponsor / Förderer</option>
                       <option value="supplier">Lieferant / Dienstleister</option>
                       <option value="other">Sonstiges</option>
                     </select>
@@ -632,6 +778,42 @@ export default function BuchhaltungContacts({ readOnly }) {
                     onChange={handleInputChange}
                     placeholder="Straße, Hausnummer, PLZ, Stadt"
                   ></textarea>
+                </div>
+
+                {/* Logo ve Website URL */}
+                <div className="border-t pt-3 mt-2 bg-gray-50 p-3 rounded-lg">
+                  <div className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <FaBuilding /> Sponsor / Kurum Bilgileri (Website & Logo)
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Website URL</label>
+                      <input
+                        type="url"
+                        name="website_url"
+                        className="w-full border rounded px-3 py-1.5 text-sm focus:outline-none focus:border-blue-500"
+                        value={formData.website_url || ''}
+                        onChange={handleInputChange}
+                        placeholder="https://www.beispiel.de"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">Logo</label>
+                      <div className="flex items-center gap-2">
+                        {logoPreview && (
+                          <div className="w-10 h-10 rounded border bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img src={logoPreview} alt="Logo" className="max-w-full max-h-full object-contain" />
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                          className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

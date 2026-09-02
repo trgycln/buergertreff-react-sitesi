@@ -5,7 +5,7 @@ import AnnouncementTicker from './AnnouncementTicker';
 
 const Hero = ({ imageUrl, videoUrl, children, tickerItems = [], showScrollIndicator = true }) => {
   return (
-    <div className="relative min-h-[90vh] md:h-screen flex items-center justify-center text-center text-white px-4 overflow-hidden">
+    <div className="relative min-h-[90vh] md:h-screen flex items-center justify-center text-center text-white px-4 overflow-hidden pt-10 md:pt-12 pb-6 md:pb-10">
       {/* İntro Üzerinde Kayan Yazı Şeridi */}
       {tickerItems && tickerItems.length > 0 && (
         <div className="absolute top-0 left-0 w-full z-30">
@@ -19,7 +19,7 @@ const Hero = ({ imageUrl, videoUrl, children, tickerItems = [], showScrollIndica
           loop
           muted
           playsInline
-          className="absolute top-0 left-0 w-full h-[125%] object-cover z-0"
+          className="absolute top-0 left-0 w-full h-[115%] object-cover object-top scale-105 origin-top z-0 pointer-events-none"
           src={videoUrl}
         />
       ) : (
@@ -30,10 +30,13 @@ const Hero = ({ imageUrl, videoUrl, children, tickerItems = [], showScrollIndica
       )}
       
       {/* Çok katmanlı şık gradyan karartma katmanı */}
-      <div className="absolute inset-0 bg-gradient-to-b from-rcBlue/60 via-rcBlue/40 to-slate-900/80 z-10 pointer-events-none"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-rcBlue/60 via-rcBlue/30 to-slate-900/90 z-10 pointer-events-none"></div>
       
-      {/* Metin ve Kart İçeriği */}
-      <div className="relative z-20 py-16 md:py-20 w-full max-w-7xl mx-auto flex flex-col items-center">
+      {/* Alt dip geçiş gradyanı (Videonun altındaki yazıları gizler ve bir sonraki bölüme yumuşak bağlar) */}
+      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent z-10 pointer-events-none"></div>
+
+      {/* Metin ve Kart İçeriği (Büyük ekranlarda 1550px'e kadar ferahça genişler) */}
+      <div className="relative z-20 pt-3 pb-4 md:py-4 w-full max-w-7xl 2xl:max-w-[1550px] px-4 sm:px-6 md:px-8 lg:px-12 mx-auto flex flex-col items-center">
         {children}
       </div>
 

@@ -6,7 +6,6 @@ import ContentBlock from '../components/ContentBlock';
 import FeatureCard from '../components/FeatureCard';
 import AktuellesTeaser from '../components/AktuellesTeaser';
 import ActivityShowcase from '../components/ActivityShowcase';
-import CommunityConnect from '../components/CommunityConnect';
 import MultilingualWelcome from '../components/MultilingualWelcome';
 import HeroSpotlightCard from '../components/HeroSpotlightCard';
 import BigEventBanner from '../components/BigEventBanner';
@@ -206,33 +205,33 @@ const Start = () => {
 
         <div>
             <Hero videoUrl={heroVideo} tickerItems={tickerAnnouncements}>
-                <div className={`w-full ${latestPastEvent ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center' : 'flex flex-col items-center justify-center text-center'}`}>
-                    {/* Sol Sütun: Karşılama & Buton (Sol alanın tam ortasında dengeli) */}
-                    <div className={`${latestPastEvent ? 'lg:col-span-7' : 'w-full'} flex flex-col items-center justify-center text-center px-2`}>
+                <div className={`w-full ${latestPastEvent ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 xl:gap-14 items-center' : 'flex flex-col items-center justify-center text-center'}`}>
+                    {/* Sol Sütun: Karşılama & Buton (Büyük ekranlarda 6 sütun genişliğinde ve ferah) */}
+                    <div className={`${latestPastEvent ? 'lg:col-span-6 xl:col-span-6' : 'w-full'} flex flex-col items-center justify-center text-center px-2 sm:px-4`}>
                         <div className='flex flex-col items-center justify-center text-center'>
-                            <h1 className="text-5xl sm:text-7xl md:text-8xl font-dancing leading-tight">
+                            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-dancing leading-tight">
                                 “Komm ren„
                             </h1>
-                            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-1 whitespace-nowrap">
+                            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mt-1 whitespace-nowrap">
                                 Bürgertreff Wissen
                             </h2>
                         </div>
                         
                         {/* Modern Çok Dilli Karşılama Kapsülü */}
-                        <div className="w-full flex justify-center mt-6 sm:mt-8">
+                        <div className="w-full flex justify-center mt-4 sm:mt-6 lg:mt-8">
                             <MultilingualWelcome />
                         </div>
 
-                        <div className="mt-6 sm:mt-8 flex justify-center">
-                            <Link to="/machen-sie-mit" className="bg-rcRed text-white text-base sm:text-lg font-bold py-3 sm:py-3.5 px-6 sm:px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 inline-block">
+                        <div className="mt-5 sm:mt-6 lg:mt-8 flex justify-center">
+                            <Link to="/machen-sie-mit" className="bg-rcRed text-white text-base sm:text-lg lg:text-xl font-bold py-3 sm:py-3.5 lg:py-4 px-6 sm:px-8 lg:px-10 rounded-full hover:bg-opacity-90 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 inline-block">
                                 Jetzt mitmachen
                             </Link>
                         </div>
                     </div>
 
-                    {/* Sağ Sütun: Son Fotoğraflı Faaliyet Vitrin Kartı */}
+                    {/* Sağ Sütun: Son Fotoğraflı Faaliyet Vitrin Kartı (Büyük ekranlarda 6 sütun genişliğinde ve orantılı) */}
                     {latestPastEvent && (
-                        <div className="lg:col-span-5 flex justify-center w-full mt-2 lg:mt-0 px-2">
+                        <div className="lg:col-span-6 xl:col-span-6 flex justify-center w-full mt-2 lg:mt-0 px-2 sm:px-4">
                             <HeroSpotlightCard event={latestPastEvent} />
                         </div>
                     )}
@@ -244,9 +243,6 @@ const Start = () => {
 
             {/* Yaklaşan Program ve Etkinlikler */}
             <AktuellesTeaser />
-
-            {/* WhatsApp Grubu ve Instagram Topluluk Alanı */}
-            <CommunityConnect />
 
             <ContentBlock 
                 title="Schön, dass Sie da sind!" 

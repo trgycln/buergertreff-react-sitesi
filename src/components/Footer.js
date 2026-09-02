@@ -4,26 +4,21 @@ import { Link } from "react-router-dom";
 import {
   FaFacebookF,
   FaInstagram,
-  FaTiktok,
-  FaMastodon,
-  FaYoutube,
   FaWhatsapp,
 } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
-import { supabase } from "../supabaseClient";
+import { fetchMergedSponsors } from "../utils/sponsorUtils";
 
 const Footer = () => {
   const [footerSponsors, setFooterSponsors] = useState([]);
 
   useEffect(() => {
     const fetchSponsors = async () => {
-      const { data } = await supabase
-        .from("sponsors")
-        .select("id, name, logo_url, website_url")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("name", { ascending: true });
-      setFooterSponsors(data || []);
+      const { institutions } = await fetchMergedSponsors();
+      // Yalnızca kurumları footera koyabiliriz veya hepsini koyabiliriz.
+      // Sadece logo'su olanları veya belirli bir sıraya göre ilk 10'unu alabiliriz.
+      // Şimdilik sadece kurumsal sponsorları (logo'su olanlar) alalım:
+      const instWithLogos = institutions.filter(s => s.logo_url);
+      setFooterSponsors(instWithLogos);
     };
     fetchSponsors();
   }, []);
@@ -75,10 +70,8 @@ const Footer = () => {
             <h3 className="text-lg font-bold mb-4">Folgen Sie uns</h3>
             <div className="flex flex-wrap items-center gap-5">
               <a href="https://chat.whatsapp.com/FqBNBrOmcnL7CTXPL9yRnm" target="_blank" rel="noopener noreferrer" title="WhatsApp Gruppe" className="text-green-400 hover:text-green-300 transition-colors"><FaWhatsapp size={20} /></a>
-              <a href="https://www.facebook.com/profile.php?id=61585385846803" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
-              <a href="https://www.youtube.com/@buergertreff-wissen" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaYoutube size={24} /></a>
-              <a href="https://www.instagram.com/buergertreff.wissen/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={16} /></a>
-              <a href="mailto:buergertreff.wissen@gmail.com" className="text-gray-300 hover:text-white transition-colors">@</a>
+              <a href="https://www.facebook.com/profile.php?id=61585385846803" target="_blank" rel="noopener noreferrer" title="Facebook" className="text-gray-300 hover:text-white transition-colors"><FaFacebookF size={16} /></a>
+              <a href="https://www.instagram.com/buergertreff.wissen/" target="_blank" rel="noopener noreferrer" title="Instagram" className="text-gray-300 hover:text-white transition-colors"><FaInstagram size={17} /></a>
             </div>
           </div>
         </div>

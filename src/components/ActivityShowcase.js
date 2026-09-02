@@ -59,14 +59,14 @@ const ActivityShowcase = () => {
     return (
         <section id="aktivitaeten" className="relative py-12 md:py-16 bg-white border-b border-gray-200">
             <div className="container mx-auto px-6">
-                {/* Başlık Bölümü */}
-                <div className="flex items-end justify-between mb-8 pb-3 border-b-2 border-rcLightBlue">
-                    <h2 className="text-3xl font-bold text-rcDarkGray">
+                {/* Başlık Bölümü (Mobilde kırılmayan, esnek düzen) */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 sm:mb-8 pb-3 border-b-2 border-rcLightBlue gap-2">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-rcDarkGray">
                         Letzte Aktivitäten
                     </h2>
                     <Link
                         to="/angebote"
-                        className="text-sm md:text-base font-semibold text-rcBlue hover:underline inline-flex items-center gap-1 group"
+                        className="text-xs sm:text-sm md:text-base font-semibold text-rcBlue hover:underline inline-flex items-center gap-1 group whitespace-nowrap self-start sm:self-auto"
                     >
                         <span>Alle Veranstaltungen anzeigen</span>
                         <FaArrowRight className="text-xs transition-transform duration-300 group-hover:translate-x-1" />
