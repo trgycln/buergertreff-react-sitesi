@@ -2,14 +2,14 @@ import { supabase } from '../supabaseClient';
 
 export const fetchMergedSponsors = async () => {
   try {
-    // 1. Manual Sponsors (sponsors table)
+    // 1. Manual Sponsors (sponsors table) - Fetch ALL to know which monetary donors are marked inactive
     const { data: sponsorsRes } = await supabase
       .from('sponsors')
       .select('*')
-      .eq('is_active', true)
       .order('sort_order', { ascending: true });
     
-    const manualSponsors = sponsorsRes || [];
+    const allManualSponsors = sponsorsRes || [];
+    const activeManualSponsors = allManualSponsors.filter(s => s.is_active === true);
 
     // 2. Accounting Transactions (for dynamic monetary sponsors)
     const { data: txData } = await supabase
@@ -54,14 +54,19 @@ export const fetchMergedSponsors = async () => {
       if (total >= 100) {
         const nameKey = c.name.trim().toLowerCase();
         
-        // Find if this contact is also manually in sponsors to grab logo/website
-        const matchedSponsor = manualSponsors.find(s => 
+        // Find if this contact is also manually in sponsors to grab logo/website OR check if they are hidden
+        const matchedSponsor = allManualSponsors.find(s => 
           s.name && (
             s.name.toLowerCase().includes(nameKey) || 
             nameKey.includes(s.name.toLowerCase()) ||
             (s.name.toLowerCase().includes('stiftung') && nameKey.includes('stiftung'))
           )
         );
+
+        // If they are explicitly marked as inactive (hidden) in Sponsor Verwaltung, SKIP them!
+        if (matchedSponsor && matchedSponsor.is_active === false) {
+          return; 
+        }
 
         const logo = c.logo_url || (matchedSponsor && matchedSponsor.logo_url) || '';
         const website = c.website_url || (matchedSponsor && matchedSponsor.website_url) || '';
@@ -84,7 +89,7 @@ export const fetchMergedSponsors = async () => {
     });
 
     // Add remaining Manual Sponsors (Service providers who aren't in accounting >=100)
-    manualSponsors.forEach(s => {
+    activeManualSponsors.forEach(s => {
       if (!s.name) return;
       const nameKey = s.name.trim().toLowerCase();
       

@@ -15,15 +15,6 @@ import { supabase } from '../supabaseClient';
 import { fetchMergedSponsors } from '../utils/sponsorUtils';
 import { Helmet } from 'react-helmet-async';
 
-// Tutar aralıklarına göre kademe ve rozet belirleyici (Tutarlar sayfada asla yazılmaz!)
-export const getDonorTier = (amount) => {
-  const val = parseFloat(amount) || 0;
-  if (val >= 1000) return { name: 'Platin-Förderer', badgeIcon: '💎' };
-  if (val >= 500) return { name: 'Gold-Förderer', badgeIcon: '🥇' };
-  if (val >= 200) return { name: 'Silber-Förderer', badgeIcon: '🥈' };
-  return { name: 'Bronze-Förderer', badgeIcon: '🥉' };
-};
-
 // Başlangıç / Yedek Veri (100 € ve üzeri 17 bağışçı)
 const INITIAL_INSTITUTIONS = [
   { id: 'inst-1', name: 'Rotary-Hilfwerk RC Westerwald e.V.', category: 'institution', website_url: 'https://westerwald.rotary.de/', logo_url: '', totalAmount: 2500 },
@@ -49,9 +40,7 @@ const INITIAL_PERSONS = [
 ];
 
 // Kurumsal Kart Bileşeni
-const InstitutionCard = ({ name, logo_url, website_url, description, totalAmount }) => {
-  const tier = getDonorTier(totalAmount);
-
+const InstitutionCard = ({ name, logo_url, website_url, description }) => {
   // Eğer website varsa, tüm yuvarlak çerçeve bir link olsun; yoksa div
   const CardWrapper = website_url ? 'a' : 'div';
   const wrapperProps = website_url
@@ -64,16 +53,11 @@ const InstitutionCard = ({ name, logo_url, website_url, description, totalAmount
     : {};
 
   return (
-    <div className="flex flex-col items-center justify-start text-center group">
-      {/* Tier Badge */}
-      <div className="text-3xl drop-shadow-sm mb-3 transition-transform group-hover:scale-110" title={tier.name}>
-        {tier.badgeIcon}
-      </div>
-
+    <div className="flex flex-col items-center justify-start text-center group mt-4">
       {/* Yuvarlak Çerçeveli Logo / Link Alanı */}
       <CardWrapper
         {...wrapperProps}
-        className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center p-6 transition-all duration-300 hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 relative"
+        className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white border-2 border-gray-200 shadow-md flex items-center justify-center p-3 transition-all duration-300 hover:shadow-2xl hover:border-rcBlue hover:scale-105 hover:-translate-y-1 relative"
       >
         {logo_url ? (
           <img
@@ -83,8 +67,8 @@ const InstitutionCard = ({ name, logo_url, website_url, description, totalAmount
           />
         ) : (
           <div className="flex flex-col items-center justify-center px-2">
-            <FaBuilding className="text-rcBlue/30 text-4xl mb-2" />
-            <span className="text-xs font-bold text-gray-400 leading-snug line-clamp-2">
+            <FaBuilding className="text-rcBlue/30 text-3xl mb-1" />
+            <span className="text-[10px] font-bold text-gray-400 leading-snug line-clamp-2">
               {name}
             </span>
           </div>
@@ -92,7 +76,7 @@ const InstitutionCard = ({ name, logo_url, website_url, description, totalAmount
       </CardWrapper>
 
       {/* İsim ve Açıklama (Yuvarlağın altında) */}
-      <h3 className="font-bold text-gray-800 text-sm md:text-base mt-5 px-2 group-hover:text-rcBlue transition-colors line-clamp-2">
+      <h3 className="font-bold text-gray-800 text-sm md:text-base mt-2 px-2 group-hover:text-rcBlue transition-colors line-clamp-2">
         {name}
       </h3>
       {description && (
@@ -103,18 +87,11 @@ const InstitutionCard = ({ name, logo_url, website_url, description, totalAmount
 };
 
 // Bireysel Bağışçı İsim Rozeti (Düzgün Liste Görünümü)
-const PersonBadge = ({ name, totalAmount }) => {
-  const tier = getDonorTier(totalAmount);
-
+const PersonBadge = ({ name }) => {
   return (
-    <div 
-      title={tier.name}
-      className="flex items-center gap-4 py-3 px-5 bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-100 hover:-translate-y-0.5 group w-full"
-    >
-      <div className="text-2xl drop-shadow-sm flex-shrink-0 w-8 text-center transition-transform group-hover:scale-110">
-        {tier.badgeIcon}
-      </div>
-      <span className="text-base font-medium text-gray-800 group-hover:text-rcBlue transition-colors truncate">
+    <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0 group">
+      <div className="w-1.5 h-1.5 rounded-full bg-rcBlue/40 group-hover:bg-rcBlue transition-colors"></div>
+      <span className="text-sm md:text-base text-gray-700 font-medium group-hover:text-rcBlue transition-colors">
         {name}
       </span>
     </div>
@@ -176,27 +153,8 @@ const Sponsorlar = () => {
               Gemeinsam für unsere Gemeinschaft
             </h1>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed mb-6">
-              Die Angebote, Begegnungen und Hilfen des <strong className="text-rcDarkGray font-semibold">Bürgertreff Wissen e.V.</strong> werden maßgeblich durch ehrenamtliches Engagement und großzügige Zuwendungen ermöglicht. Wir danken allen Partnern, Unternehmen und privaten Förderern, die unsere Vereinsarbeit nachhaltig unterstützen.
+              Die Angebote, Begegnungen und Hilfen des <strong className="text-rcDarkGray font-semibold">Bürgertreff Wissen e.V.</strong> werden maßgeblich durch ehrenamtliches Engagement und großzügige Zuwendungen ermöglicht. Wir danken allen Partnern, Unternehmen und privaten Förderern, die unsere Arbeit 2026 unterstützen.
             </p>
-
-            {/* Kategori / Kademe Rozetleri Açıklama Çubuğu (Lejant) */}
-            <div className="inline-flex flex-wrap items-center justify-center gap-3 md:gap-5 bg-white px-5 py-2.5 rounded-2xl border border-gray-100 shadow-sm text-xs text-gray-700">
-              <span className="font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                <FaAward className="text-gray-300" /> Förderstufen:
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-slate-700 font-bold">
-                <span className="text-lg drop-shadow-sm">💎</span> Platin
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-amber-600 font-bold">
-                <span className="text-lg drop-shadow-sm">🥇</span> Gold
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-slate-500 font-bold">
-                <span className="text-lg drop-shadow-sm">🥈</span> Silber
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-amber-700 font-bold">
-                <span className="text-lg drop-shadow-sm">🥉</span> Bronze
-              </span>
-            </div>
           </div>
 
           {loading ? (
@@ -236,7 +194,7 @@ const Sponsorlar = () => {
                     <FaAward className="text-amber-500 text-xl" />
                     <div>
                       <h2 className="text-xl md:text-2xl font-bold text-rcDarkGray">
-                        Private Förderer & Spender (Ehrentafel)
+                        Private Förderer & Spender
                       </h2>
                       <p className="text-xs md:text-sm text-gray-500">
                         Herzlichen Dank an alle Bürgerinnen und Bürger für ihre persönliche Unterstützung
@@ -244,10 +202,12 @@ const Sponsorlar = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                    {persons.map((person) => (
-                      <PersonBadge key={person.id} {...person} />
-                    ))}
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-1">
+                      {persons.map((person) => (
+                        <PersonBadge key={person.id} {...person} />
+                      ))}
+                    </div>
                   </div>
                 </section>
               )}
@@ -271,7 +231,7 @@ const Sponsorlar = () => {
                 </p>
                 <p className="text-xs text-blue-200/90 italic flex items-center gap-1.5">
                   <FaInfoCircle size={14} className="flex-shrink-0" />
-                  Spenden ab 100 € werden auf Wunsch gerne mit der entsprechenden Förderstufe gewürdigt.
+                  Spenden ab 100 € werden auf Wunsch gerne hier namentlich erwähnt.
                 </p>
               </div>
 
