@@ -164,7 +164,7 @@ export default function AdminDashboard() {
             Sponsoren verwalten
           </Link>
           <Link
-            to="/sponsorlar"
+            to="/sponsoren"
             className="flex items-center justify-center px-5 py-3 bg-rcDarkGray text-white text-sm font-semibold rounded-lg shadow hover:bg-gray-700 transition-colors"
           >
             <FaList className="mr-2" />

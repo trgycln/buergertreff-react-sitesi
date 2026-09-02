@@ -51,7 +51,7 @@ const Footer = () => {
                         </a>
                     ))}
                 </div>
-                <Link to="/sponsorlar" className="text-sm text-gray-300 hover:text-white underline self-start">
+                <Link to="/sponsoren" className="text-sm text-gray-300 hover:text-white underline self-start">
                     Alle Sponsoren ansehen
                 </Link>
             </div>

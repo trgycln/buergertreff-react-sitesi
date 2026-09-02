@@ -171,6 +171,7 @@ function App() {
           <Route path="/kontakt" element={<MainLayout><Kontakt /></MainLayout>} />
           <Route path="/beitrittsformular" element={<MainLayout><Beitrittsformular /></MainLayout>} />
           <Route path="/danke" element={<MainLayout><Danke /></MainLayout>} />
+          <Route path="/sponsoren" element={<MainLayout><Sponsorlar /></MainLayout>} />
           <Route path="/sponsorlar" element={<MainLayout><Sponsorlar /></MainLayout>} />
           
           {/* DÜZELTME: Detay sayfası da Layout içinde olmalı */}
