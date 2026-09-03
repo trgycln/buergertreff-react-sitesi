@@ -12,6 +12,7 @@ import {
     formatMonthTitle,
     formatTimeRange,
     getCalendarGridDays,
+    mergeUpcomingEvents,
     parseLocalDate,
     sortCalendarItems,
     WEEKDAY_OPTIONS,
@@ -41,8 +42,11 @@ const colorDotClasses = {
 const buildSingleOccurrences = (singleEntries = []) => {
     return singleEntries.map((entry) => ({
         id: `single-${entry.id}`,
-        sourceType: 'single',
-        sourceId: entry.id,
+        sourceType: entry.source_type || 'single',
+        sourceId: entry.source_event_id || entry.id,
+        source_event_id: entry.source_event_id || null,
+        detailId: entry.source_event_id || null,
+        linkTo: entry.source_event_id ? `/angebote/${entry.source_event_id}` : null,
         dateKey: entry.entry_date,
         title: entry.title,
         category: entry.category,
@@ -50,7 +54,7 @@ const buildSingleOccurrences = (singleEntries = []) => {
         description: entry.description,
         startTime: entry.start_time,
         endTime: entry.end_time,
-        color: entry.color || 'red',
+        color: entry.color || 'blue',
     }));
 };
 
@@ -105,13 +109,15 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
                     {entries.slice(0, 2).map((entry) => {
                         const label = entry.category || entry.title;
                         const chipClass = colorChipClasses[entry.color] || colorChipClasses.blue;
+                        const hasPhotos = !!(entry.detailId || entry.linkTo);
                         return (
                             <div
                                 key={entry.id}
-                                className={`truncate rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${chipClass}`}
+                                className={`flex items-center justify-between gap-1 truncate rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${chipClass}`}
                                 title={entry.title}
                             >
-                                {label}
+                                <span className="truncate">{label}</span>
+                                {hasPhotos && <span className="flex-shrink-0 text-[10px]" title="Fotos vorhanden">📸</span>}
                             </div>
                         );
                     })}
@@ -221,9 +227,10 @@ export default function Terminkalender() {
     const entriesByDay = useMemo(() => {
         const recurringOccurrences = expandRecurringEntries(recurringEntries, rangeStart, rangeEnd, exceptions);
         const singleOccurrences = buildSingleOccurrences(singleEntries);
+        const mergedOccurrences = mergeUpcomingEvents([...recurringOccurrences, ...singleOccurrences]);
         const groupedEntries = {};
 
-        sortCalendarItems([...recurringOccurrences, ...singleOccurrences]).forEach((entry) => {
+        sortCalendarItems(mergedOccurrences).forEach((entry) => {
             if (!groupedEntries[entry.dateKey]) {
                 groupedEntries[entry.dateKey] = [];
             }
@@ -409,6 +416,17 @@ export default function Terminkalender() {
 
                                                 {entry.description && (
                                                     <p className="mt-4 text-sm leading-6 text-gray-600">{entry.description}</p>
+                                                )}
+
+                                                {(entry.detailId || entry.linkTo) && (
+                                                    <div className="mt-4 pt-3 border-t border-gray-100">
+                                                        <Link
+                                                            to={entry.linkTo || `/angebote/${entry.detailId}`}
+                                                            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-rcBlue hover:bg-blue-100 hover:text-blue-800 transition-colors"
+                                                        >
+                                                            <span>📸 Fotos & Veranstaltungsbericht ansehen</span>
+                                                        </Link>
+                                                    </div>
                                                 )}
                                             </article>
                                         ))

@@ -1,616 +1,598 @@
 // src/components/admin/EreignisForm.js
-// DÜZELTME: Eksik olan "Programm-Details" bölümü ve "is_featured" açıklaması geri eklendi.
+// Ultra-praktischer Foto-Bericht Uploader:
+// Wählt einfach ein Datum -> Erkennt automatisch Termine aus dem Terminkalender -> Fotos hochladen -> Fertig!
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+    FaCamera,
+    FaCheckCircle,
+    FaClock,
+    FaCloudUploadAlt,
+    FaMapMarkerAlt,
+    FaTimes,
+    FaArrowLeft,
+    FaSpinner,
+    FaInfoCircle,
+} from 'react-icons/fa';
 import { supabase } from '../../supabaseClient';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { toPng } from 'html-to-image';
-import jsPDF from 'jspdf';
-import { PrintableFlyerA4 } from './pdf/PrintableFlyerA4';
-import { PrintableFlyerA5 } from './pdf/PrintableFlyerA5';
-import { FaTimes } from 'react-icons/fa'; 
+import {
+    dateToKey,
+    expandRecurringEntries,
+    formatDateLabel,
+    formatTimeRange,
+    parseLocalDate,
+} from '../../utils/calendarUtils';
 
-// --- Form Yardımcı Bileşenleri ---
-const FormInput = ({ label, type = 'text', hint, ...props }) => (
-    <div>
-        <label className="block text-sm font-medium text-rcDarkGray">{label}</label>
-        <input
-            type={type}
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcBlue focus:border-rcBlue"
-            {...props}
-        />
-        {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
-    </div>
-);
-const FormTextarea = ({ label, rows = 4, hint, ...props }) => (
-    <div>
-        <label className="block text-sm font-medium text-rcDarkGray">{label}</label>
-        <textarea
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcBlue focus:border-rcBlue"
-            rows={rows}
-            {...props}
-        ></textarea>
-         {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
-    </div>
-);
-const FormSelect = ({ label, children, ...props }) => (
-     <div>
-        <label className="block text-sm font-medium text-rcDarkGray">{label}</label>
-        <select
-             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-rcBlue focus:border-rcBlue"
-             {...props}
-        >
-            {children}
-        </select>
-    </div>
-);
-const FormCheckbox = ({ label, hint, ...props }) => ( 
-    <div>
-        <div className="flex items-center">
-            <input
-                type="checkbox"
-                className="h-4 w-4 text-rcBlue border-gray-300 rounded focus:ring-rcBlue"
-                {...props}
-            />
-            <label htmlFor={props.id} className="ml-2 block text-sm font-medium text-rcDarkGray">
-                {label}
-            </label>
-        </div>
-        {hint && <p className="mt-1 text-xs text-gray-500 ml-6">{hint}</p>}
-    </div>
-);
-// --- Bitiş: Form Yardımcı Bileşenleri ---
-
-
-// Ana Form Bileşeni
 export default function EreignisForm() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
-    const [isDownloading, setIsDownloading] = useState(false); 
-
-    // --- Form state'leri ---
-    const [title, setTitle] = useState('');
-    const [eventDate, setEventDate] = useState('');
-    const [location, setLocation] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState('OffeneTreff');
-    const [imageUrl, setImageUrl] = useState(''); 
-    const [endTime, setEndTime] = useState('');
-    const [isFeatured, setIsFeatured] = useState(false);
-    const [isBigEvent, setIsBigEvent] = useState(false);
-    const [registrationDetails, setRegistrationDetails] = useState('');
-    const [cost, setCost] = useState('');
-    const [contactPerson, setContactPerson] = useState('');
-    const [programDetails, setProgramDetails] = useState([]); // Bu state zaten vardı
-    const [notes, setNotes] = useState('');
-    const [isPublic, setIsPublic] = useState(false); 
-    const [archiveSummary, setArchiveSummary] = useState(''); 
-    const [archivePhotos, setArchivePhotos] = useState([]); 
-    const [youtubeUrl, setYoutubeUrl] = useState('');
-
-    const [currentEventDataForPdf, setCurrentEventDataForPdf] = useState(null);
-    const categoryOptions = [
-        'OffeneTreff', 'Frühstück', 'Offene Treff', 'Ausstellungen', 'Spielen',
-        'Singen', 'Handarbeiten', 'Schreibwerkstatt', 'Nachbarschaftsbörse',
-        'Sonntagsgespräch', 'Beratung', 'Psychosoziale Beratung', 'Nachhilfe', 'Sprachkurs', 'Bürgertreff unterwegs', 'Sonstiges',
-        'Intern'
-    ];
-
-    const a4Ref = useRef();
-    const a5Ref = useRef();
     const isEditMode = !!id;
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [previewType, setPreviewType] = useState(null);
-    const [previewData, setPreviewData] = useState(null);
 
-    // Düzenleme modunda veriyi çek
+    const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState('');
+
+    // Datum (Standard: Heute)
+    const [selectedDate, setSelectedDate] = useState(() => {
+        return dateToKey(new Date());
+    });
+
+    // Aktivitäts-Details (werden automatisch aus dem Kalender befüllt)
+    const [selectedEventId, setSelectedEventId] = useState('');
+    const [title, setTitle] = useState('');
+    const [category, setCategory] = useState('Offene Treff');
+    const [location, setLocation] = useState('Bürgertreff Wissen');
+    const [startTime, setStartTime] = useState('');
+    const [endTime, setEndTime] = useState('');
+    const [description, setDescription] = useState('');
+
+    // Fotos & Rückblick
+    const [photos, setPhotos] = useState([]); // Array von Bild-URLs
+    const [selectedCoverUrl, setSelectedCoverUrl] = useState(''); // Ausgewähltes Titelbild für Startseite
+    const [archiveSummary, setArchiveSummary] = useState('');
+    const [uploadingFiles, setUploadingFiles] = useState(false);
+
+    // Kalenderdaten für automatische Erkennung
+    const [recurringEntries, setRecurringEntries] = useState([]);
+    const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
+
+    // 1. Kalenderdaten für Erkennung laden
     useEffect(() => {
-        if (isEditMode) {
+        const loadCalendarData = async () => {
+            const [recRes, singleRes, exRes] = await Promise.all([
+                supabase.from('calendar_recurring_entries').select('*').eq('is_active', true),
+                supabase.from('calendar_single_entries').select('*').eq('is_active', true),
+                supabase.from('calendar_recurring_exceptions').select('*'),
+            ]);
+
+            setRecurringEntries(recRes.data || []);
+            setSingleEntries(singleRes.data || []);
+            setExceptions(exRes.data || []);
+        };
+
+        loadCalendarData();
+    }, []);
+
+    // 2. Bestehenden Eintrag laden (falls Bearbeitungsmodus)
+    useEffect(() => {
+        if (!isEditMode) return;
+
+        const loadExistingEvent = async () => {
             setLoading(true);
-            const fetchEvent = async () => {
-                const { data, error } = await supabase.from('ereignisse').select('*').eq('id', id).single();
-                if (data) {
-                    setCurrentEventDataForPdf(data);
-                    setTitle(data.title || '');
-                    setEventDate(data.event_date ? new Date(data.event_date).toISOString().slice(0, 16) : '');
-                    setEndTime(data.end_time || '');
-                    setLocation(data.location || '');
-                    setDescription(data.description || '');
-                    setCategory(data.category || 'OffeneTreff');
-                    setImageUrl(data.image_url || '');
-                    setIsFeatured(data.is_featured || false);
-                    setIsBigEvent(data.is_big_event || false);
-                    setRegistrationDetails(data.registration_details || '');
-                    setCost(data.cost || '');
-                    setContactPerson(data.contact_person || '');
-                    setProgramDetails(data.program_details || []); // Veritabanından çek
-                    setNotes(data.notes || '');
-                    setIsPublic(data.is_public || false);
-                    setArchiveSummary(data.archive_summary || '');
-                    setArchivePhotos(data.archive_photos || []);
-                    setYoutubeUrl(data.youtube_url || ''); 
-                } else {
-                    setMessage(`Fehler: Ereignis mit ID ${id} nicht gefunden. ${error?.message}`);
+            const { data, error } = await supabase.from('ereignisse').select('*').eq('id', id).single();
+            if (data) {
+                setTitle(data.title || '');
+                setCategory(data.category || 'Offene Treff');
+                setLocation(data.location || 'Bürgertreff Wissen');
+                setDescription(data.description || '');
+                setArchiveSummary(data.archive_summary || '');
+                setEndTime(data.end_time || '');
+
+                if (data.event_date) {
+                    const parsed = new Date(data.event_date);
+                    setSelectedDate(dateToKey(parsed));
+                    setStartTime(parsed.toTimeString().slice(0, 5));
                 }
-                setLoading(false);
-            };
-            fetchEvent();
-        }
+
+                const existingPhotos = Array.isArray(data.archive_photos) && data.archive_photos.length > 0
+                    ? data.archive_photos
+                    : data.image_url ? [data.image_url] : [];
+                setPhotos(existingPhotos);
+                setSelectedCoverUrl(data.image_url || (existingPhotos.length > 0 ? existingPhotos[0] : ''));
+            } else if (error) {
+                setMessage(`Fehler beim Laden: ${error.message}`);
+            }
+            setLoading(false);
+        };
+
+        loadExistingEvent();
     }, [id, isEditMode]);
 
-    const toLocalDateKey = (dateTimeValue) => {
-        if (!dateTimeValue) return null;
-        const [datePart] = String(dateTimeValue).split('T');
-        return datePart || null;
-    };
+    // 3. Termine finden, die an dem gewählten Datum im Kalender stattfinden
+    const dayEvents = useMemo(() => {
+        if (!selectedDate) return [];
 
-    const toLocalTimeValue = (dateTimeValue) => {
-        if (!dateTimeValue) return null;
-        const [, timePart = ''] = String(dateTimeValue).split('T');
-        const hhmm = timePart.slice(0, 5);
-        return hhmm || null;
-    };
+        const dateObj = parseLocalDate(selectedDate);
+        if (!dateObj) return [];
 
-    const syncEventToCalendar = async (eventId, eventPayload, originalDateTimeValue, endTimeValue) => {
-        const entryDate = toLocalDateKey(originalDateTimeValue);
-        const startTime = toLocalTimeValue(originalDateTimeValue);
+        // Wiederkehrende Termine für diesen Tag expandieren
+        const recurringForDay = expandRecurringEntries(recurringEntries, dateObj, dateObj, exceptions);
 
-        // Ereignis ohne Datum hat keinen Platz im Kalender.
-        if (!entryDate) {
-            const { error } = await supabase
-                .from('calendar_single_entries')
-                .delete()
-                .eq('source_event_id', Number(eventId));
+        // Einzeltermine für diesen Tag (außer diesem Event selbst beim Bearbeiten)
+        const singlesForDay = singleEntries
+            .filter((s) => s.entry_date === selectedDate && (!isEditMode || Number(s.source_event_id) !== Number(id)))
+            .map((s) => ({
+                id: `single-${s.id}`,
+                title: s.title,
+                category: s.category,
+                location: s.location,
+                startTime: s.start_time,
+                endTime: s.end_time,
+                description: s.description,
+            }));
 
-            if (error) {
-                throw error;
+        const combined = [...recurringForDay, ...singlesForDay];
+
+        // Eindeutige Titel
+        const map = new Map();
+        combined.forEach((item) => {
+            const key = (item.title || '').trim().toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, item);
             }
+        });
+
+        return Array.from(map.values());
+    }, [selectedDate, recurringEntries, singleEntries, exceptions, isEditMode, id]);
+
+    // 4. Automatische Auswahl: Wenn an diesem Tag Termine existieren, ersten automatisch übernehmen
+    useEffect(() => {
+        if (isEditMode) return;
+
+        if (dayEvents.length > 0) {
+            const current = dayEvents.find((e) => e.id === selectedEventId) || dayEvents[0];
+            setSelectedEventId(current.id);
+            setTitle(current.title || '');
+            setCategory(current.category || 'Offene Treff');
+            setLocation(current.location || 'Bürgertreff Wissen');
+            setStartTime(current.startTime ? String(current.startTime).slice(0, 5) : '');
+            setEndTime(current.endTime ? String(current.endTime).slice(0, 5) : '');
+            setDescription(current.description || '');
+        } else {
+            setSelectedEventId('custom');
+        }
+    }, [dayEvents, isEditMode]);
+
+    const handleSelectDayEvent = (eventItem) => {
+        setSelectedEventId(eventItem.id);
+        setTitle(eventItem.title || '');
+        setCategory(eventItem.category || 'Offene Treff');
+        setLocation(eventItem.location || 'Bürgertreff Wissen');
+        setStartTime(eventItem.startTime ? String(eventItem.startTime).slice(0, 5) : '');
+        setEndTime(eventItem.endTime ? String(eventItem.endTime).slice(0, 5) : '');
+        setDescription(eventItem.description || '');
+    };
+
+    // 5. Mehrere Fotos hochladen
+    const handleFileUpload = async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        setUploadingFiles(true);
+        setMessage('');
+
+        try {
+            const uploadedUrls = [];
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `event_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+                const { error: uploadError } = await supabase.storage.from('page_assets').upload(fileName, file);
+                if (uploadError) {
+                    console.error('Fehler beim Bildupload:', uploadError);
+                    continue;
+                }
+
+                const { data: { publicUrl } } = supabase.storage.from('page_assets').getPublicUrl(fileName);
+                if (publicUrl) {
+                    uploadedUrls.push(publicUrl);
+                }
+            }
+            setPhotos((prev) => {
+                const next = [...prev, ...uploadedUrls];
+                if (!selectedCoverUrl && next.length > 0) {
+                    setSelectedCoverUrl(next[0]);
+                }
+                return next;
+            });
+        } catch (err) {
+            setMessage(`Fehler beim Hochladen: ${err.message}`);
+        } finally {
+            setUploadingFiles(false);
+            e.target.value = '';
+        }
+    };
+
+    const handleRemovePhoto = (indexToRemove) => {
+        const photoToRemove = photos[indexToRemove];
+        const remaining = photos.filter((_, idx) => idx !== indexToRemove);
+        setPhotos(remaining);
+        if (selectedCoverUrl === photoToRemove) {
+            setSelectedCoverUrl(remaining.length > 0 ? remaining[0] : '');
+        }
+    };
+
+    // 6. Formular absenden (Speichern)
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!title.trim()) {
+            setMessage('Fehler: Bitte wählen Sie eine Aktivität aus oder geben Sie einen Titel an.');
             return;
         }
 
-        const calendarPayload = {
-            source_type: 'ereignis',
-            source_event_id: Number(eventId),
-            title: eventPayload.title,
-            category: eventPayload.category || null,
-            location: eventPayload.location || null,
-            description: eventPayload.description || null,
-            entry_date: entryDate,
-            start_time: startTime,
-            end_time: endTimeValue || null,
-            color: 'red',
-            is_public: eventPayload.is_public,
-            is_active: true,
-            updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await supabase
-            .from('calendar_single_entries')
-            .upsert(calendarPayload, { onConflict: 'source_event_id' });
-
-        if (error) {
-            throw error;
-        }
-    };
-
-    // Formu gönderme (Kaydetme)
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setMessage('Speichere...');
-        const eventData = {
-            title,
-            event_date: eventDate ? new Date(eventDate).toISOString() : null,
-            end_time: endTime || null,
-            location,
-            description,
-            category,
-            image_url: imageUrl || null,
-            is_featured: isFeatured,
-            is_big_event: isBigEvent,
-            registration_details: registrationDetails || null,
-            cost: cost || null,
-            contact_person: contactPerson || null,
-            program_details: programDetails.length > 0 ? programDetails : null, // Veritabanına kaydet
-            notes: notes || null,
-            is_public: isPublic,
-            archive_summary: archiveSummary || null,
-            archive_photos: archivePhotos.length > 0 ? archivePhotos : null,
-            youtube_url: youtubeUrl || null,
-        };
-        
-        let error;
-        let savedEventId = id;
-        if (isEditMode) {
-            ({ error } = await supabase.from('ereignisse').update(eventData).eq('id', id));
-        } else {
-            const { data: newEvent, error: insertError } = await supabase.from('ereignisse').insert(eventData).select('id').single();
-            if (newEvent) savedEventId = newEvent.id;
-            error = insertError;
-        }
-        if (error) {
-            setMessage(`Fehler beim Speichern: ${error.message}`);
-            setLoading(false);
-        } else {
-            try {
-                await syncEventToCalendar(savedEventId, eventData, eventDate, endTime);
-                setMessage('Ereignis erfolgreich gespeichert und mit Kalender synchronisiert!');
-                const updatedDataForPdf = { ...eventData, id: savedEventId, created_at: currentEventDataForPdf?.created_at || new Date().toISOString() };
-                setCurrentEventDataForPdf(updatedDataForPdf);
-                setLoading(false);
-                setTimeout(() => { navigate('/admin/ereignisse'); }, 1500);
-            } catch (calendarError) {
-                setMessage(`Ereignis gespeichert, aber Kalender-Sync fehlgeschlagen: ${calendarError.message}`);
-                setLoading(false);
-            }
-        }
-    };
-
-    // Ana Resim Yükleme
-    const handleImageUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        setLoading(true);
-        setMessage('Lade Hauptbild hoch...');
-        const fileName = `event-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-        
-        const { error: uploadError } = await supabase.storage.from('page_assets').upload(fileName, file);
-        
-        if (uploadError) {
-            setMessage(`Upload Fehler: ${uploadError.message}`);
-        } else {
-            const { data: { publicUrl } } = supabase.storage.from('page_assets').getPublicUrl(fileName);
-            setImageUrl(publicUrl);
-            setMessage('Hauptbild erfolgreich hochgeladen.');
-        }
-        setLoading(false);
-        setTimeout(() => setMessage(''), 4000);
-    };
-
-    // Arşiv Resim Yükleme (Çoklu)
-    const handleArchivePhotosUpload = async (e) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-        
-        setLoading(true);
-        setMessage(`Lade ${files.length} Archivfoto(s) hoch...`);
-        
-        const uploadPromises = [];
-        for (const file of files) {
-            const fileName = `archive-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-            uploadPromises.push(supabase.storage.from('page_assets').upload(fileName, file));
-        }
+        setSaving(true);
+        setMessage('Speichere Foto-Bericht...');
 
         try {
-            const results = await Promise.all(uploadPromises);
-            const newUrls = [];
-            let uploadErrors = [];
-
-            for (const result of results) {
-                if (result.error) {
-                    uploadErrors.push(result.error.message);
-                } else if (result.data) {
-                    const { data: { publicUrl } } = supabase.storage.from('page_assets').getPublicUrl(result.data.path);
-                    if(publicUrl) {
-                        newUrls.push(publicUrl);
-                    }
-                }
+            let eventDateIso = null;
+            if (selectedDate) {
+                const [year, month, day] = selectedDate.split('-').map(Number);
+                const [hours = 12, minutes = 0] = (startTime || '12:00').split(':').map(Number);
+                eventDateIso = new Date(year, month - 1, day, hours, minutes).toISOString();
             }
 
-            if (newUrls.length > 0) {
-                setArchivePhotos(prevPhotos => [...prevPhotos, ...newUrls]);
-                setMessage(`${newUrls.length} von ${files.length} Foto(s) erfolgreich hochgeladen.`);
+            const coverImage = selectedCoverUrl || (photos.length > 0 ? photos[0] : null);
+
+            // Titelbild en başa gelecek şekilde fotoğrafları düzenle
+            let orderedPhotos = [...photos];
+            if (coverImage && orderedPhotos.includes(coverImage)) {
+                orderedPhotos = [coverImage, ...orderedPhotos.filter((p) => p !== coverImage)];
             }
 
-            if (uploadErrors.length > 0) {
-                setMessage(`Fehler bei einigen Uploads: ${uploadErrors.join(', ')}`);
+            const payload = {
+                title: title.trim(),
+                category: category || 'Offene Treff',
+                location: location || 'Bürgertreff Wissen',
+                description: description || null,
+                archive_summary: archiveSummary || description || null,
+                event_date: eventDateIso,
+                end_time: endTime || null,
+                image_url: coverImage,
+                archive_photos: orderedPhotos.length > 0 ? orderedPhotos : null,
+                is_public: true,
+                is_featured: false,
+            };
+
+            let savedId = id;
+            if (isEditMode) {
+                const { error } = await supabase.from('ereignisse').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { data, error } = await supabase.from('ereignisse').insert(payload).select('id').single();
+                if (error) throw error;
+                savedId = data.id;
             }
 
+            // Sicherstellen, dass kein doppelter Einzeltermin im Kalender liegt
+            await supabase.from('calendar_single_entries').delete().eq('source_event_id', Number(savedId));
+
+            setMessage('✅ Foto-Bericht erfolgreich gespeichert!');
+            setTimeout(() => {
+                navigate('/admin/ereignisse');
+            }, 1200);
         } catch (err) {
-            console.error("Fehler beim Hochladen der Archivfotos:", err);
-            setMessage(`Upload Fehler: ${err.message}`);
+            console.error('Fehler beim Speichern:', err);
+            setMessage(`Fehler beim Speichern: ${err.message}`);
+        } finally {
+            setSaving(false);
         }
-
-        setLoading(false);
-        setTimeout(() => setMessage(''), 5000);
     };
 
-    // Arşivden Fotoğraf Silme
-    const handleRemoveArchivePhoto = (urlToRemove) => {
-        setArchivePhotos(prevPhotos => prevPhotos.filter(url => url !== urlToRemove));
-        setMessage("Foto aus der Archiv-Galerie entfernt. (Änderungen speichern nicht vergessen!)");
-        setTimeout(() => setMessage(''), 4000);
-    };
-
-
-    // PDF İNDİRME FONKSİYONU
-    const handleDownloadPdf = () => {
-        setIsDownloading(true); 
-        let node, format, width, height, fileName;
-        const safeTitle = (previewData.title || 'ereignis').replace(/[^a-zA-Z0-9.-]/g, '_');
-        if (previewType === 'a4') {
-            node = a4Ref.current; format = 'a4'; width = 210; height = 297;
-            fileName = `Flyer_A4_${safeTitle}.pdf`;
-        } else {
-            node = a5Ref.current; format = 'a5'; width = 148; height = 210;
-            fileName = `Flyer_A5_${safeTitle}.pdf`;
-        }
-        if (!node) { alert("Hata: İndirilecek bileşen referansı (ref) bulunamadı."); setIsDownloading(false); return; }
-
-        toPng(node, { pixelRatio: 3, backgroundColor: '#ffffff' })
-            .then((dataUrl) => {
-                const pdf = new jsPDF('p', 'mm', format);
-                pdf.addImage(dataUrl, 'PNG', 0, 0, width, height);
-                pdf.save(fileName);
-                setIsDownloading(false);
-                setIsPreviewOpen(false);
-            })
-            .catch((err) => {
-                console.error('PDF oluşturulurken hata oluştu:', err);
-                alert('PDF oluşturulurken bir hata oluştu: ' + err.message);
-                setIsDownloading(false);
-            });
-    };
-
-    // Modal Açma Fonksiyonları
-    const openPrintPreview = (type) => {
-        const latestPdfData = {
-            id: currentEventDataForPdf?.id || null, created_at: currentEventDataForPdf?.created_at || new Date().toISOString(),
-            title, event_date: eventDate, location, description, category, image_url: imageUrl, is_featured: isFeatured,
-            registration_details: registrationDetails, cost, contact_person: contactPerson,
-            program_details: programDetails, notes,
-            is_public: isPublic, archive_summary: archiveSummary, archive_photos: archivePhotos,
-            youtube_url: youtubeUrl
-        };
-        setPreviewData(latestPdfData);
-        setPreviewType(type);
-        setIsPreviewOpen(true);
-    };
-    
-    // Program Detayları Yönetimi Fonksiyonları
-    const handleAddProgramItem = () => { setProgramDetails([...programDetails, { time: '', activity: '' }]); };
-    const handleProgramItemChange = (index, field, value) => { const newP = [...programDetails]; newP[index][field] = value; setProgramDetails(newP); };
-    const handleRemoveProgramItem = (index) => { setProgramDetails(programDetails.filter((_, i) => i !== index)); };
-
-
-    if (loading && isEditMode && !message) {
-        return <div className="p-8 text-center text-gray-500">Lade Ereignisdaten...</div>;
-    }
-
-    const pdfData = previewData || currentEventDataForPdf || {
-         id: null, created_at: new Date().toISOString(), title, event_date: eventDate, location, description, category, image_url: imageUrl, is_featured: isFeatured,
-         registration_details: registrationDetails, cost, contact_person: contactPerson, program_details: programDetails, notes,
-         is_public: isPublic, archive_summary: archiveSummary, archive_photos: archivePhotos, youtube_url: youtubeUrl
-    };
+    const formattedDisplayDate = selectedDate ? formatDateLabel(parseLocalDate(selectedDate)) : '';
 
     return (
-        <div className="space-y-6">
-            {/* --- Yazdırma Önizleme Modal Penceresi (Değişiklik yok) --- */}
-            {isPreviewOpen && previewData && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4 overflow-y-auto">
-                    <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[95vh] flex flex-col my-auto">
-                        <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
-                            <h3 className="text-xl font-semibold text-rcDarkGray"> Vorschau ({previewType === 'a4' ? 'A4' : 'A5'}) </h3>
-                            <button onClick={() => setIsPreviewOpen(false)} className="text-gray-400 hover:text-rcRed text-2xl" > &times; </button>
-                        </div>
-                        <div className="p-6 overflow-auto flex-grow bg-gray-200 print-preview-visible">
-                             {previewType === 'a4' && (
-                                <div className="mx-auto bg-white shadow-lg border border-gray-300">
-                                    <PrintableFlyerA4 ref={a4Ref} trip={previewData} />
-                                </div>
-                             )}
-                             {previewType === 'a5' && (
-                                <div className="mx-auto bg-white shadow-lg border border-gray-300" style={{ width: '148mm' }}>
-                                     <PrintableFlyerA5 ref={a5Ref} trip={previewData} />
-                                </div>
-                             )}
-                        </div>
-                        <div className="flex justify-end items-center p-4 border-t space-x-3 bg-gray-50 rounded-b-lg sticky bottom-0 z-10">
-                            <button 
-                                onClick={() => setIsPreviewOpen(false)} 
-                                disabled={isDownloading}
-                                className="px-4 py-2 bg-gray-200 text-rcDarkGray rounded hover:bg-gray-300 text-sm font-medium disabled:opacity-50" 
-                            > 
-                                Schließen 
-                            </button>
-                            <button 
-                                onClick={handleDownloadPdf} 
-                                disabled={isDownloading}
-                                className="px-5 py-2 bg-rcBlue text-white rounded hover:bg-blue-700 text-sm font-semibold shadow disabled:bg-gray-400" 
-                            > 
-                                {isDownloading ? 'Wird erstellt...' : 'PDF Herunterladen'} 
-                            </button>
-                        </div>
-                    </div>
+        <div className="max-w-4xl mx-auto space-y-6 pb-12">
+            {/* Kopfzeile */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
+                <div>
+                    <Link
+                        to="/admin/ereignisse"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-rcBlue hover:underline mb-2"
+                    >
+                        <FaArrowLeft size={12} /> Zurück zur Liste
+                    </Link>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-rcDarkGray flex items-center gap-3">
+                        <FaCamera className="text-rcBlue" />
+                        {isEditMode ? 'Foto-Bericht bearbeiten' : 'Fotos für Aktivität hochladen'}
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        Wählen Sie einfach das Datum der Aktivität. Der Termin wird automatisch aus dem Terminkalender erkannt.
+                    </p>
                 </div>
-            )}
-            {/* --- Bitiş: Modal Penceresi --- */}
-
-            <div className="mb-4">
-                <Link to="/admin/ereignisse" className="text-rcBlue font-semibold hover:underline"> &larr; Zurück zur Ereignisliste </Link>
             </div>
 
             {message && (
-                <p className={`mb-4 p-3 rounded-md border text-sm ${message.startsWith('Fehler') ? 'bg-red-100 text-rcRed border-red-300' : 'bg-green-100 text-green-800 border-green-300'}`}> {message} </p>
+                <div
+                    className={`p-4 rounded-xl border text-sm font-medium ${
+                        message.startsWith('Fehler')
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    }`}
+                >
+                    {message}
+                </div>
             )}
 
-            {/* --- ANA FORM BAŞLANGIÇ --- */}
             <form onSubmit={handleSubmit} className="space-y-6">
-
-                {/* --- Ana İçerik Bölümü --- */}
-                <div className="bg-white p-6 shadow-lg rounded-lg border border-gray-200 space-y-4">
-                    <h2 className="text-2xl font-semibold text-rcDarkGray mb-4 pb-2 border-b border-gray-200">
-                        {isEditMode ? 'Ereignis bearbeiten' : 'Neues Ereignis erstellen'}
-                    </h2>
-                    <FormInput label="Titel*" value={title} onChange={(e) => setTitle(e.target.value)} required />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormInput label="Datum & Startzeit" type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
-                        <FormInput label="Endzeit (Optional)" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} hint="z.B. 18:00" />
-                        <FormInput label="Ort" value={location} onChange={(e) => setLocation(e.target.value)} />
+                {/* 1. DATUM & KALENDER-ZUORDNUNG */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-5">
+                    <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-rcBlue">
+                            1
+                        </span>
+                        <h2 className="text-lg font-bold text-rcDarkGray">Datum der Aktivität wählen</h2>
                     </div>
-                    <FormTextarea label="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} hint="Sie können hier Zeilenumbrüche verwenden, diese werden im PDF korrekt dargestellt." />
-                    
-                    {/* --- DÜZELTME: EKSİK OLAN PROGRAM DETAYLARI BÖLÜMÜ EKLENDİ --- */}
-                    <div className="space-y-3 p-4 border border-gray-200 rounded-md bg-gray-50">
-                        <h3 className="text-base font-medium text-rcDarkGray">Programm-Details (Optional)</h3>
-                        {programDetails.map((item, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                            <input type="text" placeholder="Zeit (z.B. 13:30 Uhr)" value={item.time} onChange={(e) => handleProgramItemChange(index, 'time', e.target.value)} className="flex-1 w-1/3 px-2 py-1 border border-gray-300 rounded text-sm" />
-                            <input type="text" placeholder="Aktivität / Programmpunkt" value={item.activity} onChange={(e) => handleProgramItemChange(index, 'activity', e.target.value)} className="flex-1 w-2/3 px-2 py-1 border border-gray-300 rounded text-sm" />
-                            <button type="button" onClick={() => handleRemoveProgramItem(index)} className="px-3 py-1 bg-rcRed text-white rounded hover:bg-red-700 text-sm">X</button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                                Datum
+                            </label>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                required
+                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-base font-medium shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
+                            />
+                            {formattedDisplayDate && (
+                                <p className="mt-1.5 text-xs text-gray-500 font-medium">
+                                    📅 {formattedDisplayDate}
+                                </p>
+                            )}
                         </div>
-                        ))}
-                        <button type="button" onClick={handleAddProgramItem} className="px-3 py-1 text-sm bg-gray-200 text-rcDarkGray rounded hover:bg-gray-300">
-                        + Programmpunkt hinzufügen
-                        </button>
-                    </div>
-                    {/* --- BİTİŞ: PROGRAM DETAYLARI --- */}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormSelect label="Kategorie*" value={category} onChange={(e) => setCategory(e.target.value)} required >
-                            {categoryOptions.map(cat => ( <option key={cat} value={cat}>{cat}</option>))}
-                        </FormSelect>
-                        <FormInput label="Kontaktperson (Optional)" value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                                Aktivität im Kalender
+                            </label>
+                            {dayEvents.length > 0 ? (
+                                <div className="space-y-2">
+                                    {dayEvents.map((evt) => {
+                                        const isSelected = selectedEventId === evt.id;
+                                        return (
+                                            <button
+                                                key={evt.id}
+                                                type="button"
+                                                onClick={() => handleSelectDayEvent(evt)}
+                                                className={`w-full text-left p-3 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+                                                    isSelected
+                                                        ? 'bg-blue-50/80 border-rcBlue ring-2 ring-rcBlue/30 shadow-sm'
+                                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-rcDarkGray text-sm">{evt.title}</span>
+                                                        {evt.category && (
+                                                            <span className="text-[10px] font-semibold bg-white border border-gray-200 rounded px-1.5 py-0.5 text-gray-600">
+                                                                {evt.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
+                                                        {(evt.startTime || evt.start_time) && (
+                                                            <span className="flex items-center gap-1">
+                                                                <FaClock size={11} className="text-rcBlue" />
+                                                                {formatTimeRange(evt.startTime || evt.start_time, evt.endTime || evt.end_time)}
+                                                            </span>
+                                                        )}
+                                                        {evt.location && (
+                                                            <span className="flex items-center gap-1 truncate">
+                                                                <FaMapMarkerAlt size={11} className="text-rcBlue" />
+                                                                {evt.location}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {isSelected && (
+                                                    <FaCheckCircle className="text-rcBlue text-lg flex-shrink-0 mt-0.5" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="rounded-xl border border-dashed border-gray-300 p-3 bg-gray-50 text-xs text-gray-600">
+                                    <p className="font-medium text-gray-700">An diesem Tag ist kein Termin im Kalender eingetragen.</p>
+                                    <p className="mt-1 text-gray-500">
+                                        Geben Sie den Titel unten einfach manuell an:
+                                    </p>
+                                    <input
+                                        type="text"
+                                        placeholder="z.B. Offener Treff, Frühlingsfest..."
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm bg-white"
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormInput label="Kosten (Optional)" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="z.B. 5€ / Eintritt frei" />
-                        <FormInput label="Link/Infos zur Anmeldung (Optional)" value={registrationDetails} onChange={(e) => setRegistrationDetails(e.target.value)} placeholder="z.B. E-Mail Adresse oder Link" />
-                    </div>
-                    <FormTextarea
-                        label="Zusätzliche Notizen (Optional)"
-                        rows={2}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        hint="z.B. Unterstützer, spezielle Hinweise etc. Wird im PDF angezeigt."
-                    />
-                    
-                    {/* Ana Resim Yükleme Formu */}
-                    <div className="p-4 border rounded-md space-y-2 bg-gray-50">
-                         <label className="block text-sm font-medium text-rcDarkGray">Hauptbild (Optional)</label>
-                         <input type="file" accept="image/png, image/jpeg" onChange={handleImageUpload} disabled={loading} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rcLightBlue file:text-rcBlue hover:file:bg-blue-200 cursor-pointer" />
-                       {imageUrl && (
-                            <div className="mt-2 group relative">
-                                <img src={imageUrl} alt="Vorschau" className="max-h-40 rounded border"/>
-                                <input type="text" readOnly value={imageUrl} className="mt-1 block w-full text-xs text-gray-500 bg-gray-100 border border-gray-300 rounded px-2 py-1" title="Bild-URL" />
-                                 <button type="button" onClick={() => setImageUrl('')} title="Bild-URL entfernen (Datei bleibt im Storage)" className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-700 text-xs"> <FaTimes size={10} /> </button>
-                            </div>
-                       )}
-                         <p className="text-xs text-gray-500">Das Hauptbild für die Ankündigung. Wird auf der Angebotsseite (Karte) und oben im Banner der Detailseite angezeigt.</p>
-                     </div>
+
+                    {/* Erkannte Aktivitäts-Zusammenfassung */}
+                    {title && dayEvents.length > 0 && (
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-xs text-gray-600 flex items-center gap-2">
+                            <FaInfoCircle className="text-rcBlue flex-shrink-0" />
+                            <span>
+                                Ausgewählt: <strong>{title}</strong>
+                                {startTime ? ` (${formatTimeRange(startTime, endTime)})` : ''}
+                                {' '}– Fotos werden direkt mit diesem Kalendereintrag und der Startseite verknüpft.
+                            </span>
+                        </div>
+                    )}
                 </div>
 
-                {/* --- Arşiv Bölümü --- */}
-                <div className="bg-white p-6 shadow-lg rounded-lg border border-gray-200 space-y-4">
-                    <h2 className="text-xl font-semibold text-rcDarkGray mb-4 pb-2 border-b border-gray-200">
-                        Archiv & Video (Nach der Veranstaltung)
-                    </h2>
-                    <FormTextarea
-                        label="Archiv-Zusammenfassung (Optional)"
-                        rows={4}
-                        value={archiveSummary}
-                        onChange={(e) => setArchiveSummary(e.target.value)}
-                        hint="Wie war die Veranstaltung? Dieser Text wird im Archiv anstelle der normalen Beschreibung angezeigt."
-                    />
-                    
-                    <FormInput 
-                        label="YouTube Video-Link (Optional)" 
-                        type="url"
-                        value={youtubeUrl} 
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                        hint="Kopieren Sie den vollen YouTube-Link hierher (z.B. https://www.youtube.com/watch?v=...)"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                    />
-                    
-                    {/* Arşiv Fotoğraf Yükleme Formu */}
-                    <div>
-                        <label className="block text-sm font-medium text-rcDarkGray">Archiv-Fotos (Optional)</label>
-                        <input 
-                            type="file" 
-                            accept="image/png, image/jpeg" 
-                            multiple 
-                            onChange={handleArchivePhotosUpload} 
-                            disabled={loading} 
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rcLightBlue file:text-rcBlue hover:file:bg-blue-200 cursor-pointer" 
+                {/* 2. FOTOS HOCHLADEN */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-5">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-rcBlue">
+                                2
+                            </span>
+                            <h2 className="text-lg font-bold text-rcDarkGray">Fotos auswählen & hochladen</h2>
+                        </div>
+                        {photos.length > 0 && (
+                            <span className="text-xs font-semibold text-rcBlue bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+                                {photos.length} Foto{photos.length > 1 ? 's' : ''} bereit
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Upload Dropzone */}
+                    <div className="relative rounded-2xl border-2 border-dashed border-gray-300 p-6 text-center hover:border-rcBlue transition-colors bg-gray-50/50">
+                        <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            multiple
+                            onChange={handleFileUpload}
+                            disabled={uploadingFiles || loading}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                            title="Dateien auswählen"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Sie können mehrere Bilder auswählen. Diese werden auf der Detailseite als Galerie angezeigt.</p>
-                        
-                        {archivePhotos && archivePhotos.length > 0 && (
-                            <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                                {archivePhotos.map((url, index) => (
-                                    <div key={index} className="relative group aspect-square">
-                                        <img src={url} alt={`Archivfoto ${index + 1}`} className="w-full h-full object-cover rounded-md border border-gray-300" />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => handleRemoveArchivePhoto(url)}
-                                            title="Dieses Foto aus der Liste entfernen"
-                                            className="absolute -top-2 -right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-opacity"
+                        <div className="space-y-2">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-rcBlue">
+                                {uploadingFiles ? <FaSpinner className="animate-spin" size={20} /> : <FaCloudUploadAlt size={24} />}
+                            </div>
+                            <p className="text-sm font-semibold text-rcDarkGray">
+                                {uploadingFiles ? 'Bilder werden hochgeladen...' : 'Klicken oder Fotos hierher ziehen'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                PNG, JPG oder WebP – Sie können mehrere Fotos gleichzeitig auswählen.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Vorschau der hochgeladenen Fotos mit Titelbild-Auswahl */}
+                    {photos.length > 0 && (
+                        <div className="space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                                <span className="font-bold uppercase tracking-wider text-gray-500">
+                                    Hochgeladene Fotos ({photos.length})
+                                </span>
+                                <span className="text-gray-500 font-medium">
+                                    ⭐ Klicken Sie auf ein Foto, um es als <strong>Titelbild</strong> für die Startseite festzulegen.
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                                {photos.map((url, idx) => {
+                                    const isCover = selectedCoverUrl ? selectedCoverUrl === url : idx === 0;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            onClick={() => setSelectedCoverUrl(url)}
+                                            className={`group relative aspect-square rounded-2xl overflow-hidden border-2 cursor-pointer transition-all shadow-sm ${
+                                                isCover
+                                                    ? 'border-amber-500 ring-4 ring-amber-400/30 shadow-md'
+                                                    : 'border-gray-200 hover:border-rcBlue'
+                                            }`}
+                                            title={isCover ? 'Aktuelles Titelbild' : 'Klicken, um als Titelbild festzulegen'}
                                         >
-                                            <FaTimes size={12} />
-                                        </button>
-                                    </div>
-                                ))}
+                                            <img
+                                                src={url}
+                                                alt={`Foto ${idx + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+
+                                            {isCover ? (
+                                                <span className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow ring-1 ring-white/50">
+                                                    ⭐ Titelbild
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCoverUrl(url);
+                                                    }}
+                                                    className="absolute top-2 left-2 flex items-center gap-1 rounded-lg bg-black/60 hover:bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    ☆ Als Titelbild
+                                                </button>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleRemovePhoto(idx);
+                                                }}
+                                                className="absolute top-2 right-2 rounded-full bg-red-600 text-white p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 shadow"
+                                                title="Foto entfernen"
+                                            >
+                                                <FaTimes size={11} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
+                        </div>
+                    )}
+                </div>
+
+                {/* 3. KURZER RÜCKBLICK (OPTIONAL) */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+                    <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-rcBlue">
+                            3
+                        </span>
+                        <h2 className="text-lg font-bold text-rcDarkGray">Kurzer Rückblick (Optional)</h2>
+                    </div>
+
+                    <div>
+                        <textarea
+                            rows={3}
+                            value={archiveSummary}
+                            onChange={(e) => setArchiveSummary(e.target.value)}
+                            placeholder="z.B. Trotz des Regens kamen viele Besucher zusammen und verbrachten einen geselligen Nachmittag bei Kaffee und Kuchen..."
+                            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                            Dieser Text erscheint im Archiv und auf der Veranstaltungsseite über den Fotos. Kann auch leer gelassen werden.
+                        </p>
                     </div>
                 </div>
 
-                {/* --- Yayınlama ve Kaydetme Bölümü --- */}
-                <div className="bg-white p-6 shadow-lg rounded-lg border border-gray-200 space-y-4">
-                    <h2 className="text-xl font-semibold text-rcDarkGray mb-4 pb-2 border-b border-gray-200">
-                        Veröffentlichung & Speichern
-                    </h2>
-                    <FormCheckbox 
-                        id="is_public" 
-                        label="Auf der 'Angebote' Seite öffentlich anzeigen?" 
-                        checked={isPublic} 
-                        onChange={(e) => setIsPublic(e.target.checked)} 
-                        hint="Wenn dies nicht aktiviert ist, wird das Ereignis gespeichert (und kann als PDF heruntergeladen werden), erscheint aber nicht auf der öffentlichen Website. Nützlich für interne Termine."
-                    />
-                    <FormCheckbox 
-                        id="is_featured" 
-                        label="Als hervorgehobenes Ereignis auf Angebotsseite anzeigen?" 
-                        checked={isFeatured} 
-                        onChange={(e) => setIsFeatured(e.target.checked)} 
-                        hint="Zeigt dieses Ereignis in einem speziellen 'Highlight'-Bereich an (z.B. auf der Startseite). Funktioniert nur, wenn es auch 'öffentlich' ist."
-                        disabled={!isPublic} 
-                    />
-                    <div className="p-4 border-2 border-orange-300 rounded-lg bg-orange-50 space-y-2">
-                        <FormCheckbox 
-                            id="is_big_event" 
-                            label="🎉 Großes Ereignis – Vollbild-Banner auf der Startseite anzeigen" 
-                            checked={isBigEvent} 
-                            onChange={(e) => setIsBigEvent(e.target.checked)} 
-                            hint="Wenn aktiviert, erscheint dieses Ereignis auf der Startseite als großer Vollbild-Banner (mit Gradient), bis das Datum abgelaufen ist. Nur öffentliche Ereignisse werden angezeigt."
-                            disabled={!isPublic} 
-                        />
-                        {isBigEvent && !isPublic && (
-                            <p className="text-xs text-orange-700 font-semibold ml-6">⚠️ Hinweis: Das Ereignis muss auch öffentlich sein, damit der Banner erscheint.</p>
+                {/* Speichern Button */}
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                    <Link
+                        to="/admin/ereignisse"
+                        className="w-full sm:w-auto px-5 py-3 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 text-center transition-colors"
+                    >
+                        Abbrechen
+                    </Link>
+                    <button
+                        type="submit"
+                        disabled={saving || uploadingFiles || loading}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-rcBlue text-white text-sm font-bold shadow-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                    >
+                        {saving ? (
+                            <>
+                                <FaSpinner className="animate-spin" /> Speichere...
+                            </>
+                        ) : (
+                            <>
+                                <FaCamera /> {isEditMode ? 'Änderungen speichern' : 'Foto-Bericht veröffentlichen'}
+                            </>
                         )}
-                    </div>
-
-                    <div className="flex justify-end pt-4 border-t border-gray-200 mt-4">
-                        <button type="submit" disabled={loading} className="w-full md:w-auto px-6 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 disabled:bg-gray-400 transition-colors">
-                            {loading ? 'Speichere...' : (isEditMode ? 'Änderungen speichern' : 'Ereignis erstellen')}
-                        </button>
-                    </div>
+                    </button>
                 </div>
             </form>
-            {/* --- ANA FORM BİTİŞ --- */}
-
-
-            {/* PDF Çıktı Bölümü */}
-            {currentEventDataForPdf && (
-                <div className="pt-6 border-t border-gray-200 bg-white p-6 shadow-lg rounded-lg mt-6">
-                    <h3 className="text-lg font-medium text-rcDarkGray mb-3">Flyer als PDF herunterladen</h3>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <button type="button" onClick={() => openPrintPreview('a4')} disabled={loading} className="w-full sm:w-auto px-4 py-2 bg-rcDarkGray text-white rounded hover:bg-gray-700 transition-colors disabled:bg-gray-400" > A4 Vorschau & PDF-Download </button>
-                        <button type="button" onClick={() => openPrintPreview('a5')} disabled={loading} className="w-full sm:w-auto px-4 py-2 bg-rcDarkGray text-white rounded hover:bg-gray-700 transition-colors disabled:bg-gray-400" > A5 Vorschau & PDF-Download </button>
-                    </div>
-                     <p className="text-xs text-gray-500 mt-2">Zeigt eine Vorschau der aktuellen Formulardaten an. Der Download wird im Vorschaufenster gestartet.</p>
-                </div>
-            )}
         </div>
     );
 }

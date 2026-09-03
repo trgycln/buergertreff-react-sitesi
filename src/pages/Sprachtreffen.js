@@ -1,97 +1,274 @@
 // src/pages/Sprachtreffen.js
-// GÜNCELLENDİ: "Wann/Wo" bölümü ve "Arşiv" bölümü dinamik hale getirildi.
+// GÜNCELLENDİ: "Wann/Wo" bölümü ve "Arşiv" bölümü takvim modülüyle tam entegre ve dinamik hale getirildi.
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom'; // Link eklendi
-import { supabase } from '../supabaseClient'; // Supabase eklendi
+import { Link } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import ContentBlock from '../components/ContentBlock';
 import PageBanner from '../components/PageBanner';
 import sprachtreffenImage from '../assets/images/sprachtreffen-image.jpg';
 import sprachtreffenBanner from '../assets/images/sprachtreffen-banner.jpg';
-import { FaUser, FaRegCalendarAlt, FaMapMarkerAlt, FaArrowRight } from 'react-icons/fa';
-
+import { FaUser, FaRegCalendarAlt, FaArrowRight } from 'react-icons/fa';
 import { Helmet } from 'react-helmet-async';
+import {
+    dateToKey,
+    expandRecurringEntries,
+    getComparableEventDate,
+    isEventInPast,
+    mergeUpcomingEvents,
+    parseLocalDate,
+} from '../utils/calendarUtils';
 
 // --- Tarih Formatlama Fonksiyonları ---
 
 // "Wann" kartı için detaylı format
-const formatCardDate = (dateString) => {
-    if (!dateString) return null;
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleString('de-DE', {
-            weekday: 'long', 
-            day: '2-digit', 
-            month: 'long', 
-            year: 'numeric',
-            hour: '2-digit', 
-            minute: '2-digit'
-         }) + ' Uhr';
-    } catch (e) { return dateString; }
+const formatCardDate = (dateKey, startTime, endTime) => {
+    if (!dateKey) return null;
+    const date = parseLocalDate(dateKey);
+    if (!date) return dateKey;
+
+    const dateFormatted = date.toLocaleDateString('de-DE', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+    });
+
+    const start = startTime ? String(startTime).slice(0, 5) : '';
+    const end = endTime ? String(endTime).slice(0, 5) : '';
+
+    if (start && end) {
+        return `${dateFormatted}, ${start} - ${end} Uhr`;
+    }
+    if (start) {
+        return `${dateFormatted}, ab ${start} Uhr`;
+    }
+    return dateFormatted;
 };
 
 // Arşiv listesi için kısa format
 const formatListDate = (dateString) => {
-    if (!dateString) return ""; 
+    if (!dateString) return '';
     try {
         const date = new Date(dateString);
-        return date.toLocaleString('de-DE', {
+        return date.toLocaleDateString('de-DE', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
-         });
-    } catch (e) { return ""; }
+        });
+    } catch (e) {
+        return '';
+    }
 };
-// --- Bitiş: Tarih Formatlama ---
 
+const isOffenerTreff = (item) => {
+    const title = (item?.title || '').toLowerCase();
+    const category = (item?.category || '').toLowerCase();
+    return (
+        title.includes('offener treff') ||
+        title.includes('offene treff') ||
+        title.includes('sprachtreff') ||
+        category.includes('offene treff') ||
+        category.includes('offener treff') ||
+        category.includes('offenetreff') ||
+        category.includes('sprachtreff')
+    );
+};
 
 const Sprachtreffen = () => {
-    const [events, setEvents] = useState([]);
+    const [recurringEntries, setRecurringEntries] = useState([]);
+    const [singleEntries, setSingleEntries] = useState([]);
+    const [exceptions, setExceptions] = useState([]);
+    const [archiveEvents, setArchiveEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- YENİ: Veri Çekme ---
+    // --- Takvim ve Arşiv Verilerini Çekme ---
     useEffect(() => {
-        const fetchSprachtreffEvents = async () => {
+        const fetchAllData = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('ereignisse')
-                .select('*')
-                .eq('is_public', true) // Sadece public olanlar
-            .in('category', ['OffeneTreff', 'Sprachtreff', 'Offene Treff', 'Offener Treff']) // Admin ve eski/yeni kategori adlarini kapsa
-                .order('event_date', { ascending: true }); // Tarihe göre sırala
+            const today = parseLocalDate(new Date());
+            const horizon = new Date(today);
+            horizon.setMonth(horizon.getMonth() + 3);
+            const todayKey = dateToKey(today);
+            const horizonKey = dateToKey(horizon);
 
-            if (error) {
-                console.error("Fehler beim Abrufen der Offene-Treff-Ereignisse:", error);
-                setError("Ereignisse konnten nicht geladen werden.");
+            const [recurringRes, singleRes, ereignisseRes, exceptionsRes] = await Promise.all([
+                supabase
+                    .from('calendar_recurring_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('end_date', todayKey)
+                    .lte('start_date', horizonKey),
+                supabase
+                    .from('calendar_single_entries')
+                    .select('*')
+                    .eq('is_public', true)
+                    .eq('is_active', true)
+                    .gte('entry_date', todayKey)
+                    .lte('entry_date', horizonKey),
+                supabase
+                    .from('ereignisse')
+                    .select('*')
+                    .eq('is_public', true)
+                    .order('event_date', { ascending: false }),
+                supabase.from('calendar_recurring_exceptions').select('*'),
+            ]);
+
+            if (recurringRes.error || ereignisseRes.error) {
+                console.error('Fehler beim Abrufen der Offene-Treff-Ereignisse:', recurringRes.error || ereignisseRes.error);
+                setError('Ereignisse konnten nicht geladen werden.');
             } else {
-                setEvents(data);
+                setRecurringEntries(recurringRes.data || []);
+                setSingleEntries(singleRes.data || []);
+                setArchiveEvents(ereignisseRes.data || []);
+                setExceptions(exceptionsRes.data || []);
             }
             setLoading(false);
         };
 
-        fetchSprachtreffEvents();
+        fetchAllData();
     }, []);
-    // --- BİTİŞ: Veri Çekme ---
 
-    // --- YENİ: Veriyi Ayırma (Gelecek ve Geçmiş) ---
-    const { nextEvent, pastEvents } = useMemo(() => {
-        const today = new Date().setHours(0, 0, 0, 0);
+    // Takvimdeki tekrarlayan plana göre dinamik saat/gün metni
+    const scheduleText = useMemo(() => {
+        const offenerTreffItems = recurringEntries.filter(isOffenerTreff);
+        if (offenerTreffItems.length === 0) {
+            return 'Jeden Dienstag, Donnerstag und Sonntag von 14.30 bis 16.30 Uhr.';
+        }
 
-        const upcoming = events
-            .filter(e => !e.event_date || new Date(e.event_date) >= today)
-            .sort((a, b) => new Date(a.event_date) - new Date(b.event_date)); // En yakın tarihli olan en üstte
+        const weekdaySet = new Set();
+        let startTime = '';
+        let endTime = '';
 
-        const past = events
-            .filter(e => e.event_date && new Date(e.event_date) < today)
-            .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)); // En yeni geçmiş en üstte
+        offenerTreffItems.forEach((entry) => {
+            if (Array.isArray(entry.weekdays)) {
+                entry.weekdays.forEach((w) => weekdaySet.add(Number(w)));
+            }
+            if (!startTime && entry.start_time) startTime = String(entry.start_time).slice(0, 5);
+            if (!endTime && entry.end_time) endTime = String(entry.end_time).slice(0, 5);
+        });
 
-        return { 
-            nextEvent: upcoming.length > 0 ? upcoming[0] : null, // Sadece en yakın tarihli olanı al
-            pastEvents: past 
+        const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+        const WEEKDAY_NAMES = {
+            1: 'Dienstag', // Map to correct German weekday
+            2: 'Dienstag',
+            3: 'Mittwoch',
+            4: 'Donnerstag',
+            5: 'Freitag',
+            6: 'Samstag',
+            0: 'Sonntag',
         };
-    }, [events]);
-    // --- BİTİŞ: Veriyi Ayırma ---
+        // German weekday mapping: 1 is Montag, 2 is Dienstag, 3 is Mittwoch, 4 is Donnerstag, 5 is Freitag, 6 is Samstag, 0 is Sonntag
+        const GERMAN_WEEKDAY_NAMES = {
+            1: 'Montag',
+            2: 'Dienstag',
+            3: 'Mittwoch',
+            4: 'Donnerstag',
+            5: 'Freitag',
+            6: 'Samstag',
+            0: 'Sonntag',
+        };
+
+        const sortedWeekdays = WEEKDAY_ORDER.filter((w) => weekdaySet.has(w));
+        if (sortedWeekdays.length === 0) {
+            return 'Jeden Dienstag, Donnerstag und Sonntag von 14.30 bis 16.30 Uhr.';
+        }
+
+        const weekdayNames = sortedWeekdays.map((w) => GERMAN_WEEKDAY_NAMES[w]);
+        let daysText = '';
+        if (weekdayNames.length === 1) {
+            daysText = weekdayNames[0];
+        } else if (weekdayNames.length === 2) {
+            daysText = `${weekdayNames[0]} und ${weekdayNames[1]}`;
+        } else {
+            daysText = `${weekdayNames.slice(0, -1).join(', ')} und ${weekdayNames[weekdayNames.length - 1]}`;
+        }
+
+        let timeText = '';
+        if (startTime && endTime) {
+            timeText = ` von ${startTime} bis ${endTime} Uhr`;
+        } else if (startTime) {
+            timeText = ` ab ${startTime} Uhr`;
+        }
+
+        return `Jeden ${daysText}${timeText}.`;
+    }, [recurringEntries]);
+
+    // En yakın gelecek tarih (Next Event) ve geçmiş arşiv
+    const { nextEvent, pastEvents } = useMemo(() => {
+        const now = new Date();
+        const today = parseLocalDate(now);
+        const horizon = new Date(today);
+        horizon.setMonth(horizon.getMonth() + 3);
+
+        const past = archiveEvents
+            .filter((e) => isOffenerTreff(e) && e.event_date && isEventInPast(e.event_date, now))
+            .sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+
+        const recurringOccurrences = expandRecurringEntries(recurringEntries, today, horizon, exceptions)
+            .filter(isOffenerTreff)
+            .map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                category: entry.category,
+                location: entry.location,
+                dateKey: entry.dateKey,
+                startTime: entry.startTime,
+                endTime: entry.endTime,
+                isPriority: false,
+            }));
+
+        const singleOccurrences = singleEntries
+            .filter(isOffenerTreff)
+            .map((entry) => ({
+                id: `single-${entry.id}`,
+                title: entry.title,
+                category: entry.category,
+                location: entry.location,
+                dateKey: entry.entry_date,
+                startTime: entry.start_time,
+                endTime: entry.end_time,
+                detailId: entry.source_event_id || null,
+                isPriority: false,
+            }));
+
+        const ereignisseUpcoming = archiveEvents
+            .filter((e) => isOffenerTreff(e) && (!e.event_date || !isEventInPast(e.event_date, now)))
+            .map((e) => {
+                const ed = getComparableEventDate(e.event_date);
+                return {
+                    id: `event-${e.id}`,
+                    title: e.title,
+                    category: e.category,
+                    location: e.location,
+                    dateKey: ed ? dateToKey(ed) : '',
+                    startTime: ed ? String(ed.toTimeString()).slice(0, 5) : null,
+                    endTime: e.end_time ? String(e.end_time).slice(0, 5) : null,
+                    detailId: e.id,
+                    isPriority: true,
+                };
+            });
+
+        const allMerged = mergeUpcomingEvents([
+            ...ereignisseUpcoming,
+            ...recurringOccurrences,
+            ...singleOccurrences,
+        ]).filter((item) => item.dateKey && !isEventInPast(item.dateKey, now, item.startTime));
+
+        allMerged.sort((a, b) => {
+            if (a.dateKey !== b.dateKey) return (a.dateKey || '').localeCompare(b.dateKey || '');
+            const leftTime = a.startTime ? String(a.startTime).slice(0, 5) : '99:99';
+            const rightTime = b.startTime ? String(b.startTime).slice(0, 5) : '99:99';
+            return leftTime.localeCompare(rightTime);
+        });
+
+        return {
+            nextEvent: allMerged.length > 0 ? allMerged[0] : null,
+            pastEvents: past,
+        };
+    }, [recurringEntries, singleEntries, exceptions, archiveEvents]);
 
 
     // --- YENİ: Arşiv Listesi Render Fonksiyonu ---
@@ -157,15 +334,15 @@ const Sprachtreffen = () => {
                 <p>
                     Sich ganz zwanglos treffen, bei einer Tasse Kaffee oder Tee miteinander ins Gespräch kommen, nette Leute kennen lernen, vielleicht zusammen spielen, singen, basteln… oder einfach nur dabei sein.
                 </p>
-                <p>
-                    Jeden Dienstag, Donnerstag und Sonntag von 14.30 bis 16.30 Uhr.
+                <p className="font-semibold text-rcBlue">
+                    {scheduleText}
                 </p>
                 <p>
                     Kommen Sie rein und nehmen Sie Platz. Jeder und jede ist herzlich willkommen!
                 </p>
             </ContentBlock>
 
-            {/* --- DÜZELTME: Dinamik "Wann & Wo" Bölümü --- */}
+            {/* --- Dinamik "Wann & Wo" Bölümü --- */}
             <div className="bg-gray-50 py-12">
                 <div className="container mx-auto px-6 max-w-4xl">
                     
@@ -179,13 +356,13 @@ const Sprachtreffen = () => {
                             <div className="bg-red-50 p-6 rounded-lg">
                                 <h3 className="text-2xl font-bold text-red-700 mb-2">Wann?</h3>
                                 <p className="text-gray-700 text-lg font-medium">
-                                    {formatCardDate(nextEvent.event_date)}
+                                    {formatCardDate(nextEvent.dateKey, nextEvent.startTime, nextEvent.endTime)}
                                 </p>
                             </div>
                             <div className="bg-blue-50 p-6 rounded-lg">
                                 <h3 className="text-2xl font-bold text-blue-700 mb-2">Wo?</h3>
                                 <p className="text-gray-700 text-lg font-medium">
-                                    {nextEvent.location}
+                                    {nextEvent.location || 'Bürgertreff Wissen (Marktstr. 8, 57537 Wissen)'}
                                 </p>
                             </div>
                         </div>

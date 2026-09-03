@@ -78,7 +78,7 @@ export default function AdminDashboard() {
               className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
             >
               <FaPlus className="mr-2" />
-              Neues Ereignis
+              Fotos hochladen
             </Link>
             <Link
               to="/admin/ereignisse"

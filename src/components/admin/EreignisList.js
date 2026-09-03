@@ -124,7 +124,7 @@ export default function EreignisList({ pageInfo }) {
             {/* Kopfbereich mit Titel, Filter und "Neu hinzufügen"-Button */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h2 className="text-2xl font-semibold text-rcDarkGray">
-                    Alle Ereignisse verwalten ({ereignisse.length})
+                    Foto-Berichte & Aktivitäten ({ereignisse.length})
                 </h2>
                 <div className="flex items-center gap-4">
                     {/* Kategorie-Filter */}
@@ -143,11 +143,11 @@ export default function EreignisList({ pageInfo }) {
                     </div>
                     {/* "Neu hinzufügen"-Button (Link zur Formularseite) */}
                     <Link
-                        to="/admin/ereignisse/new" // Ziel-URL für das Formular
+                        to="/admin/ereignisse/new"
                         className="flex items-center px-4 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 transition-colors"
                     >
                         <FaPlus className="mr-2" />
-                        Neues Ereignis
+                        Fotos hochladen
                     </Link>
                 </div>
             </div>
@@ -186,7 +186,14 @@ export default function EreignisList({ pageInfo }) {
                         {!loading && ereignisse.map(event => (
                             <tr key={event.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="text-sm font-medium text-rcDarkGray">{event.title}</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-sm font-medium text-rcDarkGray">{event.title}</div>
+                                        {Array.isArray(event.archive_photos) && event.archive_photos.length > 0 && (
+                                            <span className="text-[11px] font-semibold bg-blue-50 text-rcBlue border border-blue-200 rounded px-1.5 py-0.5">
+                                                📸 {event.archive_photos.length}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-xs text-gray-500">{event.location || ''}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">

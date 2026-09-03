@@ -89,7 +89,8 @@ const getUpcomingItemDayKey = (item = {}) => {
 const getUpcomingMergeScore = (item = {}) => {
     let score = 0;
     if (item.linkTo) score += 4;
-    if (item.detailId) score += 4;
+    if (item.detailId || item.source_event_id || item.sourceId) score += 5;
+    if (item.sourceType === 'ereignis' || item.sourceType === 'single') score += 2;
     if (String(item.description || '').trim()) score += 3;
     if (String(item.location || '').trim()) score += 2;
     if (String(item.startTime || '').trim()) score += 1;
@@ -112,9 +113,8 @@ export const mergeUpcomingEvents = (items = []) => {
     items.forEach((item) => {
         const dayKey = getUpcomingItemDayKey(item);
         const titleKey = normalizeTitleForMerge(item.title);
-        const categoryKey = normalizeText(normalizeUpcomingCategory(item.category));
         const mergeKey = dayKey && titleKey
-            ? `${dayKey}|${titleKey}|${categoryKey}`
+            ? `${dayKey}|${titleKey}`
             : String(item.id || `${item.title || ''}|${dayKey}`);
         const existing = deduped.get(mergeKey);
 
@@ -129,6 +129,8 @@ export const mergeUpcomingEvents = (items = []) => {
         const preferred = getUpcomingMergeScore(item) > getUpcomingMergeScore(existing) ? item : existing;
         const secondary = preferred === item ? existing : item;
 
+        const resolvedDetailId = preferred.detailId || secondary.detailId || preferred.source_event_id || secondary.source_event_id || null;
+
         deduped.set(mergeKey, {
             ...secondary,
             ...preferred,
@@ -136,11 +138,15 @@ export const mergeUpcomingEvents = (items = []) => {
             dateKey: preferred.dateKey || secondary.dateKey || dayKey,
             eventDate: preferred.eventDate || secondary.eventDate || null,
             startTime: pickPreferredValue(preferred.startTime, secondary.startTime),
+            endTime: pickPreferredValue(preferred.endTime, secondary.endTime),
             location: pickPreferredValue(preferred.location, secondary.location),
             description: pickPreferredValue(preferred.description, secondary.description),
             category: preferred.category || secondary.category || null,
-            linkTo: preferred.linkTo || secondary.linkTo || null,
-            detailId: preferred.detailId || secondary.detailId || null,
+            color: preferred.color || secondary.color || 'blue',
+            sourceType: preferred.sourceType || secondary.sourceType || null,
+            sourceId: preferred.sourceId || secondary.sourceId || null,
+            linkTo: preferred.linkTo || secondary.linkTo || (resolvedDetailId ? `/angebote/${resolvedDetailId}` : null),
+            detailId: resolvedDetailId,
             sortKey: Math.min(preferred.sortKey ?? Number.MAX_SAFE_INTEGER, secondary.sortKey ?? Number.MAX_SAFE_INTEGER),
             isPriority: preferred.isPriority || secondary.isPriority || false,
         });
