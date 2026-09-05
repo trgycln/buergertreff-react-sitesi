@@ -18,12 +18,24 @@ export default function AdminLogin() {
   
   const navigate = useNavigate();
 
-  // Eğer kullanıcı zaten giriş yapmışsa, onu doğrudan /admin'e yönlendir
+  // Eğer kullanıcı zaten giriş yapmışsa ve yetkiliyse /admin'e yönlendir, yetkisi yoksa oturumu temizle
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/admin');
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        const allowedRoles = ['super_admin', 'page_admin', 'treasurer', 'viewer'];
+        if (profile && allowedRoles.includes(profile.role)) {
+          navigate('/admin');
+        } else {
+          // Oturum kalmış ama rolü yetersiz veya silinmişse oturumu kapat ki login formu açılsın
+          await supabase.auth.signOut();
+        }
       }
     };
     checkSession();
