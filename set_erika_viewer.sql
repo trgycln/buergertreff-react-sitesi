@@ -1,17 +1,16 @@
--- Erika.Uber@t-online.de kullanıcısını 'viewer' (Sadece Okuma) rolüne ayarlama scripti
+-- 1. ADIM: PostgreSQL Enum'ına 'viewer' rolünü ekleyin
+ALTER TYPE admin_role ADD VALUE IF NOT EXISTS 'viewer';
 
--- 1. Profiles tablosunda Erika Hanım'ın rolünü 'viewer' olarak güncelleyin
+-- 2. ADIM: Erika Hanım'a doğrudan sizin belirleyeceğiniz bir şifre atayın
+-- (Aşağıdaki 'Erika2026!' yerine istediğiniz şifreyi yazabilirsiniz)
+UPDATE auth.users
+SET encrypted_password = crypt('Erika2026!', gen_salt('bf'))
+WHERE email ILIKE 'Erika.Uber@t-online.de';
+
+-- 3. ADIM: Erika Hanım'ın rolünü 'viewer' yapın
 UPDATE public.profiles
 SET role = 'viewer'
 WHERE email ILIKE 'Erika.Uber@t-online.de';
 
--- 2. Eğer henüz profiles tablosunda kaydı oluşmadıysa (auth.users tablosundan alarak ekleme):
-INSERT INTO public.profiles (id, email, role, full_name)
-SELECT id, email, 'viewer', 'Erika Uber'
-FROM auth.users
-WHERE email ILIKE 'Erika.Uber@t-online.de'
-ON CONFLICT (id) DO UPDATE
-SET role = 'viewer';
-
--- Kontrol sorgusu (Rolün 'viewer' olduğunu doğrulamak için):
-SELECT id, email, role, full_name FROM public.profiles WHERE email ILIKE 'Erika.Uber@t-online.de';
+-- KONTROL: Rolün güncellendiğini doğrulayın
+SELECT id, email, role FROM public.profiles WHERE email ILIKE 'Erika.Uber@t-online.de';
