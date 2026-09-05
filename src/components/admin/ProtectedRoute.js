@@ -72,16 +72,23 @@ const ProtectedRoute = ({ children, level }) => {
   
   // b) 'treasurer' (Sayman) gerektiren bir sayfa ise
   if (level === 'treasurer') {
-    // Sadece 'treasurer' veya 'super_admin' girebilir
-    if (profile.role !== 'treasurer' && profile.role !== 'super_admin') {
+    // Sadece 'treasurer' veya 'super_admin' girebilir (viewer salt okunur görebilir)
+    if (profile.role !== 'treasurer' && profile.role !== 'super_admin' && profile.role !== 'viewer') {
       return <Navigate to="/admin" replace />;
     }
   }
 
-  // c) 'admin' (herhangi bir admin) gerektiren bir sayfa ise
-  // (Rol 'super_admin', 'treasurer' VEYA 'page_admin' ise izin verilir)
-  if (level === 'admin' && (profile.role !== 'super_admin' && profile.role !== 'page_admin' && profile.role !== 'treasurer')) {
-     // Kullanıcı admin değilse, anasayfaya at
+  // c) 'editor' (yazma/düzenleme) gerektiren form sayfaları ise
+  // Viewer rolü bu sayfalara giremez, salt okunur listeye döner
+  if (level === 'editor' && profile.role === 'viewer') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // d) 'admin' (herhangi bir admin yetkisi olan) gerektiren bir sayfa ise
+  // (Rol 'super_admin', 'treasurer', 'page_admin' VEYA 'viewer' ise izin verilir)
+  const allowedRoles = ['super_admin', 'page_admin', 'treasurer', 'viewer'];
+  if (level === 'admin' && !allowedRoles.includes(profile.role)) {
+     // Kullanıcı admin/yetkili değilse, anasayfaya at
     return <Navigate to="/" replace />;
   }
 

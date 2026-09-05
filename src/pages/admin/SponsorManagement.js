@@ -36,9 +36,22 @@ const SponsorManagement = () => {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     
-    // Filtreleme state'leri
     const [filterCategory, setFilterCategory] = useState('all'); // 'all', 'institution', 'person'
     const [searchQuery, setSearchQuery] = useState('');
+    const [userRole, setUserRole] = useState(null);
+
+    const isViewer = userRole === 'viewer';
+
+    useEffect(() => {
+        const getRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+                if (profile) setUserRole(profile.role);
+            }
+        };
+        getRole();
+    }, []);
 
     const fetchSponsors = useCallback(async () => {
         setLoading(true);
@@ -217,7 +230,7 @@ const SponsorManagement = () => {
     const personCount = sponsors.filter(s => s.category === 'person').length;
 
     // --- FORM GÖRÜNÜMÜ ---
-    if (editingId !== null) {
+    if (editingId !== null && !isViewer) {
         return (
             <div className="max-w-2xl">
                 <div className="flex items-center justify-between mb-6">
@@ -425,22 +438,24 @@ const SponsorManagement = () => {
                     </p>
                 </div>
                 
-                <div className="flex flex-wrap items-center gap-2">
-                    <button
-                        onClick={() => openNew('institution')}
-                        className="flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold text-white bg-rcBlue rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
-                    >
-                        <FaBuilding />
-                        <span>Neues Unternehmen / Logo</span>
-                    </button>
-                    <button
-                        onClick={() => openNew('person')}
-                        className="flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold text-white bg-red-600 rounded-xl shadow-sm hover:bg-red-700 transition-colors"
-                    >
-                        <FaHeart />
-                        <span>Privater Spender</span>
-                    </button>
-                </div>
+                {!isViewer && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            onClick={() => openNew('institution')}
+                            className="flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold text-white bg-rcBlue rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
+                        >
+                            <FaBuilding />
+                            <span>Neues Unternehmen / Logo</span>
+                        </button>
+                        <button
+                            onClick={() => openNew('person')}
+                            className="flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold text-white bg-red-600 rounded-xl shadow-sm hover:bg-red-700 transition-colors"
+                        >
+                            <FaHeart />
+                            <span>Privater Spender</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Mesaj Bildirimi */}
@@ -597,43 +612,45 @@ const SponsorManagement = () => {
                                     )}
                                 </div>
 
-                                {/* Sıralama Butonları */}
-                                <div className="flex flex-col gap-1">
-                                    <button
-                                        onClick={() => moveOrder(sponsor, 'up')}
-                                        disabled={idx === 0}
-                                        title="Nach oben"
-                                        className="p-1.5 text-gray-400 hover:text-rcBlue disabled:opacity-20 transition-colors"
-                                    >
-                                        <FaArrowUp size={12} />
-                                    </button>
-                                    <button
-                                        onClick={() => moveOrder(sponsor, 'down')}
-                                        disabled={idx === filteredSponsors.length - 1}
-                                        title="Nach unten"
-                                        className="p-1.5 text-gray-400 hover:text-rcBlue disabled:opacity-20 transition-colors"
-                                    >
-                                        <FaArrowDown size={12} />
-                                    </button>
-                                </div>
+                                {!isViewer && (
+                                    <div className="flex flex-col gap-1">
+                                        <button
+                                            onClick={() => moveOrder(sponsor, 'up')}
+                                            disabled={idx === 0}
+                                            title="Nach oben"
+                                            className="p-1.5 text-gray-400 hover:text-rcBlue disabled:opacity-20 transition-colors"
+                                        >
+                                            <FaArrowUp size={12} />
+                                        </button>
+                                        <button
+                                            onClick={() => moveOrder(sponsor, 'down')}
+                                            disabled={idx === filteredSponsors.length - 1}
+                                            title="Nach unten"
+                                            className="p-1.5 text-gray-400 hover:text-rcBlue disabled:opacity-20 transition-colors"
+                                        >
+                                            <FaArrowDown size={12} />
+                                        </button>
+                                    </div>
+                                )}
 
-                                {/* Aksiyon Butonları */}
-                                <div className="flex gap-1.5">
-                                    <button
-                                        onClick={() => openEdit(sponsor)}
-                                        title="Bearbeiten"
-                                        className="p-2 text-rcBlue hover:bg-blue-50 rounded-xl transition-colors"
-                                    >
-                                        <FaEdit size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(sponsor)}
-                                        title="Löschen"
-                                        className="p-2 text-rcRed hover:bg-red-50 rounded-xl transition-colors"
-                                    >
-                                        <FaTrash size={16} />
-                                    </button>
-                                </div>
+                                {!isViewer && (
+                                    <div className="flex gap-1.5">
+                                        <button
+                                            onClick={() => openEdit(sponsor)}
+                                            title="Bearbeiten"
+                                            className="p-2 text-rcBlue hover:bg-blue-50 rounded-xl transition-colors"
+                                        >
+                                            <FaEdit size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(sponsor)}
+                                            title="Löschen"
+                                            className="p-2 text-rcRed hover:bg-red-50 rounded-xl transition-colors"
+                                        >
+                                            <FaTrash size={16} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

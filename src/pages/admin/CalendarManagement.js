@@ -152,6 +152,20 @@ export default function CalendarManagement() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+
+    const isViewer = userRole === 'viewer';
+
+    useEffect(() => {
+        const getRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+                if (profile) setUserRole(profile.role);
+            }
+        };
+        getRole();
+    }, []);
 
     const fetchCalendarData = async () => {
         setLoading(true);
@@ -512,167 +526,177 @@ export default function CalendarManagement() {
 
                 {activeTab === 'recurring' ? (
                     <div className="space-y-6 p-6">
-                        <form onSubmit={handleRecurringSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
-                            <div className="flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-rcDarkGray">
-                                        {editingRecurringId ? 'Regelmäßigen Termin bearbeiten' : 'Neuen regelmäßigen Termin anlegen'}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Beispiele: wöchentlich montags, alle 2 Wochen dienstags oder monatlich am Startdatum.
-                                    </p>
+                        {!isViewer && (
+                            <form onSubmit={handleRecurringSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-rcDarkGray">
+                                            {editingRecurringId ? 'Regelmäßigen Termin bearbeiten' : 'Neuen regelmäßigen Termin anlegen'}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            Beispiele: wöchentlich montags, alle 2 Wochen dienstags oder monatlich am Startdatum.
+                                        </p>
+                                    </div>
+                                    {editingRecurringId && (
+                                        <button
+                                            type="button"
+                                            onClick={resetRecurringForm}
+                                            className="text-sm font-semibold text-rcBlue hover:underline"
+                                        >
+                                            Bearbeitung abbrechen
+                                        </button>
+                                    )}
                                 </div>
-                                {editingRecurringId && (
+
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <FormInput
+                                        label="Titel"
+                                        value={recurringForm.title}
+                                        onChange={(event) => handleRecurringChange('title', event.target.value)}
+                                        required
+                                    />
+                                    <FormSelect
+                                        label="Kategorie"
+                                        value={recurringForm.category}
+                                        onChange={(event) => handleRecurringChange('category', event.target.value)}
+                                        required
+                                    >
+                                        <option value="">Bitte wählen...</option>
+                                        {categoryOptions.map((category) => (
+                                            <option key={category} value={category}>
+                                                {category === 'Offene Treff' ? 'Offener Treff' : category}
+                                            </option>
+                                        ))}
+                                    </FormSelect>
+                                    <FormInput
+                                        label="Ort"
+                                        value={recurringForm.location}
+                                        onChange={(event) => handleRecurringChange('location', event.target.value)}
+                                    />
+                                    <FormSelect
+                                        label="Akzentfarbe"
+                                        value={recurringForm.color}
+                                        onChange={(event) => handleRecurringChange('color', event.target.value)}
+                                    >
+                                        {colorOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </FormSelect>
+                                    <FormInput
+                                        label="Startdatum"
+                                        type="date"
+                                        value={recurringForm.startDate}
+                                        onChange={(event) => handleRecurringChange('startDate', event.target.value)}
+                                        required
+                                    />
+                                    <FormInput
+                                        label="Enddatum"
+                                        type="date"
+                                        value={recurringForm.endDate}
+                                        onChange={(event) => handleRecurringChange('endDate', event.target.value)}
+                                        required
+                                    />
+                                    <FormSelect
+                                        label="Wiederholung"
+                                        value={recurringForm.recurrenceUnit}
+                                        onChange={(event) => handleRecurringChange('recurrenceUnit', event.target.value)}
+                                    >
+                                        <option value="week">Wöchentlich</option>
+                                        <option value="month">Monatlich</option>
+                                    </FormSelect>
+                                    <FormInput
+                                        label="Intervall"
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={recurringForm.recurrenceInterval}
+                                        onChange={(event) => handleRecurringChange('recurrenceInterval', event.target.value)}
+                                        required
+                                    />
+                                    <FormInput
+                                        label="Startzeit"
+                                        type="time"
+                                        value={recurringForm.startTime}
+                                        onChange={(event) => handleRecurringChange('startTime', event.target.value)}
+                                    />
+                                    <FormInput
+                                        label="Endzeit"
+                                        type="time"
+                                        value={recurringForm.endTime}
+                                        onChange={(event) => handleRecurringChange('endTime', event.target.value)}
+                                    />
+                                </div>
+
+                                {recurringForm.recurrenceUnit === 'week' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-rcDarkGray">Wochentage</label>
+                                        <div className="mt-2 flex flex-wrap gap-3">
+                                            {WEEKDAY_OPTIONS.map((day) => {
+                                                const isSelected = (recurringForm.weekdays || []).includes(day.value);
+                                                return (
+                                                    <button
+                                                        key={day.value}
+                                                        type="button"
+                                                        onClick={() => handleWeekdayToggle(day.value)}
+                                                        className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                                            isSelected
+                                                                ? 'bg-rcBlue text-white shadow'
+                                                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                                                        }`}
+                                                    >
+                                                        {day.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-rcDarkGray">Beschreibung</label>
+                                    <textarea
+                                        rows={3}
+                                        value={recurringForm.description}
+                                        onChange={(event) => handleRecurringChange('description', event.target.value)}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none focus:ring-rcBlue"
+                                        placeholder="Zusatzinformationen zum Termin..."
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <CheckboxField
+                                        checked={recurringForm.isPublic}
+                                        onChange={(checked) => handleRecurringChange('isPublic', checked)}
+                                        label="Öffentlich sichtbar"
+                                    />
+                                    <CheckboxField
+                                        checked={recurringForm.isActive}
+                                        onChange={(checked) => handleRecurringChange('isActive', checked)}
+                                        label="Aktiv"
+                                    />
+                                </div>
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="inline-flex items-center rounded-lg bg-rcBlue px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <FaPlus className="mr-2" />
+                                        {editingRecurringId ? 'Änderungen speichern' : 'Terminserie anlegen'}
+                                    </button>
                                     <button
                                         type="button"
                                         onClick={resetRecurringForm}
-                                        className="text-sm font-semibold text-rcBlue hover:underline"
+                                        className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
                                     >
-                                        Bearbeitung abbrechen
+                                        Formular zurücksetzen
                                     </button>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <FormInput
-                                    label="Titel"
-                                    value={recurringForm.title}
-                                    onChange={(event) => handleRecurringChange('title', event.target.value)}
-                                    required
-                                />
-                                <FormSelect
-                                    label="Kategorie"
-                                    value={recurringForm.category}
-                                    onChange={(event) => handleRecurringChange('category', event.target.value)}
-                                >
-                                    <option value="">Kategorie wählen</option>
-                                    {categoryOptions.map((category) => (
-                                        <option key={category} value={category}>
-                                            {category === 'Offene Treff' ? 'Offener Treff' : category}
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Ort"
-                                    value={recurringForm.location}
-                                    onChange={(event) => handleRecurringChange('location', event.target.value)}
-                                />
-                                <FormSelect
-                                    label="Akzentfarbe"
-                                    value={recurringForm.color}
-                                    onChange={(event) => handleRecurringChange('color', event.target.value)}
-                                >
-                                    {colorOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Startdatum"
-                                    type="date"
-                                    value={recurringForm.startDate}
-                                    onChange={(event) => handleRecurringChange('startDate', event.target.value)}
-                                    required
-                                />
-                                <FormInput
-                                    label="Enddatum"
-                                    type="date"
-                                    value={recurringForm.endDate}
-                                    onChange={(event) => handleRecurringChange('endDate', event.target.value)}
-                                    required
-                                />
-                                <FormSelect
-                                    label="Wiederholung"
-                                    value={recurringForm.recurrenceUnit}
-                                    onChange={(event) => handleRecurringChange('recurrenceUnit', event.target.value)}
-                                >
-                                    <option value="week">Wöchentlich</option>
-                                    <option value="month">Monatlich</option>
-                                </FormSelect>
-                                <FormInput
-                                    label="Intervall"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={recurringForm.recurrenceInterval}
-                                    onChange={(event) => handleRecurringChange('recurrenceInterval', event.target.value)}
-                                    required
-                                />
-                                <FormInput
-                                    label="Beginn"
-                                    type="time"
-                                    value={recurringForm.startTime}
-                                    onChange={(event) => handleRecurringChange('startTime', event.target.value)}
-                                />
-                                <FormInput
-                                    label="Ende"
-                                    type="time"
-                                    value={recurringForm.endTime}
-                                    onChange={(event) => handleRecurringChange('endTime', event.target.value)}
-                                />
-                            </div>
-
-                            {recurringForm.recurrenceUnit === 'week' ? (
-                                <div>
-                                    <p className="block text-sm font-medium text-rcDarkGray">Wochentage</p>
-                                    <div className="mt-2 flex flex-wrap gap-3">
-                                        {WEEKDAY_OPTIONS.map((option) => (
-                                            <label key={option.value} className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={recurringForm.weekdays.includes(option.value)}
-                                                    onChange={() => toggleRecurringWeekday(option.value)}
-                                                    className="h-4 w-4 rounded border-gray-300 text-rcBlue focus:ring-rcBlue"
-                                                />
-                                                {option.longLabel}
-                                            </label>
-                                        ))}
-                                    </div>
                                 </div>
-                            ) : (
-                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
-                                    Monatliche Wiederholung erfolgt am Kalendertag des Startdatums.
-                                </div>
-                            )}
-
-                            <FormTextarea
-                                label="Beschreibung"
-                                value={recurringForm.description}
-                                onChange={(event) => handleRecurringChange('description', event.target.value)}
-                            />
-
-                            <div className="flex flex-wrap gap-5">
-                                <CheckboxField
-                                    checked={recurringForm.isPublic}
-                                    onChange={(checked) => handleRecurringChange('isPublic', checked)}
-                                    label="Öffentlich sichtbar"
-                                />
-                                <CheckboxField
-                                    checked={recurringForm.isActive}
-                                    onChange={(checked) => handleRecurringChange('isActive', checked)}
-                                    label="Aktiv"
-                                />
-                            </div>
-
-                            <div className="flex flex-wrap gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="inline-flex items-center rounded-lg bg-rcBlue px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    <FaPlus className="mr-2" />
-                                    {editingRecurringId ? 'Änderungen speichern' : 'Terminserie anlegen'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={resetRecurringForm}
-                                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                                >
-                                    Formular zurücksetzen
-                                </button>
-                            </div>
-                        </form>
+                            </form>
+                        )}
 
                         <div className="overflow-x-auto rounded-xl border border-gray-200">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -683,20 +707,22 @@ export default function CalendarManagement() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Zeitraum</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Zeit</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        {!isViewer && (
+                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">
+                                            <td colSpan={isViewer ? 5 : 6} className="px-4 py-8 text-center text-sm text-gray-500">
                                                 Lade Terminserien...
                                             </td>
                                         </tr>
                                     ) : recurringEntries.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">
-                                                Noch keine wiederkehrenden Termine vorhanden.
+                                            <td colSpan={isViewer ? 5 : 6} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                Noch keine Terminserien vorhanden.
                                             </td>
                                         </tr>
                                     ) : (
@@ -705,6 +731,7 @@ export default function CalendarManagement() {
                                                 <td className="px-4 py-4 align-top">
                                                     <div className="font-medium text-rcDarkGray">{entry.title}</div>
                                                     <div className="text-xs text-gray-500">{entry.category || 'Ohne Kategorie'}</div>
+                                                    {entry.location && <div className="text-xs text-gray-400">{entry.location}</div>}
                                                 </td>
                                                 <td className="px-4 py-4 align-top text-sm text-gray-700">{formatRecurrenceRule(entry)}</td>
                                                 <td className="px-4 py-4 align-top text-sm text-gray-700">
@@ -715,27 +742,29 @@ export default function CalendarManagement() {
                                                     <div>{entry.is_public ? 'Öffentlich' : 'Intern'}</div>
                                                     <div className="text-xs text-gray-500">{entry.is_active ? 'Aktiv' : 'Inaktiv'}</div>
                                                 </td>
-                                                <td className="px-4 py-4 align-top text-right text-sm">
-                                                    <div className="flex justify-end gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleEditRecurring(entry)}
-                                                            className="text-rcBlue hover:text-blue-700"
-                                                            title="Bearbeiten"
-                                                        >
-                                                            <FaEdit />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete('calendar_recurring_entries', entry.id, entry.title)}
-                                                            className="text-rcRed hover:text-red-700"
-                                                            title="Löschen"
-                                                            disabled={submitting}
-                                                        >
-                                                            <FaTrashAlt />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                {!isViewer && (
+                                                    <td className="px-4 py-4 align-top text-right text-sm">
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditRecurring(entry)}
+                                                                className="text-rcBlue hover:text-blue-700"
+                                                                title="Bearbeiten"
+                                                            >
+                                                                <FaEdit />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete('calendar_recurring_entries', entry.id, entry.title)}
+                                                                className="text-rcRed hover:text-red-700"
+                                                                title="Löschen"
+                                                                disabled={submitting}
+                                                            >
+                                                                <FaTrashAlt />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))
                                     )}
@@ -745,70 +774,70 @@ export default function CalendarManagement() {
                     </div>
                 ) : activeTab === 'single' ? (
                     <div className="space-y-6 p-6">
-                        <form onSubmit={handleSingleSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
-                            <div className="flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-rcDarkGray">
-                                        {editingSingleId ? 'Sondertermin bearbeiten' : 'Neuen Sondertermin anlegen'}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Einmalige Einträge ergänzen bestehende Terminserien im öffentlichen Kalender.
-                                    </p>
+                        {!isViewer && (
+                            <form onSubmit={handleSingleSubmit} className="space-y-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-rcDarkGray">
+                                            {editingSingleId ? 'Sondertermin bearbeiten' : 'Neuen Sondertermin anlegen'}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            Einmalige Einträge ergänzen bestehende Terminserien im öffentlichen Kalender.
+                                        </p>
+                                    </div>
+                                    {editingSingleId && (
+                                        <button
+                                            type="button"
+                                            onClick={resetSingleForm}
+                                            className="text-sm font-semibold text-rcBlue hover:underline"
+                                        >
+                                            Bearbeitung abbrechen
+                                        </button>
+                                    )}
                                 </div>
-                                {editingSingleId && (
-                                    <button
-                                        type="button"
-                                        onClick={resetSingleForm}
-                                        className="text-sm font-semibold text-rcBlue hover:underline"
-                                    >
-                                        Bearbeitung abbrechen
-                                    </button>
-                                )}
-                            </div>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <FormInput
-                                    label="Titel"
-                                    value={singleForm.title}
-                                    onChange={(event) => handleSingleChange('title', event.target.value)}
-                                    required
-                                />
-                                <FormSelect
-                                    label="Kategorie"
-                                    value={singleForm.category}
-                                    onChange={(event) => handleSingleChange('category', event.target.value)}
-                                >
-                                    <option value="">Kategorie wählen</option>
-                                    {categoryOptions.map((category) => (
-                                        <option key={category} value={category}>
-                                            {category === 'Offene Treff' ? 'Offener Treff' : category}
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Ort"
-                                    value={singleForm.location}
-                                    onChange={(event) => handleSingleChange('location', event.target.value)}
-                                />
-                                <FormSelect
-                                    label="Akzentfarbe"
-                                    value={singleForm.color}
-                                    onChange={(event) => handleSingleChange('color', event.target.value)}
-                                >
-                                    {colorOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </FormSelect>
-                                <FormInput
-                                    label="Datum"
-                                    type="date"
-                                    value={singleForm.entryDate}
-                                    onChange={(event) => handleSingleChange('entryDate', event.target.value)}
-                                    required
-                                />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    <FormInput
+                                        label="Titel"
+                                        value={singleForm.title}
+                                        onChange={(event) => handleSingleChange('title', event.target.value)}
+                                        required
+                                    />
+                                    <FormSelect
+                                        label="Kategorie"
+                                        value={singleForm.category}
+                                        onChange={(event) => handleSingleChange('category', event.target.value)}
+                                    >
+                                        <option value="">Kategorie wählen</option>
+                                        {categoryOptions.map((category) => (
+                                            <option key={category} value={category}>
+                                                {category === 'Offene Treff' ? 'Offener Treff' : category}
+                                            </option>
+                                        ))}
+                                    </FormSelect>
+                                    <FormInput
+                                        label="Ort"
+                                        value={singleForm.location}
+                                        onChange={(event) => handleSingleChange('location', event.target.value)}
+                                    />
+                                    <FormSelect
+                                        label="Akzentfarbe"
+                                        value={singleForm.color}
+                                        onChange={(event) => handleSingleChange('color', event.target.value)}
+                                    >
+                                        {colorOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </FormSelect>
+                                    <FormInput
+                                        label="Datum"
+                                        type="date"
+                                        value={singleForm.entryDate}
+                                        onChange={(event) => handleSingleChange('entryDate', event.target.value)}
+                                        required
+                                    />
                                     <FormInput
                                         label="Beginn"
                                         type="time"
@@ -822,45 +851,45 @@ export default function CalendarManagement() {
                                         onChange={(event) => handleSingleChange('endTime', event.target.value)}
                                     />
                                 </div>
-                            </div>
 
-                            <FormTextarea
-                                label="Beschreibung"
-                                value={singleForm.description}
-                                onChange={(event) => handleSingleChange('description', event.target.value)}
-                            />
-
-                            <div className="flex flex-wrap gap-5">
-                                <CheckboxField
-                                    checked={singleForm.isPublic}
-                                    onChange={(checked) => handleSingleChange('isPublic', checked)}
-                                    label="Öffentlich sichtbar"
+                                <FormTextarea
+                                    label="Beschreibung"
+                                    value={singleForm.description}
+                                    onChange={(event) => handleSingleChange('description', event.target.value)}
                                 />
-                                <CheckboxField
-                                    checked={singleForm.isActive}
-                                    onChange={(checked) => handleSingleChange('isActive', checked)}
-                                    label="Aktiv"
-                                />
-                            </div>
 
-                            <div className="flex flex-wrap gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="inline-flex items-center rounded-lg bg-rcBlue px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    <FaCalendarAlt className="mr-2" />
-                                    {editingSingleId ? 'Änderungen speichern' : 'Sondertermin anlegen'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={resetSingleForm}
-                                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                                >
-                                    Formular zurücksetzen
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex flex-wrap gap-5">
+                                    <CheckboxField
+                                        checked={singleForm.isPublic}
+                                        onChange={(checked) => handleSingleChange('isPublic', checked)}
+                                        label="Öffentlich sichtbar"
+                                    />
+                                    <CheckboxField
+                                        checked={singleForm.isActive}
+                                        onChange={(checked) => handleSingleChange('isActive', checked)}
+                                        label="Aktiv"
+                                    />
+                                </div>
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="inline-flex items-center rounded-lg bg-rcBlue px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <FaCalendarAlt className="mr-2" />
+                                        {editingSingleId ? 'Änderungen speichern' : 'Sondertermin anlegen'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={resetSingleForm}
+                                        className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                                    >
+                                        Formular zurücksetzen
+                                    </button>
+                                </div>
+                            </form>
+                        )}
 
                         <div className="overflow-x-auto rounded-xl border border-gray-200">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -870,19 +899,21 @@ export default function CalendarManagement() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Datum</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Zeit</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        {!isViewer && (
+                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-8 text-center text-sm text-gray-500">
+                                            <td colSpan={isViewer ? 4 : 5} className="px-4 py-8 text-center text-sm text-gray-500">
                                                 Lade Sondertermine...
                                             </td>
                                         </tr>
                                     ) : singleEntries.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-8 text-center text-sm text-gray-500">
+                                            <td colSpan={isViewer ? 4 : 5} className="px-4 py-8 text-center text-sm text-gray-500">
                                                 Noch keine Sondertermine vorhanden.
                                             </td>
                                         </tr>
@@ -903,27 +934,29 @@ export default function CalendarManagement() {
                                                     <div>{entry.is_public ? 'Öffentlich' : 'Intern'}</div>
                                                     <div className="text-xs text-gray-500">{entry.is_active ? 'Aktiv' : 'Inaktiv'}</div>
                                                 </td>
-                                                <td className="px-4 py-4 align-top text-right text-sm">
-                                                    <div className="flex justify-end gap-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleEditSingle(entry)}
-                                                            className="text-rcBlue hover:text-blue-700"
-                                                            title="Bearbeiten"
-                                                        >
-                                                            <FaEdit />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete('calendar_single_entries', entry.id, entry.title)}
-                                                            className="text-rcRed hover:text-red-700"
-                                                            title="Löschen"
-                                                            disabled={submitting}
-                                                        >
-                                                            <FaTrashAlt />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                                                {!isViewer && (
+                                                    <td className="px-4 py-4 align-top text-right text-sm">
+                                                        <div className="flex justify-end gap-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEditSingle(entry)}
+                                                                className="text-rcBlue hover:text-blue-700"
+                                                                title="Bearbeiten"
+                                                            >
+                                                                <FaEdit />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete('calendar_single_entries', entry.id, entry.title)}
+                                                                className="text-rcRed hover:text-red-700"
+                                                                title="Löschen"
+                                                                disabled={submitting}
+                                                            >
+                                                                <FaTrashAlt />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))
                                     )}
@@ -934,164 +967,149 @@ export default function CalendarManagement() {
                 ) : activeTab === 'exceptions' ? (
                     <div className="space-y-6 p-6">
                         {/* Exception Form */}
-                        <form onSubmit={handleExceptionSubmit} className="space-y-6 rounded-xl border border-orange-200 bg-orange-50 p-6">
-                            <div className="flex items-center justify-between gap-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-rcDarkGray">
-                                        {editingExceptionId ? 'Ausnahme bearbeiten' : 'Neue Ausnahme hinzufügen'}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        Einzelne Termine aus einer Serie absagen oder auf einen anderen Tag verschieben.
-                                    </p>
-                                </div>
-                                {editingExceptionId && (
-                                    <button type="button" onClick={resetExceptionForm} className="text-sm font-semibold text-rcBlue hover:underline">
-                                        Bearbeitung abbrechen
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                {/* Series selector */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-rcDarkGray">Terminserie</label>
-                                    <select
-                                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
-                                        value={exceptionForm.recurringEntryId}
-                                        onChange={(e) => handleExceptionChange('recurringEntryId', e.target.value)}
-                                        required
-                                    >
-                                        <option value="">– Serie auswählen –</option>
-                                        {recurringEntries.map((entry) => (
-                                            <option key={entry.id} value={entry.id}>
-                                                {entry.title} ({formatRecurrenceRule(entry)})
-                                            </option>
-                                        ))}
-                                    </select>
+                        {!isViewer && (
+                            <form onSubmit={handleExceptionSubmit} className="space-y-6 rounded-xl border border-orange-200 bg-orange-50 p-6">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-rcDarkGray">
+                                            {editingExceptionId ? 'Ausnahme bearbeiten' : 'Neue Ausnahme hinzufügen'}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            Einzelne Termine aus einer Serie absagen oder auf einen anderen Tag verschieben.
+                                        </p>
+                                    </div>
+                                    {editingExceptionId && (
+                                        <button type="button" onClick={resetExceptionForm} className="text-sm font-semibold text-rcBlue hover:underline">
+                                            Bearbeitung abbrechen
+                                        </button>
+                                    )}
                                 </div>
 
-                                {/* Original date — dropdown from computed occurrences */}
-                                <div>
-                                    <label className="block text-sm font-medium text-rcDarkGray">Betroffenes Datum (original)</label>
-                                    {upcomingDatesForSeries.length > 0 ? (
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                    {/* Series selector */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-rcDarkGray">Terminserie</label>
                                         <select
                                             className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
-                                            value={exceptionForm.originalDate}
-                                            onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
+                                            value={exceptionForm.recurringEntryId}
+                                            onChange={(e) => handleExceptionChange('recurringEntryId', e.target.value)}
                                             required
                                         >
-                                            <option value="">– Datum wählen –</option>
-                                            {upcomingDatesForSeries.map((dateKey) => {
-                                                const d = parseLocalDate(dateKey);
-                                                const label = d ? formatDateLabel(d) : dateKey;
-                                                const alreadyHasException = exceptions.some(
-                                                    (ex) => ex.recurring_entry_id === exceptionForm.recurringEntryId && ex.original_date === dateKey
-                                                );
-                                                return (
-                                                    <option key={dateKey} value={dateKey}>
-                                                        {label}{alreadyHasException ? ' ⚠ bereits geändert' : ''}
-                                                    </option>
-                                                );
-                                            })}
+                                            <option value="">– Serie auswählen –</option>
+                                            {recurringEntries.map((entry) => (
+                                                <option key={entry.id} value={entry.id}>
+                                                    {entry.title} ({formatRecurrenceRule(entry)})
+                                                </option>
+                                            ))}
                                         </select>
-                                    ) : (
-                                        <input
-                                            type="date"
-                                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
-                                            value={exceptionForm.originalDate}
-                                            onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
-                                            required
-                                        />
-                                    )}
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        {upcomingDatesForSeries.length > 0
-                                            ? 'Nächste 6 Monate der Serie werden angezeigt.'
-                                            : 'Bitte zuerst eine Terminserie auswählen.'}
-                                    </p>
-                                </div>
+                                    </div>
 
-                                {/* Exception type */}
-                                <div>
-                                    <label className="block text-sm font-medium text-rcDarkGray">Art der Ausnahme</label>
-                                    <div className="mt-2 flex flex-col gap-2">
-                                        <label className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 cursor-pointer hover:bg-gray-50">
+                                    {/* Original date — dropdown from computed occurrences */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-rcDarkGray">Betroffenes Datum (original)</label>
+                                        {upcomingDatesForSeries.length > 0 ? (
+                                            <select
+                                                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                                value={exceptionForm.originalDate}
+                                                onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">– Datum wählen –</option>
+                                                {upcomingDatesForSeries.map((dateKey) => {
+                                                    const d = parseLocalDate(dateKey);
+                                                    const label = d ? formatDateLabel(d) : dateKey;
+                                                    const alreadyHasException = exceptions.some(
+                                                        (ex) => ex.recurring_entry_id === exceptionForm.recurringEntryId && ex.original_date === dateKey
+                                                    );
+                                                    return (
+                                                        <option key={dateKey} value={dateKey}>
+                                                            {label}{alreadyHasException ? ' ⚠ bereits geändert' : ''}
+                                                        </option>
+                                                    );
+                                                })}
+                                            </select>
+                                        ) : (
                                             <input
-                                                type="radio"
-                                                name="exceptionType"
-                                                value="cancelled"
-                                                checked={exceptionForm.exceptionType === 'cancelled'}
-                                                onChange={() => handleExceptionChange('exceptionType', 'cancelled')}
-                                                className="text-rcBlue"
+                                                type="date"
+                                                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                                value={exceptionForm.originalDate}
+                                                onChange={(e) => handleExceptionChange('originalDate', e.target.value)}
+                                                required
                                             />
-                                            <span className="text-sm font-medium text-gray-800">🚫 Termin fällt aus (Absage)</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 cursor-pointer hover:bg-gray-50">
-                                            <input
-                                                type="radio"
-                                                name="exceptionType"
-                                                value="rescheduled"
-                                                checked={exceptionForm.exceptionType === 'rescheduled'}
-                                                onChange={() => handleExceptionChange('exceptionType', 'rescheduled')}
-                                                className="text-rcBlue"
-                                            />
-                                            <span className="text-sm font-medium text-gray-800">📅 Termin wird verschoben</span>
-                                        </label>
+                                        )}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            {upcomingDatesForSeries.length > 0
+                                                ? 'Nächste 6 Monate der Serie werden angezeigt.'
+                                                : 'Bitte zuerst eine Terminserie auswählen.'}
+                                        </p>
+                                    </div>
+
+                                    {/* Type */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-rcDarkGray">Art der Ausnahme</label>
+                                        <select
+                                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-rcBlue focus:outline-none"
+                                            value={exceptionForm.exceptionType}
+                                            onChange={(e) => handleExceptionChange('exceptionType', e.target.value)}
+                                        >
+                                            <option value="cancelled">Fällt aus (Absage)</option>
+                                            <option value="modified">Verschoben / Geänderte Zeit</option>
+                                        </select>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Reschedule fields */}
-                            {exceptionForm.exceptionType === 'rescheduled' && (
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3 rounded-lg border border-orange-300 bg-white p-4">
-                                    <p className="md:col-span-3 text-sm font-semibold text-orange-700">Neuer Termin</p>
-                                    <FormInput
-                                        label="Neues Datum"
-                                        type="date"
-                                        value={exceptionForm.newDate}
-                                        onChange={(e) => handleExceptionChange('newDate', e.target.value)}
-                                        required
-                                    />
-                                    <FormInput
-                                        label="Neue Uhrzeit (Beginn)"
-                                        type="time"
-                                        value={exceptionForm.newStartTime}
-                                        onChange={(e) => handleExceptionChange('newStartTime', e.target.value)}
-                                    />
-                                    <FormInput
-                                        label="Neue Uhrzeit (Ende)"
-                                        type="time"
-                                        value={exceptionForm.newEndTime}
-                                        onChange={(e) => handleExceptionChange('newEndTime', e.target.value)}
-                                    />
+                                {/* Extra fields for 'modified' */}
+                                {exceptionForm.exceptionType === 'modified' && (
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 rounded-lg border border-orange-200 bg-white p-4">
+                                        <FormInput
+                                            label="Neues Datum"
+                                            type="date"
+                                            value={exceptionForm.newDate}
+                                            onChange={(e) => handleExceptionChange('newDate', e.target.value)}
+                                            required
+                                        />
+                                        <FormInput
+                                            label="Neue Uhrzeit (Beginn)"
+                                            type="time"
+                                            value={exceptionForm.newStartTime}
+                                            onChange={(e) => handleExceptionChange('newStartTime', e.target.value)}
+                                        />
+                                        <FormInput
+                                            label="Neue Uhrzeit (Ende)"
+                                            type="time"
+                                            value={exceptionForm.newEndTime}
+                                            onChange={(e) => handleExceptionChange('newEndTime', e.target.value)}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Note */}
+                                <FormInput
+                                    label="Hinweis (optional, z. B. Grund der Absage)"
+                                    value={exceptionForm.note}
+                                    onChange={(e) => handleExceptionChange('note', e.target.value)}
+                                    placeholder="z.B. Wegen Feiertag, Raumwechsel, ..."
+                                />
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="inline-flex items-center rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        <FaBan className="mr-2" />
+                                        {editingExceptionId ? 'Ausnahme aktualisieren' : 'Ausnahme speichern'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={resetExceptionForm}
+                                        className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                                    >
+                                        Formular zurücksetzen
+                                    </button>
                                 </div>
-                            )}
-
-                            {/* Note */}
-                            <FormInput
-                                label="Hinweis (optional, z. B. Grund der Absage)"
-                                value={exceptionForm.note}
-                                onChange={(e) => handleExceptionChange('note', e.target.value)}
-                                placeholder="z.B. Wegen Feiertag, Raumwechsel, ..."
-                            />
-
-                            <div className="flex flex-wrap gap-3">
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="inline-flex items-center rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    <FaBan className="mr-2" />
-                                    {editingExceptionId ? 'Ausnahme aktualisieren' : 'Ausnahme speichern'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={resetExceptionForm}
-                                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                                >
-                                    Formular zurücksetzen
-                                </button>
-                            </div>
-                        </form>
+                            </form>
+                        )}
 
                         {/* Exceptions list */}
                         <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -1103,79 +1121,82 @@ export default function CalendarManagement() {
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Art</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Neues Datum</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Hinweis</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        {!isViewer && (
+                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aktionen</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">Lade Ausnahmen...</td>
+                                            <td colSpan={isViewer ? 5 : 6} className="px-4 py-8 text-center text-sm text-gray-500">Lade Ausnahmen...</td>
                                         </tr>
                                     ) : exceptions.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">
+                                            <td colSpan={isViewer ? 5 : 6} className="px-4 py-8 text-center text-sm text-gray-500">
                                                 Keine Ausnahmen vorhanden. Alle Termine laufen wie geplant.
                                             </td>
                                         </tr>
                                     ) : (
                                         exceptions.map((ex) => {
                                             const series = recurringEntries.find((e) => e.id === ex.recurring_entry_id);
-                                            const originalDate = parseLocalDate(ex.original_date);
+                                            const origDate = parseLocalDate(ex.original_date);
                                             const newDate = ex.new_date ? parseLocalDate(ex.new_date) : null;
+
                                             return (
                                                 <tr key={ex.id} className="hover:bg-gray-50">
                                                     <td className="px-4 py-4 align-top">
                                                         <div className="font-medium text-rcDarkGray">{series?.title || '–'}</div>
-                                                        <div className="text-xs text-gray-500">{series ? formatRecurrenceRule(series) : ''}</div>
+                                                        <div className="text-xs text-gray-500">{series?.category}</div>
                                                     </td>
-                                                    <td className="px-4 py-4 align-top text-sm text-gray-700">
-                                                        {originalDate ? originalDate.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : ex.original_date}
+                                                    <td className="px-4 py-4 align-top text-sm font-semibold text-rcDarkGray">
+                                                        {origDate ? formatDateLabel(origDate) : ex.original_date}
                                                     </td>
-                                                    <td className="px-4 py-4 align-top">
+                                                    <td className="px-4 py-4 align-top text-sm">
                                                         {ex.exception_type === 'cancelled' ? (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
-                                                                🚫 Abgesagt
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                                                                <FaBan className="text-[10px]" /> Fällt aus
                                                             </span>
                                                         ) : (
-                                                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-xs font-semibold text-orange-700">
-                                                                📅 Verschoben
+                                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-rcBlue">
+                                                                Verschoben
                                                             </span>
                                                         )}
                                                     </td>
                                                     <td className="px-4 py-4 align-top text-sm text-gray-700">
-                                                        {newDate ? (
+                                                        {ex.exception_type === 'modified' && newDate ? (
                                                             <div>
-                                                                <div>{newDate.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
-                                                                {(ex.new_start_time || ex.new_end_time) && (
-                                                                    <div className="text-xs text-gray-500">{formatTimeRange(ex.new_start_time, ex.new_end_time)}</div>
-                                                                )}
+                                                                <div className="font-semibold">{formatDateLabel(newDate)}</div>
+                                                                <div className="text-xs text-gray-500">{formatTimeRange(ex.new_start_time, ex.new_end_time)}</div>
                                                             </div>
-                                                        ) : '–'}
+                                                        ) : (
+                                                            '–'
+                                                        )}
                                                     </td>
-                                                    <td className="px-4 py-4 align-top text-sm text-gray-500 max-w-[180px]">
-                                                        {ex.note || '–'}
-                                                    </td>
-                                                    <td className="px-4 py-4 align-top text-right text-sm">
-                                                        <div className="flex justify-end gap-3">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleEditException(ex)}
-                                                                className="text-rcBlue hover:text-blue-700"
-                                                                title="Bearbeiten"
-                                                            >
-                                                                <FaEdit />
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDelete('calendar_recurring_exceptions', ex.id, `Ausnahme vom ${ex.original_date}`)}
-                                                                className="text-rcRed hover:text-red-700"
-                                                                title="Löschen"
-                                                                disabled={submitting}
-                                                            >
-                                                                <FaTrashAlt />
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                                                    <td className="px-4 py-4 align-top text-sm text-gray-500 italic">{ex.note || '–'}</td>
+                                                    {!isViewer && (
+                                                        <td className="px-4 py-4 align-top text-right text-sm">
+                                                            <div className="flex justify-end gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleEditException(ex)}
+                                                                    className="text-rcBlue hover:text-blue-700"
+                                                                    title="Bearbeiten"
+                                                                >
+                                                                    <FaEdit />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDelete('calendar_recurring_exceptions', ex.id, `Ausnahme für ${series?.title || 'Serie'}`)}
+                                                                    className="text-rcRed hover:text-red-700"
+                                                                    title="Löschen"
+                                                                    disabled={submitting}
+                                                                >
+                                                                    <FaTrashAlt />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             );
                                         })

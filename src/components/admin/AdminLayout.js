@@ -64,7 +64,8 @@ const AdminLayout = () => {
   };
 
   const isSuperAdmin = role === 'super_admin';
-  const isTreasurer = role === 'treasurer' || role === 'super_admin';
+  const isViewer = role === 'viewer';
+  const isTreasurer = role === 'treasurer' || role === 'super_admin' || isViewer;
 
   // Sayfa başlığı fonksiyonu (Dinamik)
   const getPageTitle = () => {
@@ -182,13 +183,27 @@ const AdminLayout = () => {
             <FaBars size={24} />
           </button>
           
-          {/* Sayfa Başlığı */}
-          <h1 className="text-xl md:text-2xl font-bold text-rcDarkGray ml-2 lg:ml-0">
-            {getPageTitle()}
-          </h1>
+          {/* Sayfa Başlığı ve Yetki Rozeti */}
+          <div className="flex items-center space-x-3 ml-2 lg:ml-0">
+            <h1 className="text-xl md:text-2xl font-bold text-rcDarkGray">
+              {getPageTitle()}
+            </h1>
+            {isViewer && (
+              <span className="hidden sm:inline-block px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                Nur-Lese-Modus
+              </span>
+            )}
+          </div>
           
-          {/* Sağ tarafta boşluk bırakmak için (veya buraya profil ikonu konulabilir) */}
-          <div className="w-8"></div>
+          {/* Sağ tarafta boşluk bırakmak için (veya mobil için rozet) */}
+          <div className="flex items-center">
+            {isViewer && (
+              <span className="sm:hidden px-2 py-0.5 text-xs font-semibold rounded bg-amber-100 text-amber-800 border border-amber-300 mr-2">
+                Lesen
+              </span>
+            )}
+            <div className="w-4"></div>
+          </div>
         </header>
 
         {/* Asıl İçerik Alanı (Kaydırılabilir) */}

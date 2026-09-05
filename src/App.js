@@ -33,6 +33,7 @@ import Terminkalender from './pages/Terminkalender';
 
 // --- Admin Pages & Components ---
 import AdminLogin from './pages/AdminLogin';
+import ResetPassword from './pages/ResetPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPermissions from './pages/AdminPermissions';
 import AdminEditPage from './pages/AdminEditPage'; 
@@ -71,6 +72,13 @@ function App() {
       }
     });
     
+    // Eğer e-postadaki şifre sıfırlama linkinden gelindiyse (/reset-password'e yönlendir)
+    if (window.location.hash && window.location.hash.includes('type=recovery')) {
+      if (window.location.pathname !== '/reset-password') {
+        window.location.href = '/reset-password' + window.location.hash;
+      }
+    }
+
     // Cleanup function - component unmount olduğunda
     return () => {
       // stopHeartbeat(); // İstenirse kapatılabilir ama genelde açık kalmalı
@@ -83,8 +91,9 @@ function App() {
       <Router>
         <ScrollToTop />
         <Routes>
-          {/* === ADMIN LOGIN (Layout-los) === */}
+          {/* === ADMIN LOGIN & PASSWORD RESET (Layout-los) === */}
           <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* === KORUMALI ADMIN BEREICH (Mit AdminLayout/Sidebar) === */}
           <Route
@@ -107,33 +116,33 @@ function App() {
             />
             <Route
               path="ereignisse/new"
-              element={ <ProtectedRoute level="admin"><EreignisForm /></ProtectedRoute> } 
+              element={ <ProtectedRoute level="editor"><EreignisForm /></ProtectedRoute> } 
             />
             <Route
               path="ereignisse/edit/:id"
-              element={ <ProtectedRoute level="admin"><EreignisForm /></ProtectedRoute> } 
+              element={ <ProtectedRoute level="editor"><EreignisForm /></ProtectedRoute> } 
             />
 
             {/* --- SPEZIFISCHE SEITEN-EDITOREN --- */}
             <Route
               path="edit/:pageSlug" 
-              element={ <ProtectedRoute level="admin"><AdminEditPage /></ProtectedRoute> } 
+              element={ <ProtectedRoute level="editor"><AdminEditPage /></ProtectedRoute> } 
             />
 
             {/* --- SPEZIFISCHE Formular-Routen für "Bürgertreff Unterwegs" Archiv --- */}
             <Route
               path="edit/buergertreff-unterwegs/new"
-              element={ <ProtectedRoute level="admin"><BuergertreffUnterwegsForm /></ProtectedRoute> }
+              element={ <ProtectedRoute level="editor"><BuergertreffUnterwegsForm /></ProtectedRoute> }
             />
             <Route
               path="edit/buergertreff-unterwegs/edit/:id"
-              element={ <ProtectedRoute level="admin"><BuergertreffUnterwegsForm /></ProtectedRoute> }
+              element={ <ProtectedRoute level="editor"><BuergertreffUnterwegsForm /></ProtectedRoute> }
             />
 
             {/* Presse Rotaları */}
             <Route path="presse" element={<PresseList />} />
-            <Route path="presse/neu" element={<PresseForm />} />
-            <Route path="presse/:id" element={<PresseForm />} />
+            <Route path="presse/neu" element={<ProtectedRoute level="editor"><PresseForm /></ProtectedRoute>} />
+            <Route path="presse/:id" element={<ProtectedRoute level="editor"><PresseForm /></ProtectedRoute>} />
 
             {/* MUHASEBE (Sadece Sayman ve Admins için, Buchhaltung componenti içinde yetki kontrolü var) */}
             <Route 

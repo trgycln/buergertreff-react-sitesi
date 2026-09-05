@@ -36,13 +36,21 @@ export default function AdminDashboard() {
   }
 
   const isSuperAdmin = profile.role === 'super_admin';
+  const isViewer = profile.role === 'viewer';
 
   return (
     <div className="space-y-6">
       {/* Begrüßung */}
-      <p className="text-xl text-rcDarkGray">
-        Willkommen zurück, <span className="font-semibold">{user.email}</span>!
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <p className="text-xl text-rcDarkGray">
+          Willkommen zurück, <span className="font-semibold">{user.email}</span>!
+        </p>
+        {isViewer && (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 w-fit">
+            Nur-Lese-Berechtigung (Betrachter)
+          </span>
+        )}
+      </div>
 
       {/* Super-Admin Werkzeuge */}
       {isSuperAdmin && (
@@ -73,19 +81,21 @@ export default function AdminDashboard() {
             Öffentliche und interne Veranstaltungen, Ausflüge oder Treffen verwalten.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link
-              to="/admin/ereignisse/new"
-              className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
-            >
-              <FaPlus className="mr-2" />
-              Fotos hochladen
-            </Link>
+            {!isViewer && (
+              <Link
+                to="/admin/ereignisse/new"
+                className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+              >
+                <FaPlus className="mr-2" />
+                Fotos hochladen
+              </Link>
+            )}
             <Link
               to="/admin/ereignisse"
               className="flex items-center justify-center px-5 py-3 bg-rcDarkGray text-white text-sm font-semibold rounded-lg shadow hover:bg-gray-700 transition-colors"
             >
               <FaList className="mr-2" />
-              Alle verwalten
+              Alle ansehen
             </Link>
           </div>
         </div>
@@ -100,19 +110,21 @@ export default function AdminDashboard() {
             Presseartikel verwalten, die auf der öffentlichen Website angezeigt werden.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link
-              to="/admin/presse/neu"
-              className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
-            >
-              <FaPlus className="mr-2" />
-              Neuer Artikel
-            </Link>
+            {!isViewer && (
+              <Link
+                to="/admin/presse/neu"
+                className="flex items-center justify-center px-5 py-3 bg-rcBlue text-white text-sm font-semibold rounded-lg shadow hover:bg-blue-700 transition-colors"
+              >
+                <FaPlus className="mr-2" />
+                Neuer Artikel
+              </Link>
+            )}
             <Link
               to="/admin/presse"
               className="flex items-center justify-center px-5 py-3 bg-rcDarkGray text-white text-sm font-semibold rounded-lg shadow hover:bg-gray-700 transition-colors"
             >
               <FaList className="mr-2" />
-              Alle verwalten
+              Alle ansehen
             </Link>
           </div>
         </div>

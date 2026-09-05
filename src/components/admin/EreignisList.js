@@ -22,9 +22,24 @@ export default function EreignisList({ pageInfo }) {
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [filterCategory, setFilterCategory] = useState(''); // State für den Kategorie-Filter
+    const [userRole, setUserRole] = useState(null);
+
+    const isViewer = userRole === 'viewer';
 
     // Eindeutige Kategorien aus den Ereignissen extrahieren (für den Filter-Dropdown)
     const uniqueCategories = [...new Set(ereignisse.map(e => e.category))].sort();
+
+    // Kullanıcı rolünü al
+    useEffect(() => {
+        const getRole = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+                if (profile) setUserRole(profile.role);
+            }
+        };
+        getRole();
+    }, []);
 
     // Alle Ereignisse laden (oder gefilterte)
     useEffect(() => {
@@ -142,13 +157,15 @@ export default function EreignisList({ pageInfo }) {
                         </select>
                     </div>
                     {/* "Neu hinzufügen"-Button (Link zur Formularseite) */}
-                    <Link
-                        to="/admin/ereignisse/new"
-                        className="flex items-center px-4 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 transition-colors"
-                    >
-                        <FaPlus className="mr-2" />
-                        Fotos hochladen
-                    </Link>
+                    {!isViewer && (
+                        <Link
+                            to="/admin/ereignisse/new"
+                            className="flex items-center px-4 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 transition-colors"
+                        >
+                            <FaPlus className="mr-2" />
+                            Fotos hochladen
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -169,16 +186,18 @@ export default function EreignisList({ pageInfo }) {
                             <th className="px-6 py-3 text-left text-xs font-medium text-rcDarkGray uppercase tracking-wider">Datum & Uhrzeit</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-rcDarkGray uppercase tracking-wider">Hervorgehoben?</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-orange-600 uppercase tracking-wider">🎉 Großes Ereignis</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-rcDarkGray uppercase tracking-wider">Aktionen</th>
+                            {!isViewer && (
+                                <th className="px-6 py-3 text-right text-xs font-medium text-rcDarkGray uppercase tracking-wider">Aktionen</th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {loading && ereignisse.length > 0 && (
-                             <tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500 italic">Filtere neu...</td></tr>
+                             <tr><td colSpan={isViewer ? 5 : 6} className="px-6 py-4 text-center text-gray-500 italic">Filtere neu...</td></tr>
                         )}
                         {!loading && ereignisse.length === 0 && (
                             <tr>
-                                <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                                <td colSpan={isViewer ? 5 : 6} className="px-6 py-4 text-center text-gray-500">
                                     Keine Ereignisse gefunden {filterCategory ? `für Kategorie "${filterCategory}"` : ''}.
                                 </td>
                             </tr>
@@ -207,10 +226,10 @@ export default function EreignisList({ pageInfo }) {
                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                     {/* Knopf zum Umschalten des "Featured"-Status */}
                                     <button
-                                        onClick={() => toggleFeatured(event.id, event.is_featured)}
-                                        title={event.is_featured ? "Hervorhebung entfernen" : "Als Hauptereignis hervorheben"}
-                                        className={`p-1 rounded-full ${event.is_featured ? 'text-rcAccentYellow' : 'text-gray-300 hover:text-rcAccentYellow'}`}
-                                        disabled={loading}
+                                        onClick={() => !isViewer && toggleFeatured(event.id, event.is_featured)}
+                                        title={isViewer ? "Nur Lesezugriff" : (event.is_featured ? "Hervorhebung entfernen" : "Als Hauptereignis hervorheben")}
+                                        className={`p-1 rounded-full ${event.is_featured ? 'text-rcAccentYellow' : 'text-gray-300'} ${isViewer ? 'cursor-default opacity-80' : 'hover:text-rcAccentYellow'}`}
+                                        disabled={loading || isViewer}
                                     >
                                         {event.is_featured ? <FaStar size={18} /> : <FaRegStar size={18} />}
                                     </button>
@@ -224,25 +243,27 @@ export default function EreignisList({ pageInfo }) {
                                         <span className="text-gray-300 text-xs">–</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                    {/* "Bearbeiten" Knopf (Link zur Formularseite mit ID) */}
-                                    <Link
-                                        to={`/admin/ereignisse/edit/${event.id}`} // Ziel-URL für Bearbeiten
-                                        className="text-rcBlue hover:text-blue-700"
-                                        title="Bearbeiten"
-                                    >
-                                        <FaPencilAlt />
-                                    </Link>
-                                    {/* "Löschen" Knopf */}
-                                    <button
-                                        onClick={() => handleDelete(event.id, event.title)}
-                                        className="text-rcRed hover:text-red-700"
-                                        title="Löschen"
-                                        disabled={loading}
-                                    >
-                                        <FaTrashAlt />
-                                    </button>
-                                </td>
+                                {!isViewer && (
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                        {/* "Bearbeiten" Knopf (Link zur Formularseite mit ID) */}
+                                        <Link
+                                            to={`/admin/ereignisse/edit/${event.id}`} // Ziel-URL für Bearbeiten
+                                            className="text-rcBlue hover:text-blue-700"
+                                            title="Bearbeiten"
+                                        >
+                                            <FaPencilAlt />
+                                        </Link>
+                                        {/* "Löschen" Knopf */}
+                                        <button
+                                            onClick={() => handleDelete(event.id, event.title)}
+                                            className="text-rcRed hover:text-red-700"
+                                            title="Löschen"
+                                            disabled={loading}
+                                        >
+                                            <FaTrashAlt />
+                                        </button>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

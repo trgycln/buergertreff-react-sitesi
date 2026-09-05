@@ -26,11 +26,20 @@ export default function PresseList() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(''); // Silme işlemi için mesaj
+    const [userRole, setUserRole] = useState(null);
 
-    // Supabase'den tüm makaleleri çek
+    const isViewer = userRole === 'viewer';
+
+    // Supabase'den tüm makaleleri ve kullanıcı rolünü çek
     useEffect(() => {
-        const fetchArticles = async () => {
+        const fetchArticlesAndRole = async () => {
             setLoading(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+                if (profile) setUserRole(profile.role);
+            }
+
             const { data, error } = await supabase
                 .from('presse_articles')
                 .select('*')
@@ -44,7 +53,7 @@ export default function PresseList() {
             }
             setLoading(false);
         };
-        fetchArticles();
+        fetchArticlesAndRole();
     }, []);
 
     // Makale silme fonksiyonu
@@ -89,13 +98,15 @@ export default function PresseList() {
             {/* Başlık ve Yeni Ekle Butonu */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-semibold text-rcDarkGray">Presseartikel Verwalten</h1>
-                <Link
-                    to="/admin/presse/neu"
-                    className="flex items-center px-4 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 transition-colors"
-                >
-                    <FaPlus className="mr-2" />
-                    Neuen Artikel anlegen
-                </Link>
+                {!isViewer && (
+                    <Link
+                        to="/admin/presse/neu"
+                        className="flex items-center px-4 py-2 bg-rcBlue text-white font-semibold rounded-md shadow hover:bg-blue-700 transition-colors"
+                    >
+                        <FaPlus className="mr-2" />
+                        Neuen Artikel anlegen
+                    </Link>
+                )}
             </div>
 
             {/* Makale Listesi Tablosu */}
@@ -107,13 +118,15 @@ export default function PresseList() {
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titel</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Publikation</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                            {!isViewer && (
+                                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aktionen</th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {articles.length === 0 ? (
                             <tr>
-                                <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan={isViewer ? 4 : 5} className="px-6 py-12 text-center text-gray-500">
                                     Noch keine Presseartikel vorhanden.
                                 </td>
                             </tr>
@@ -134,19 +147,21 @@ export default function PresseList() {
                                             </span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                        <Link to={`/admin/presse/${article.id}`} className="text-rcBlue hover:text-blue-700" title="Bearbeiten">
-                                            <FaEdit />
-                                        </Link>
-                                        <button
-                                            onClick={() => handleDelete(article.id)}
-                                            className="text-rcRed hover:text-red-700"
-                                            title="Löschen"
-                                            disabled={loading}
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </td>
+                                    {!isViewer && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
+                                            <Link to={`/admin/presse/${article.id}`} className="text-rcBlue hover:text-blue-700" title="Bearbeiten">
+                                                <FaEdit />
+                                            </Link>
+                                            <button
+                                                onClick={() => handleDelete(article.id)}
+                                                className="text-rcRed hover:text-red-700"
+                                                title="Löschen"
+                                                disabled={loading}
+                                            >
+                                                <FaTrash />
+                                            </button>
+                                        </td>
+                                    )}
                                 </tr>
                             ))
                         )}
