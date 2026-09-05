@@ -639,7 +639,7 @@ export default function CalendarManagement() {
                                                     <button
                                                         key={day.value}
                                                         type="button"
-                                                        onClick={() => handleWeekdayToggle(day.value)}
+                                                        onClick={() => toggleRecurringWeekday(day.value)}
                                                         className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                                                             isSelected
                                                                 ? 'bg-rcBlue text-white shadow'
