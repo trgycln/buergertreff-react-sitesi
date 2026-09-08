@@ -7,7 +7,7 @@ import { FaFacebookF, FaInstagram, FaChevronDown, FaWhatsapp } from 'react-icons
 const Header = () => {
     // Modern, rahat ve şık menü butonu stilleri (Soft pill / aktif highlight)
     const navLinkStyles = ({ isActive }) => {
-        return `text-[15px] font-semibold tracking-normal px-3.5 py-2 rounded-xl transition-all duration-200 whitespace-nowrap inline-flex items-center ${
+        return `text-[13px] xl:text-[15px] font-semibold tracking-normal px-2 xl:px-3.5 py-2 rounded-xl transition-all duration-200 whitespace-nowrap inline-flex items-center ${
             isActive
                 ? 'text-rcBlue bg-blue-50/90 font-bold shadow-sm'
                 : 'text-gray-700 hover:text-rcBlue hover:bg-gray-100/70'
@@ -59,9 +59,10 @@ const Header = () => {
 
                 {/* Masaüstü Menü Linkleri */}
                 <nav>
-                    <ul className="hidden md:flex items-center gap-1.5 lg:gap-2">
+                    <ul className="hidden lg:flex items-center gap-1 xl:gap-2">
                         <li><NavLink to="/" className={navLinkStyles}>Start</NavLink></li>
                         <li><NavLink to="/wir-uber-uns" className={navLinkStyles}>Wir über uns</NavLink></li>
+                        <li><NavLink to="/machen-sie-mit" className={navLinkStyles}>Machen Sie mit</NavLink></li>
                         
                         {/* Angebote Dropdown */}
                         <li 
@@ -98,7 +99,7 @@ const Header = () => {
                     </ul>
 
                     {/* Mobil Menü Açma Butonu */}
-                    <div className="md:hidden">
+                    <div className="lg:hidden">
                         <button 
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
                             className="text-gray-700 hover:text-rcBlue focus:outline-none p-2 rounded-xl hover:bg-gray-100 transition-colors"
@@ -114,9 +115,10 @@ const Header = () => {
             
             {/* Mobil Açılır Menü */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-xl px-4 py-3 space-y-1.5 animate-slide-up-fade">
+                <div className="lg:hidden bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-xl px-4 py-3 space-y-1.5 animate-slide-up-fade">
                     <NavLink to="/" onClick={handleMobileLinkClick} className="block py-2.5 px-3 text-gray-800 font-semibold rounded-xl hover:bg-blue-50 hover:text-rcBlue transition-colors">Start</NavLink>
                     <NavLink to="/wir-uber-uns" onClick={handleMobileLinkClick} className="block py-2.5 px-3 text-gray-800 font-semibold rounded-xl hover:bg-blue-50 hover:text-rcBlue transition-colors">Wir über uns</NavLink>
+                    <NavLink to="/machen-sie-mit" onClick={handleMobileLinkClick} className="block py-2.5 px-3 text-gray-800 font-semibold rounded-xl hover:bg-blue-50 hover:text-rcBlue transition-colors">Machen Sie mit</NavLink>
                     <div>
                         <div className="flex justify-between items-center py-2.5 px-3 text-gray-800 font-semibold rounded-xl hover:bg-gray-50 cursor-pointer transition-colors" onClick={handleSubmenuToggle}>
                             <Link to="/angebote" onClick={handleMobileLinkClick}>Angebote</Link>
