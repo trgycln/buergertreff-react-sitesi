@@ -15,6 +15,7 @@ const categoryOptions = [
     'Offene Treff',
     'Ausstellungen',
     'Spielen',
+    'Schach',
     'Singen',
     'Handarbeiten',
     'Schreibwerkstatt',
