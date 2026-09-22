@@ -228,7 +228,8 @@ img.print-main-image:not([src]), img.print-main-image[src=""] { display: none; }
 /* --- @media print Bloğu (DÜZELTİLDİ: @page hatası yok) --- */
 @media print {
   body * { visibility: hidden; }
-  .print-container, .print-container * { visibility: visible; }
+  .print-container, .print-container *,
+  .kassenbuch-print, .kassenbuch-print * { visibility: visible !important; }
   
   .print-container { 
     position: absolute; left: 0; top: 0; width: 100%; height: 100%; 

@@ -964,8 +964,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.amount || !formData.category_id || !formData.account_id) {
-      alert('Pflichtfelder fehlen!'); return;
+    const parsedAmount = parseFloat(formData.amount);
+    if (!formData.amount || isNaN(parsedAmount) || parsedAmount <= 0 || !formData.category_id || !formData.account_id) {
+      alert('Pflichtfelder fehlen! Betrag muss größer als 0 sein.'); return;
     }
     
     let finalDescription = formData.description;
@@ -975,6 +976,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
 
     const payload = { 
       ...formData, 
+      receipt_no: formData.receipt_no ? formData.receipt_no.trim() : null,
+      file_no: formData.file_no ? formData.file_no.trim() : null,
       description: finalDescription, 
       contact_id: formData.contact_id || null 
     };
@@ -1023,6 +1026,21 @@ export default function BuchhaltungTransactions({ readOnly }) {
     (category, index, array) =>
       index === array.findIndex((item) => normalizeCategoryName(item.name) === normalizeCategoryName(category.name))
   );
+
+  // 0 tutarlı kayıtları bul
+  const zeroAmountTrx = transactions.filter(t => parseFloat(t.amount) === 0);
+
+  const deleteZeroAmountTransactions = async () => {
+    if (!window.confirm(`${zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt silinecek. Emin misiniz?`)) return;
+    const ids = zeroAmountTrx.map(t => t.id);
+    const { error } = await supabase.from('accounting_transactions').delete().in('id', ids);
+    if (!error) {
+      fetchTransactions();
+      alert(`${ids.length} kayıt silindi.`);
+    } else {
+      alert('Fehler: ' + error.message);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -1097,6 +1115,38 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 </select>
               </div>
 
+              {/* Beleg-Nr. ve Ordner-Nr. Alanları */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Beleg-Nr. (Fiş / Fatura No)
+                  </label>
+                  <input
+                    type="text"
+                    name="receipt_no"
+                    value={formData.receipt_no || ''}
+                    onChange={handleInputChange}
+                    placeholder="z.B. BAR-001, RE-2026-05"
+                    className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <span className="text-[11px] text-gray-500">Kassenbuch'taki "Beleg-Nr." sütununda görünür</span>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Aktenzeichen / Ordner (Klasör No)
+                  </label>
+                  <input
+                    type="text"
+                    name="file_no"
+                    value={formData.file_no || ''}
+                    onChange={handleInputChange}
+                    placeholder="z.B. Ordner 2026 / Kasse"
+                    className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <span className="text-[11px] text-gray-500">Fiziksel arşiv yeri (Opsiyonel)</span>
+                </div>
+              </div>
+
               {formData.category_id && categories.find(c => c.id == formData.category_id)?.subcategories && (
                 <div className="bg-gray-50 p-3 border border-gray-200 rounded-lg">
                   <label className="block text-xs font-bold text-gray-700 mb-1">Unterkategorie (Optional)</label>
@@ -1140,6 +1190,27 @@ export default function BuchhaltungTransactions({ readOnly }) {
         </div>
       )}
 
+      {/* 0 Tutarlı Kayıt Uyarısı */}
+      {zeroAmountTrx.length > 0 && (
+        <div className="mb-4 bg-orange-50 border border-orange-300 rounded-lg p-4 flex items-start gap-3">
+          <FaExclamationTriangle className="text-orange-500 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-bold text-orange-800 text-sm">Dikkat: {zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt var!</p>
+            <p className="text-orange-700 text-xs mt-1">
+              Bu kayıtlar, form doğrulama açığından dolayı daha önce oluşmuş olabilir (0 yazılmış). Silmeden önce inceleyebilirsiniz. Artık forma 0 girişi engellendi.
+            </p>
+            {!readOnly && (
+              <button
+                onClick={deleteZeroAmountTransactions}
+                className="mt-2 bg-orange-600 text-white text-xs px-3 py-1 rounded hover:bg-orange-700"
+              >
+                Tüm 0,00 € kayıtları sil ({zeroAmountTrx.length} adet)
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tablo */}
       <style>{`
         @media (max-width: 768px) {
@@ -1162,11 +1233,18 @@ export default function BuchhaltungTransactions({ readOnly }) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((trx) => (
-              <tr key={trx.id} className="hover:bg-gray-50">
+            {transactions.map((trx) => {
+              const isZero = parseFloat(trx.amount) === 0;
+              return (
+              <tr key={trx.id} className={`hover:bg-gray-50 ${isZero ? 'bg-orange-50' : ''}`}>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {formatDateDE(trx.date)}
-                  {trx.file_no && <div className="text-xs text-blue-600">Ordner: {trx.file_no}</div>}
+                  <div className="font-medium text-gray-800">{formatDateDE(trx.date)}</div>
+                  {trx.receipt_no && (
+                    <div className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded w-fit mt-1">
+                      Beleg: {trx.receipt_no}
+                    </div>
+                  )}
+                  {trx.file_no && <div className="text-xs text-blue-600 mt-0.5">Ordner: {trx.file_no}</div>}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-900">
                   {trx.accounting_categories?.name}
@@ -1193,7 +1271,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
