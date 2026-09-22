@@ -107,7 +107,7 @@ const DayCell = ({ day, entries, isSelected, onClick }) => {
             {hasEntries && isCurrentMonth && (
                 <div className="mt-1.5 hidden w-full space-y-1 sm:block">
                     {entries.slice(0, 2).map((entry) => {
-                        const label = entry.category || entry.title;
+                        const label = entry.title || entry.category;
                         const chipClass = colorChipClasses[entry.color] || colorChipClasses.blue;
                         const hasPhotos = !!(entry.detailId || entry.linkTo);
                         return (
