@@ -26,7 +26,13 @@ export const ROWS_PER_PAGE = 20;
  * Prepares the transaction records into page chunks with calculated carryovers.
  */
 export const prepareKassenbuchPages = (transactions = [], openingBalance = 0) => {
-  const sorted = [...transactions].sort((a, b) => {
+  // GoBD uyumluluğu: 0,00 € tutarlı veya geçersiz kayıtları resmi deftere alma
+  const validTransactions = (transactions || []).filter(trx => {
+    const amt = parseFloat(trx.amount);
+    return !isNaN(amt) && amt > 0;
+  });
+
+  const sorted = [...validTransactions].sort((a, b) => {
     const diff = new Date(a.date) - new Date(b.date);
     if (diff !== 0) return diff;
     return (a.id || 0) - (b.id || 0);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
-import { FaSpinner, FaPrint, FaEye, FaTimes } from 'react-icons/fa';
+import { FaSpinner, FaPrint, FaEye, FaTimes, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
 import PrintableCashJournal, { printKassenbuchDirect } from './PrintableCashJournal';
 
 export default function CashJournal({ readOnly }) {
@@ -9,6 +9,7 @@ export default function CashJournal({ readOnly }) {
   const [years, setYears] = useState([]);
   const [dailySummary, setDailySummary] = useState([]);
   const [flatTransactions, setFlatTransactions] = useState([]);
+  const [zeroAmountTransactions, setZeroAmountTransactions] = useState([]);
   const [openingBalance, setOpeningBalance] = useState(0);
   const [currentCashBalance, setCurrentCashBalance] = useState(0);
   const [orgName, setOrgName] = useState('Bürgertreff Wissen e.V.');
@@ -78,9 +79,22 @@ export default function CashJournal({ readOnly }) {
         );
       };
 
-      const cashTransactions = (data || []).filter((trx) =>
+      const allCashTransactions = (data || []).filter((trx) =>
         isCashAccount(trx.accounting_accounts?.name)
       );
+
+      // 0 veya geçersiz tutarlı kayıtları tespit et (Kassenbuch'a dahil edilmez)
+      const zeroRecords = allCashTransactions.filter((trx) => {
+        const amt = parseFloat(trx.amount);
+        return isNaN(amt) || amt <= 0;
+      });
+      setZeroAmountTransactions(zeroRecords);
+
+      // GoBD kurallarına göre Kassenbuch yalnızca gerçek nakit hareketlerini (tutar > 0) içerir
+      const cashTransactions = allCashTransactions.filter((trx) => {
+        const amt = parseFloat(trx.amount);
+        return !isNaN(amt) && amt > 0;
+      });
 
       const opening = cashTransactions.reduce((sum, trx) => {
         if (trx.date >= yearStart) return sum;
@@ -130,8 +144,28 @@ export default function CashJournal({ readOnly }) {
       setCurrentCashBalance(0);
       setDailySummary([]);
       setFlatTransactions([]);
+      setZeroAmountTransactions([]);
     }
     setLoading(false);
+  };
+
+  const deleteZeroTransactions = async () => {
+    if (!zeroAmountTransactions || zeroAmountTransactions.length === 0) return;
+    if (!window.confirm(`${zeroAmountTransactions.length} adet 0,00 € tutarlı kasa hareketi veritabanından kalıcı olarak silinecektir. Emin misiniz?`)) {
+      return;
+    }
+    try {
+      const ids = zeroAmountTransactions.map(t => t.id);
+      const { error } = await supabase.from('accounting_transactions').delete().in('id', ids);
+      if (!error) {
+        alert(`${ids.length} adet 0,00 € tutarlı kayıt başarıyla silindi.`);
+        fetchTransactions();
+      } else {
+        alert('Hata: ' + error.message);
+      }
+    } catch (err) {
+      alert('Hata: ' + err.message);
+    }
   };
 
   const handlePrint = () => {
@@ -184,6 +218,44 @@ export default function CashJournal({ readOnly }) {
           </button>
         </div>
       </div>
+
+      {/* 0 Tutarlı Kayıt Uyarısı ve Temizleme */}
+      {zeroAmountTransactions.length > 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <FaExclamationTriangle className="text-amber-600 mt-1 shrink-0 text-lg" />
+            <div>
+              <p className="font-bold text-amber-900 text-sm">
+                Dikkat: Veritabanında Kasaya (Kasse / Bargeld) ait {zeroAmountTransactions.length} adet 0,00 € tutarlı kayıt tespit edildi!
+              </p>
+              <p className="text-amber-800 text-xs mt-1">
+                Alman vergi mevzuatı (GoBD) gereği kasa defterinde yalnızca gerçek nakit hareketleri bulunabilir. Bu 0,00 € kayıtlar otomatik olarak dökümden ve hesaplamalardan filtrelenmiştir.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-amber-900">
+                {zeroAmountTransactions.slice(0, 5).map((t, idx) => (
+                  <span key={t.id || idx} className="bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
+                    {t.date} | {t.receipt_no || t.file_no || 'Belgesiz'} | {t.accounting_categories?.name || 'Kategorisiz'} ({t.description || 'Açıklama yok'})
+                  </span>
+                ))}
+                {zeroAmountTransactions.length > 5 && (
+                  <span className="text-amber-700 italic">...ve {zeroAmountTransactions.length - 5} kayıt daha</span>
+                )}
+              </div>
+            </div>
+          </div>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={deleteZeroTransactions}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm whitespace-nowrap flex items-center gap-1.5 transition self-end md:self-center"
+              title="Tüm 0,00 € tutarlı kasa kayıtlarını veritabanından kalıcı olarak siler"
+            >
+              <FaTrash />
+              0,00 € Kayıtları Sil ({zeroAmountTransactions.length})
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">

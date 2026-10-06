@@ -50,6 +50,7 @@ export default function EreignisForm() {
     // Fotos & Rückblick
     const [photos, setPhotos] = useState([]); // Array von Bild-URLs
     const [selectedCoverUrl, setSelectedCoverUrl] = useState(''); // Ausgewähltes Titelbild für Startseite
+    const [youtubeUrl, setYoutubeUrl] = useState('');
     const [archiveSummary, setArchiveSummary] = useState('');
     const [uploadingFiles, setUploadingFiles] = useState(false);
 
@@ -88,6 +89,7 @@ export default function EreignisForm() {
                 setLocation(data.location || 'Bürgertreff Wissen');
                 setDescription(data.description || '');
                 setArchiveSummary(data.archive_summary || '');
+                setYoutubeUrl(data.youtube_url || '');
                 setEndTime(data.end_time || '');
 
                 if (data.event_date) {
@@ -259,6 +261,7 @@ export default function EreignisForm() {
                 location: location || 'Bürgertreff Wissen',
                 description: description || null,
                 archive_summary: archiveSummary || description || null,
+                youtube_url: youtubeUrl || null,
                 event_date: eventDateIso,
                 end_time: endTime || null,
                 image_url: coverImage,
@@ -545,26 +548,47 @@ export default function EreignisForm() {
                     )}
                 </div>
 
-                {/* 3. KURZER RÜCKBLICK (OPTIONAL) */}
+                {/* 3. KURZER RÜCKBLICK & YOUTUBE (OPTIONAL) */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
                     <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-rcBlue">
                             3
                         </span>
-                        <h2 className="text-lg font-bold text-rcDarkGray">Kurzer Rückblick (Optional)</h2>
+                        <h2 className="text-lg font-bold text-rcDarkGray">Zusätzliche Medien & Rückblick (Optional)</h2>
                     </div>
 
-                    <div>
-                        <textarea
-                            rows={3}
-                            value={archiveSummary}
-                            onChange={(e) => setArchiveSummary(e.target.value)}
-                            placeholder="z.B. Trotz des Regens kamen viele Besucher zusammen und verbrachten einen geselligen Nachmittag bei Kaffee und Kuchen..."
-                            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                            Dieser Text erscheint im Archiv und auf der Veranstaltungsseite über den Fotos. Kann auch leer gelassen werden.
-                        </p>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                                YouTube Video Link
+                            </label>
+                            <input
+                                type="text"
+                                value={youtubeUrl}
+                                onChange={(e) => setYoutubeUrl(e.target.value)}
+                                placeholder="z.B. https://www.youtube.com/watch?v=..."
+                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Link zum passenden YouTube-Video für diese Aktivität. Wird im Archiv unterhalb der Fotos angezeigt.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1">
+                                Kurzer Rückblick
+                            </label>
+                            <textarea
+                                rows={3}
+                                value={archiveSummary}
+                                onChange={(e) => setArchiveSummary(e.target.value)}
+                                placeholder="z.B. Trotz des Regens kamen viele Besucher zusammen und verbrachten einen geselligen Nachmittag bei Kaffee und Kuchen..."
+                                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Dieser Text erscheint im Archiv und auf der Veranstaltungsseite über den Fotos. Kann auch leer gelassen werden.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

@@ -92,6 +92,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
   
   const currentYear = new Date().getFullYear();
   const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, type: '', message: '' });
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().slice(0, 10),
@@ -1005,10 +1006,29 @@ export default function BuchhaltungTransactions({ readOnly }) {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Löschen?')) return;
-    const { error } = await supabase.from('accounting_transactions').delete().eq('id', id);
-    if (!error) setTransactions(transactions.filter(t => t.id !== id));
+  const handleDelete = (id) => {
+    setDeleteConfirm({ 
+      isOpen: true, 
+      id: id, 
+      type: 'single', 
+      message: 'Bu kaydı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.' 
+    });
+  };
+
+  const executeDelete = async () => {
+    if (deleteConfirm.type === 'single' && deleteConfirm.id) {
+      const { error } = await supabase.from('accounting_transactions').delete().eq('id', deleteConfirm.id);
+      if (!error) setTransactions(transactions.filter(t => t.id !== deleteConfirm.id));
+    } else if (deleteConfirm.type === 'bulk') {
+      const ids = zeroAmountTrx.map(t => t.id);
+      const { error } = await supabase.from('accounting_transactions').delete().in('id', ids);
+      if (!error) {
+        fetchTransactions();
+      } else {
+        alert('Fehler beim Löschen: ' + error.message);
+      }
+    }
+    setDeleteConfirm({ isOpen: false, id: null, type: '', message: '' });
   };
 
   const resetForm = () => {
@@ -1030,16 +1050,14 @@ export default function BuchhaltungTransactions({ readOnly }) {
   // 0 tutarlı kayıtları bul
   const zeroAmountTrx = transactions.filter(t => parseFloat(t.amount) === 0);
 
-  const deleteZeroAmountTransactions = async () => {
-    if (!window.confirm(`${zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt silinecek. Emin misiniz?`)) return;
-    const ids = zeroAmountTrx.map(t => t.id);
-    const { error } = await supabase.from('accounting_transactions').delete().in('id', ids);
-    if (!error) {
-      fetchTransactions();
-      alert(`${ids.length} kayıt silindi.`);
-    } else {
-      alert('Fehler: ' + error.message);
-    }
+  const deleteZeroAmountTransactions = () => {
+    if (zeroAmountTrx.length === 0) return;
+    setDeleteConfirm({ 
+      isOpen: true, 
+      id: null, 
+      type: 'bulk', 
+      message: `${zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt silinecek. Emin misiniz?` 
+    });
   };
 
   return (
@@ -1276,6 +1294,32 @@ export default function BuchhaltungTransactions({ readOnly }) {
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
+              <FaTrash /> Silme Onayı
+            </h3>
+            <p className="text-gray-700 mb-6">{deleteConfirm.message}</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setDeleteConfirm({ isOpen: false, id: null, type: '', message: '' })} 
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium"
+              >
+                İptal
+              </button>
+              <button 
+                onClick={executeDelete} 
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium flex items-center gap-2"
+              >
+                <FaTrash /> Evet, Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
