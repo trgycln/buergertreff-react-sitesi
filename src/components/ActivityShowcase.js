@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaRegCalendarAlt, FaImages, FaArrowRight, FaInstagram } from 'react-icons/fa';
+import { FaRegCalendarAlt, FaImages, FaArrowRight, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { supabase } from '../supabaseClient';
 import fallbackImage from '../assets/images/ana_logo.jpg';
 import { isEventInPast } from '../utils/calendarUtils';
@@ -28,7 +28,7 @@ const ActivityShowcase = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('ereignisse')
-                .select('id, title, category, event_date, description, image_url, archive_photos, archive_summary')
+                .select('id, title, category, event_date, description, image_url, archive_photos, archive_summary, youtube_url')
                 .eq('is_public', true)
                 .order('event_date', { ascending: false })
                 .limit(12);
@@ -40,7 +40,7 @@ const ActivityShowcase = () => {
                 const now = new Date();
                 const pastList = (data || []).filter((e) => {
                     const isInPast = e.event_date ? isEventInPast(e.event_date, now) : true;
-                    const hasMedia = (Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || e.archive_summary || e.image_url;
+                    const hasMedia = (Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || e.archive_summary || e.image_url || e.youtube_url;
                     return isInPast && hasMedia;
                 });
 
@@ -106,13 +106,21 @@ const ActivityShowcase = () => {
                                         </span>
                                     )}
 
-                                    {/* Fotoğraf Sayısı */}
-                                    {photoCount > 1 && (
-                                        <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full shadow flex items-center gap-1.5 backdrop-blur-sm">
-                                            <FaImages className="text-rcLightBlue text-xs" />
-                                            <span>{photoCount} Fotos</span>
-                                        </span>
-                                    )}
+                                    {/* Sol Üst Rozetler (Foto Sayısı ve Video) */}
+                                    <div className="absolute top-3 left-3 flex flex-col gap-2 items-start">
+                                        {photoCount > 1 && (
+                                            <span className="bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full shadow flex items-center gap-1.5 backdrop-blur-sm">
+                                                <FaImages className="text-rcLightBlue text-xs" />
+                                                <span>{photoCount} Fotos</span>
+                                            </span>
+                                        )}
+                                        {activity.youtube_url && (
+                                            <span className="bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full shadow flex items-center gap-1.5 backdrop-blur-sm">
+                                                <FaYoutube className="text-red-500 text-sm" />
+                                                <span>Video</span>
+                                            </span>
+                                        )}
+                                    </div>
 
                                     {/* Tarih */}
                                     {activity.event_date && (

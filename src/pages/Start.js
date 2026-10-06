@@ -60,7 +60,7 @@ const Start = () => {
                     .maybeSingle(),
                 supabase
                     .from('ereignisse')
-                    .select('id, title, category, location, event_date, end_time, description, image_url, archive_photos, archive_summary, is_big_event')
+                    .select('id, title, category, location, event_date, end_time, description, image_url, archive_photos, archive_summary, is_big_event, youtube_url')
                     .eq('is_public', true)
                     .order('event_date', { ascending: false })
                     .limit(10),
@@ -92,7 +92,7 @@ const Start = () => {
                     return isPast && Array.isArray(e.archive_photos) && e.archive_photos.length > 0;
                 }) || pastEventsRes.data.find((e) => {
                     const isPast = e.event_date ? isEventInPast(e.event_date, now) : true;
-                    return isPast && (e.archive_summary || e.image_url);
+                    return isPast && (e.archive_summary || e.image_url || e.youtube_url);
                 });
 
                 if (withPhotos) {

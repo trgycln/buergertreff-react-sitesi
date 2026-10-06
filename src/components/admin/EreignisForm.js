@@ -570,7 +570,7 @@ export default function EreignisForm() {
                                 className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-rcBlue focus:outline-none focus:ring-2 focus:ring-rcBlue/20"
                             />
                             <p className="mt-1 text-xs text-gray-500">
-                                Link zum passenden YouTube-Video für diese Aktivität. Wird im Archiv unterhalb der Fotos angezeigt.
+                                Link(s) zu passenden YouTube-Videos für diese Aktivität. (Für mehrere Videos durch Komma trennen: z.B. link1, link2).
                             </p>
                         </div>
 

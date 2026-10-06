@@ -107,7 +107,11 @@ const EreignisDetail = () => {
     const formattedDate = formatEventDate(event.event_date);
     const imageUrl = event.image_url || fallbackImage;
     const isPastEvent = event.event_date && new Date(event.event_date) < new Date();
-    const videoId = getYouTubeID(event.youtube_url);
+    
+    // Birden fazla videoyu desteklemek için youtube_url'i virgülle ayır
+    const videoUrls = event.youtube_url ? event.youtube_url.split(',').map(url => url.trim()).filter(Boolean) : [];
+    const videoIds = videoUrls.map(getYouTubeID).filter(Boolean);
+    
     const archiveImageUrls = event.archive_photos || [];
     
     return (
@@ -172,7 +176,7 @@ const EreignisDetail = () => {
                         )}
                         
                         {/* DÜZELTME: 'archiveSummary' -> 'event.archive_summary' olarak değiştirildi */}
-                        {isPastEvent && (event.archive_summary || archiveImageUrls.length > 0 || videoId) && (
+                        {isPastEvent && (event.archive_summary || archiveImageUrls.length > 0 || videoIds.length > 0) && (
                             <section className="p-6 bg-blue-50 border-2 border-rcLightBlue rounded-lg">
                                 <h2 className="text-3xl font-semibold text-rcBlue mb-4">Rückblick: So war's!</h2>
                                 
@@ -186,10 +190,14 @@ const EreignisDetail = () => {
                                     </blockquote>
                                 )}
                                 
-                                {/* Arşiv Videosu */}
-                                {videoId && (
-                                    <div className="mb-6 rounded-lg overflow-hidden shadow-lg">
-                                        <VideoPlayer videoId={videoId} />
+                                {/* Arşiv Videoları */}
+                                {videoIds.length > 0 && (
+                                    <div className="mb-6 space-y-6">
+                                        {videoIds.map((vId, index) => (
+                                            <div key={index} className="rounded-lg overflow-hidden shadow-lg">
+                                                <VideoPlayer videoId={vId} />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
 

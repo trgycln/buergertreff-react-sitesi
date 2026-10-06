@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaTimes, FaCameraRetro, FaArrowRight } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaTimes, FaCameraRetro, FaArrowRight, FaYoutube } from 'react-icons/fa';
 import fallbackImage from '../assets/images/ana_logo.jpg';
 
 const HeroSpotlightCard = ({ event }) => {
@@ -62,9 +62,17 @@ const HeroSpotlightCard = ({ event }) => {
             >
                 {/* Üst Başlık & Rozet */}
                 <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-blue-100 border border-white/15 whitespace-nowrap">
-                        <FaCameraRetro className="text-rcRed" />
-                        <span>Letzte Aktivität</span>
+                    <div className="flex items-center gap-2">
+                        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-blue-100 border border-white/15 whitespace-nowrap">
+                            <FaCameraRetro className="text-rcRed" />
+                            <span>Letzte Aktivität</span>
+                        </div>
+                        {event.youtube_url && (
+                            <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 rounded-full bg-red-600/80 backdrop-blur-md text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-red-500/30 shadow-sm whitespace-nowrap">
+                                <FaYoutube className="text-white" />
+                                <span>Video</span>
+                            </div>
+                        )}
                     </div>
 
                     {event.category && (
