@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPrint, FaSave, FaPlus, FaList, FaEdit } from 'react-icons/fa';
+import { FaPrint, FaSave, FaPlus, FaList, FaEdit, FaTrash } from 'react-icons/fa';
 import { supabase } from '../../../supabaseClient';
 
 const formatCurrency = (value) => {
@@ -184,6 +184,27 @@ export default function CashCountProtocol({ readOnly }) {
     });
     setSelectedProtocolId(protocol.id);
     setViewMode('form');
+  };
+
+  const handleDelete = async (protocol) => {
+    if (readOnly) return;
+    if (!window.confirm(`Eigenbeleg "${protocol.document_number}" wirklich löschen?`)) return;
+
+    const { data, error } = await supabase
+      .from('accounting_cash_count_protocols')
+      .delete()
+      .eq('id', protocol.id)
+      .select('id');
+
+    if (error) {
+      alert('Fehler beim Löschen: ' + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert('Beleg konnte nicht gelöscht werden (keine Berechtigung?).');
+      return;
+    }
+    await fetchProtocols();
   };
 
   const handleSave = async () => { if (readOnly) return;
@@ -554,6 +575,16 @@ export default function CashCountProtocol({ readOnly }) {
                           <FaEdit />
                           {readOnly ? 'Drucken' : 'Bearbeiten / Drucken'}
                         </button>
+                        {!readOnly && (
+                          <button
+                            onClick={() => handleDelete(protocol)}
+                            className="ml-2 inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 transition"
+                            title="Löschen"
+                          >
+                            <FaTrash />
+                            Löschen
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
