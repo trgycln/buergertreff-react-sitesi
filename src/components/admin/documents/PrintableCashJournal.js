@@ -66,6 +66,21 @@ export const prepareKassenbuchPages = (transactions = [], openingBalance = 0) =>
 };
 
 /**
+ * Footer label of a sheet. Must stay stable once a sheet is full, because full sheets
+ * are printed, signed and filed while the year is still running:
+ * - a full sheet always carries over to the next sheet (unless the year is closed and it is the last one)
+ * - only the final sheet of a closed year shows the Kassenendbestand
+ * - a partially filled sheet of a running year shows a provisional balance
+ */
+const getSummaryLabel = ({ pageTrx, pageIndex, isLastPage, year }) => {
+  const isFull = pageTrx.length >= ROWS_PER_PAGE;
+  const yearClosed = new Date() > new Date(Number(year), 11, 31, 23, 59, 59);
+  if (isLastPage && yearClosed) return `Kassenendbestand per 31.12.${year}:`;
+  if (isFull) return `Übertrag auf Blatt ${pageIndex + 2}:`;
+  return 'Zwischenbestand (Blatt noch nicht abgeschlossen):';
+};
+
+/**
  * Direct print function: creates an isolated popup window with pure standalone HTML & CSS.
  * This completely avoids any CSS conflicts, visibility: hidden, or iframe clipping.
  */
@@ -138,7 +153,7 @@ export const printKassenbuchDirect = ({ transactions, openingBalance, year, orgN
     rowsHtml += `
       <tr class="summary-row">
         <td colspan="4" class="text-right font-bold text-uppercase">
-          ${isLastPage ? 'Kassenendbestand per 31.12.' + year + ':' : 'Übertrag auf Blatt ' + (pageIndex + 2) + ':'}
+          ${getSummaryLabel({ pageTrx, pageIndex, isLastPage, year })}
         </td>
         <td colspan="2" class="text-right text-muted"></td>
         <td class="text-right font-bold final-amount">${formatEuro(pageEndBalance)}</td>
@@ -154,7 +169,7 @@ export const printKassenbuchDirect = ({ transactions, openingBalance, year, orgN
           </div>
           <div class="header-right">
             <h3>${orgName}</h3>
-            <p class="page-badge">Blatt <strong>${pageIndex + 1}</strong> von <strong>${pages.length}</strong></p>
+            <p class="page-badge">Blatt <strong>${pageIndex + 1}</strong> von <span class="blank-total"></span></p>
           </div>
         </div>
 
@@ -262,6 +277,12 @@ export const printKassenbuchDirect = ({ transactions, openingBalance, year, orgN
           font-size: 11px;
           color: #555;
           margin-top: 2px;
+        }
+        .blank-total {
+          display: inline-block;
+          width: 28px;
+          border-bottom: 1px dotted #555;
+          vertical-align: bottom;
         }
         .kassen-table {
           width: 100%;
@@ -401,7 +422,7 @@ const PrintableCashJournal = ({ transactions = [], openingBalance = 0, year, org
                 <div className="text-right">
                   <h3 className="font-bold text-gray-900 text-sm">{orgName}</h3>
                   <p className="text-xs text-gray-600 mt-1">
-                    Blatt <span className="font-bold text-gray-900">{pageIndex + 1}</span> von <span className="font-bold text-gray-900">{pages.length}</span>
+                    Blatt <span className="font-bold text-gray-900">{pageIndex + 1}</span> von <span className="inline-block w-7 border-b border-dotted border-gray-600 align-bottom"></span>
                   </p>
                 </div>
               </div>
@@ -473,7 +494,7 @@ const PrintableCashJournal = ({ transactions = [], openingBalance = 0, year, org
                   {/* Summary / Carryover to next page */}
                   <tr className="bg-gray-200 border-t-2 border-black font-bold">
                     <td colSpan="4" className="border border-black p-2 text-right uppercase text-xs">
-                      {isLastPage ? `Kassenendbestand per 31.12.${year}:` : `Übertrag auf Blatt ${pageIndex + 2}:`}
+                      {getSummaryLabel({ pageTrx, pageIndex, isLastPage, year })}
                     </td>
                     <td colSpan="2" className="border border-black p-2 text-right"></td>
                     <td className="border border-black p-2 text-right text-sm text-gray-900 font-black">
