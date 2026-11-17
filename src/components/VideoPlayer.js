@@ -11,13 +11,15 @@ const VideoPlayer = ({ videoId, thumbnailSrc }) => {
     const openModal = () => setModalIsOpen(true);
     const closeModal = () => setModalIsOpen(false);
 
+    const actualThumbnail = thumbnailSrc || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
     return (
         <div>
             <div 
                 onClick={openModal} 
                 className="relative cursor-pointer group rounded-lg shadow-lg overflow-hidden h-96 w-full"
             >
-                <img src={thumbnailSrc} alt="Video Thumbnail" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                <img src={actualThumbnail} alt="Video Thumbnail" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                     <FaPlayCircle className="text-white text-7xl opacity-80 group-hover:opacity-100 transition-opacity" />
                 </div>

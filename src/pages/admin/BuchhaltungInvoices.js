@@ -50,7 +50,7 @@ function printInvoiceWindow(invoice, items, contact, settings) {
   `).join('');
 
   const notesHtml = invoice.notes
-    ? `<div class="notes"><strong>Hinweise:</strong><br>${invoice.notes}</div>`
+    ? `<div class="notes">${invoice.notes}</div>`
     : '';
 
 
