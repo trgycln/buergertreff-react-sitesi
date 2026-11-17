@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { FaPlus, FaPrint, FaTrash, FaCheck, FaTimes, FaFileInvoice, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaPrint, FaTrash, FaCheck, FaTimes, FaFileInvoice, FaEdit, FaCopy } from 'react-icons/fa';
 
 const formatCurrency = (value) =>
   Number(value).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -358,6 +358,47 @@ export default function BuchhaltungInvoices({ readOnly }) {
     }
   };
 
+  // Bir sonraki fatura numarasını hesapla (RE-YYYY-NNN)
+  const getNextInvoiceNo = () => {
+    const year = new Date().getFullYear();
+    const prefix = `RE-${year}-`;
+    const maxNum = invoices.reduce((max, inv) => {
+      if (!inv.invoice_no || !inv.invoice_no.startsWith(prefix)) return max;
+      const n = parseInt(inv.invoice_no.slice(prefix.length), 10);
+      return Number.isNaN(n) ? max : Math.max(max, n);
+    }, 0);
+    return `${prefix}${String(maxNum + 1).padStart(3, '0')}`;
+  };
+
+  // Mevcut faturayı şablon olarak kullan: yeni fatura formunu onun bilgileriyle doldur
+  const handleDuplicate = async (invoice) => {
+    try {
+      const { data: itemsData, error } = await supabase
+        .from('accounting_invoice_items')
+        .select('*')
+        .eq('invoice_id', invoice.id)
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+
+      setEditingId(null); // yeni kayıt olarak kaydedilecek
+      setFormData({
+        contact_id: String(invoice.contact_id),
+        invoice_no: getNextInvoiceNo(),
+        invoice_date: new Date().toISOString().split('T')[0],
+        due_date: null,
+        notes: invoice.notes || '',
+        status: 'Entwurf'
+      });
+      setItems(itemsData && itemsData.length > 0
+        ? itemsData.map(i => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price }))
+        : [{ description: '', quantity: 1, unit_price: 0 }]
+      );
+      setShowModal(true);
+    } catch (error) {
+      alert('Fehler beim Laden der Vorlage: ' + error.message);
+    }
+  };
+
   const handleDelete = async (invoice) => {
     if (!window.confirm(`Rechnung "${invoice.invoice_no}" wirklich löschen?`)) return;
     try {
@@ -425,7 +466,19 @@ export default function BuchhaltungInvoices({ readOnly }) {
         </h2>
         {!readOnly && (
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => {
+              setEditingId(null);
+              setFormData({
+                contact_id: '',
+                invoice_no: getNextInvoiceNo(),
+                invoice_date: new Date().toISOString().split('T')[0],
+                due_date: null,
+                notes: 'Wir bitten um Überweisung auf u.a. Konto. Vielen Dank.',
+                status: 'Entwurf'
+              });
+              setItems([{ description: '', quantity: 1, unit_price: 0 }]);
+              setShowModal(true);
+            }}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2"
           >
             <FaPlus /> Neue Rechnung
@@ -486,6 +539,15 @@ export default function BuchhaltungInvoices({ readOnly }) {
                     >
                       <FaEdit />
                     </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleDuplicate(invoice)}
+                        className="text-green-600 hover:text-green-900 bg-green-50 p-2 rounded"
+                        title="Als Vorlage kopieren"
+                      >
+                        <FaCopy />
+                      </button>
+                    )}
                     <button
                       onClick={() => triggerPrint(invoice)}
                       className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded"
