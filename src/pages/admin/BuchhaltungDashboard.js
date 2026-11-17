@@ -347,18 +347,21 @@ export default function BuchhaltungDashboard() {
           <meta charset="utf-8" />
           <title>Finanzbericht - Bürgertreff Wissen e.V.</title>
           <style>
-            @page { size: A4 portrait; margin: 12mm; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.4; font-size: 10pt; }
-            .header { text-align: center; margin-bottom: 6mm; border-bottom: 2px solid #cbd5e1; padding-bottom: 4mm; }
-            .header h1 { margin: 0 0 2mm 0; color: #0f172a; font-size: 18pt; }
-            .header h2 { margin: 0 0 2mm 0; color: #475569; font-size: 14pt; font-weight: normal; }
-            .header p { margin: 0; color: #64748b; font-size: 10pt; }
-            
-            .top-cards { display: flex; justify-content: space-between; margin-bottom: 5mm; gap: 4mm; }
-            .card { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 3.5mm; background: #f8fafc; text-align: center; }
+            @page { size: A4 portrait; margin: 8mm; }
+            * { box-sizing: border-box; }
+            html, body { margin: 0; padding: 0; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.25; font-size: 9pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #report { width: 194mm; transform-origin: top left; }
+            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3mm; border-bottom: 2px solid #cbd5e1; padding-bottom: 2mm; }
+            .header h1 { margin: 0; color: #0f172a; font-size: 14pt; }
+            .header h2 { margin: 0.5mm 0 0 0; color: #475569; font-size: 10.5pt; font-weight: normal; }
+            .header p { margin: 0; color: #64748b; font-size: 8pt; text-align: right; }
+
+            .top-cards { display: flex; justify-content: space-between; margin-bottom: 2.5mm; gap: 3mm; }
+            .card { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2mm; background: #f8fafc; text-align: center; }
             .card.main { border-color: #93c5fd; background: #eff6ff; border-width: 2px; }
-            .card-title { font-size: 8.5pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.5mm; font-weight: bold; }
-            .card-value { font-size: 13.5pt; font-weight: bold; }
+            .card-title { font-size: 7pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.8mm; font-weight: bold; }
+            .card-value { font-size: 11.5pt; font-weight: bold; }
             .text-green { color: #059669; }
             .text-red { color: #e11d48; }
             .text-blue { color: #1d4ed8; }
@@ -368,50 +371,53 @@ export default function BuchhaltungDashboard() {
             .text-right { text-align: right; }
             .text-center { text-align: center; }
 
-            .accounts-banner { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2.5mm 4mm; margin-bottom: 6mm; flex-wrap: wrap; gap: 2.5mm; }
-            .accounts-label { font-size: 8.5pt; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
-            .accounts-list { display: flex; gap: 3mm; flex-wrap: wrap; }
-            .acc-pill { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 1.5mm 3mm; font-size: 8.5pt; display: flex; align-items: center; gap: 1.5mm; }
+            .accounts-banner { display: flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; padding: 1.5mm 2.5mm; margin-bottom: 3mm; gap: 2.5mm; }
+            .accounts-label { font-size: 7pt; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+            .accounts-list { display: flex; gap: 1.5mm; flex-wrap: wrap; }
+            .acc-pill { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0.6mm 2mm; font-size: 7.5pt; display: flex; align-items: center; gap: 1mm; }
             .loan-pill { border-color: #fde68a; background: #fffbeb; }
             .acc-name { font-weight: 600; color: #334155; }
             .acc-val { font-weight: bold; }
 
-            .section-title { font-size: 13pt; color: #334155; border-bottom: 2px solid #94a3b8; margin-bottom: 3.5mm; padding-bottom: 1.5mm; margin-top: 0; }
+            .section-title { font-size: 10.5pt; color: #334155; border-bottom: 1.5px solid #94a3b8; margin: 0 0 1.8mm 0; padding-bottom: 0.8mm; }
 
-            .table-container { margin-bottom: 7mm; page-break-inside: avoid; }
-            table.overview-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-            table.overview-table th, table.overview-table td { border: 1px solid #cbd5e1; padding: 5px; }
+            .table-container { margin-bottom: 3.5mm; }
+            table.overview-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+            table.overview-table th, table.overview-table td { border: 1px solid #cbd5e1; padding: 2px 4px; }
             table.overview-table th { background: #f1f5f9; font-weight: bold; text-align: center; }
             table.overview-table tr:nth-child(even) { background: #f8fafc; }
             table.overview-table tfoot th, table.overview-table tfoot td { background: #e2e8f0; font-weight: bold; }
 
-            .detail-section { page-break-inside: auto; }
-            .grid { display: flex; width: 100%; gap: 6mm; align-items: stretch; }
-            .col { flex: 1; }
-            .box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 3.5mm; background: #ffffff; height: 100%; box-sizing: border-box; }
-            .box h3 { margin: 0 0 2.5mm 0; font-size: 11pt; border-bottom: 2px solid #cbd5e1; padding-bottom: 1.5mm; display: flex; justify-content: space-between; align-items: center; }
-            
-            table.detail-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
-            table.detail-table td { padding: 4px 0; border-bottom: 1px dashed #e2e8f0; }
-            table.detail-table tr:last-child td { border-bottom: none; }
-            .amount { text-align: right; font-weight: bold; }
-            .cat-name { color: #334155; font-weight: 700; }
-            .sub-cat { padding-left: 12px; font-size: 8pt; color: #64748b; font-weight: normal; }
-            .sub-cat-amount { font-size: 8pt; color: #64748b; font-weight: normal; }
-            .empty { color: #94a3b8; font-style: italic; font-size: 8.5pt; text-align: center; }
+            .grid { display: flex; width: 100%; gap: 4mm; align-items: stretch; }
+            .col { flex: 1; min-width: 0; }
+            .box { border: 1px solid #e2e8f0; border-radius: 5px; padding: 2mm 2.5mm; background: #ffffff; height: 100%; }
+            .box h3 { margin: 0 0 1.2mm 0; font-size: 9.5pt; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 0.8mm; display: flex; justify-content: space-between; align-items: center; }
 
-            .result-box { margin-top: 5mm; padding: 4mm; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; display: flex; justify-content: space-around; align-items: center; text-align: center; page-break-inside: avoid; }
+            table.detail-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+            table.detail-table td { padding: 1.2px 0; border-bottom: 1px dashed #e2e8f0; vertical-align: top; }
+            table.detail-table tr:last-child td { border-bottom: none; }
+            .amount { text-align: right; font-weight: bold; white-space: nowrap; padding-left: 2mm !important; }
+            .cat-name { color: #334155; font-weight: 700; }
+            .sub-cat { padding-left: 10px !important; font-size: 7pt; color: #64748b; font-weight: normal; }
+            .sub-cat-amount { font-size: 7pt; color: #64748b; font-weight: normal; }
+            .empty { color: #94a3b8; font-style: italic; font-size: 7.5pt; text-align: center; }
+
+            .result-box { margin-top: 3mm; padding: 2mm 3mm; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; display: flex; justify-content: space-around; align-items: center; text-align: center; }
             .result-item { flex: 1; }
-            .result-label { font-size: 8.5pt; color: #3b82f6; font-weight: bold; text-transform: uppercase; margin-bottom: 1.5mm; letter-spacing: 0.5px; }
-            .result-val { font-size: 13pt; font-weight: bold; }
-            .operator { font-size: 18pt; font-weight: 300; color: #93c5fd; }
+            .result-label { font-size: 7pt; color: #3b82f6; font-weight: bold; text-transform: uppercase; margin-bottom: 0.8mm; letter-spacing: 0.4px; }
+            .result-val { font-size: 11pt; font-weight: bold; }
+            .result-val.big { font-size: 12.5pt; }
+            .operator { font-size: 14pt; font-weight: 300; color: #93c5fd; }
           </style>
         </head>
         <body>
+          <div id="report">
           <div class="header">
-            <h1>Bürgertreff Wissen e.V.</h1>
-            <h2>Finanzieller Monatsbericht</h2>
-            <p>Bericht erstellt am: ${new Date().toLocaleDateString('de-DE')} &nbsp;|&nbsp; Berichtsjahr: ${year}</p>
+            <div>
+              <h1>Bürgertreff Wissen e.V.</h1>
+              <h2>Finanzieller Monatsbericht</h2>
+            </div>
+            <p>Bericht erstellt am: ${new Date().toLocaleDateString('de-DE')}<br/>Berichtsjahr: ${year}</p>
           </div>
 
           <div class="top-cards">
@@ -520,14 +526,40 @@ export default function BuchhaltungDashboard() {
               </div>
               <div class="result-item">
                 <div class="result-label">Neuer Bestand (Ende ${year})</div>
-                <div class="result-val text-blue" style="font-size: 15pt;">${formatAmount(summaryItem.closingBalance)} €</div>
+                <div class="result-val big text-blue">${formatAmount(summaryItem.closingBalance)} €</div>
               </div>
             </div>
           </div>
+          </div>
           <script>
-            window.onload = function() { 
-              setTimeout(function() { 
-                window.print(); 
+            function fitToOnePage() {
+              var report = document.getElementById('report');
+              var probe = document.createElement('div');
+              probe.style.cssText = 'position:absolute;visibility:hidden;width:100mm;height:100mm;';
+              document.body.appendChild(probe);
+              var pxPerMm = probe.offsetHeight / 100;
+              document.body.removeChild(probe);
+              // A4 (297mm) minus 2 x 8mm Seitenrand, kleiner Sicherheitspuffer
+              var availableHeight = 279 * pxPerMm;
+              if (report.scrollHeight <= availableHeight) return;
+              // Beim Verkleinern wird der Inhalt breiter und damit kürzer -> iterativ annähern
+              var scale = 1;
+              for (var i = 0; i < 6; i++) {
+                report.style.width = (194 / scale) + 'mm';
+                var next = Math.max(0.45, Math.min(1, availableHeight / report.scrollHeight));
+                if (Math.abs(next - scale) < 0.005) { scale = next; break; }
+                scale = next;
+              }
+              report.style.width = (194 / scale) + 'mm';
+              scale = Math.max(0.45, Math.min(scale, availableHeight / report.scrollHeight));
+              report.style.transform = 'scale(' + scale + ')';
+              document.body.style.height = (report.scrollHeight * scale) + 'px';
+              document.body.style.overflow = 'hidden';
+            }
+            window.onload = function() {
+              fitToOnePage();
+              setTimeout(function() {
+                window.print();
               }, 500);
             }
             window.onafterprint = function() { window.close(); }
