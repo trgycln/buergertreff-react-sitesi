@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { isGeldtransitCategory } from '../../utils/accountingUtils';
 import { FaWallet, FaArrowUp, FaArrowDown, FaLandmark, FaMoneyBillWave, FaSpinner, FaPrint } from 'react-icons/fa';
 
 export default function BuchhaltungDashboard() {
@@ -105,9 +106,27 @@ export default function BuchhaltungDashboard() {
     const currentYear = new Date().getFullYear().toString();
     const accMap = {};
 
+    const addToAccountBalance = (t, amount, isIncome) => {
+      if (!t.account_id) return;
+      if (!accMap[t.account_id]) {
+        accMap[t.account_id] = {
+          name: t.accounting_accounts?.name || 'Unbekannt',
+          balance: 0
+        };
+      }
+      if (isIncome) accMap[t.account_id].balance += amount;
+      else accMap[t.account_id].balance -= amount;
+    };
+
     allTrx.forEach(t => {
       const amount = toFiniteNumber(t.amount);
       const isIncome = t.type === 'income';
+
+      // Geldtransit: nur Kontostände, keine Einnahmen/Ausgaben-Statistik
+      if (isGeldtransitCategory(t.accounting_categories?.name)) {
+        addToAccountBalance(t, amount, isIncome);
+        return;
+      }
       const dateValue = t.date || '';
       const isCurrentYear = dateValue.startsWith(currentYear);
       const trxYear = /^\d{4}/.test(dateValue) ? dateValue.slice(0, 4) : 'Ohne Datum';
@@ -224,16 +243,7 @@ export default function BuchhaltungDashboard() {
       }
 
       // Hesap Bakiyeleri
-      if (t.account_id) {
-        if (!accMap[t.account_id]) {
-          accMap[t.account_id] = { 
-            name: t.accounting_accounts?.name || 'Unbekannt', 
-            balance: 0 
-          };
-        }
-        if (isIncome) accMap[t.account_id].balance += amount;
-        else accMap[t.account_id].balance -= amount;
-      }
+      addToAccountBalance(t, amount, isIncome);
     });
 
     setStats({

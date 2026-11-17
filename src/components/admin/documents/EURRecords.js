@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
+import { isGeldtransitCategory } from '../../../utils/accountingUtils';
 import { FaSpinner, FaPrint } from 'react-icons/fa';
 
 export default function EURRecords({ readOnly }) {
@@ -33,7 +34,9 @@ export default function EURRecords({ readOnly }) {
       (data || []).forEach(trx => {
         const amount = parseFloat(trx.amount) || 0;
         const catName = trx.accounting_categories?.name || 'Sonstige';
-        
+        // Geldtransit (Kasse ↔ Bank) ist erfolgsneutral und gehört nicht in die EÜR
+        if (isGeldtransitCategory(catName)) return;
+
         if (trx.type === 'income') {
           totalIncome += amount;
           if (!categoryBreakdown[catName]) categoryBreakdown[catName] = { income: 0, expense: 0 };

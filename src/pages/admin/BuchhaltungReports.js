@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { isGeldtransitCategory } from '../../utils/accountingUtils';
 import { FaPrint, FaFileDownload, FaChartPie, FaSpinner } from 'react-icons/fa';
 
 export default function BuchhaltungReports() {
@@ -86,6 +87,14 @@ export default function BuchhaltungReports() {
       const amount = parseFloat(trx.amount);
       const catName = trx.accounting_categories?.name || 'Diğer';
       const accName = trx.accounting_accounts?.name || 'Diğer';
+
+      // Geldtransit (Kasse ↔ Bank): nur Kontobewegung, keine Einnahme/Ausgabe
+      if (isGeldtransitCategory(catName)) {
+        if (!accMap[accName]) accMap[accName] = { name: accName, income: 0, expense: 0 };
+        if (trx.type === 'income') accMap[accName].income += amount;
+        else accMap[accName].expense += amount;
+        return;
+      }
 
       // Toplamlar
       if (trx.type === 'income') {
