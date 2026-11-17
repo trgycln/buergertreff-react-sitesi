@@ -310,31 +310,44 @@ export default function BuchhaltungDashboard() {
       const summaryItem = yearlyContributionSummary.find(s => s.year === year) || { total: netResult, closingBalance: netResult };
       const uebertrag = summaryItem.closingBalance - summaryItem.total;
       
-      const renderTableRows = (entries) => {
-        if (entries.length === 0) return '<tr><td colspan="2" class="empty">Keine Buchungen</td></tr>';
-        return entries.map(([cat, dataObj]) => `
-          <tr>
-            <td class="cat-name">${escapeHtml(cat)}</td>
-            <td class="amount">${formatAmount(dataObj.total)}</td>
-          </tr>
-          ${(Object.keys(dataObj.subs).length > 1 || (Object.keys(dataObj.subs).length === 1 && Object.keys(dataObj.subs)[0] !== 'Allgemein')) 
-            ? Object.entries(dataObj.subs).map(([sub, subAmt]) => `
-              <tr>
-                <td class="sub-cat">↳ ${escapeHtml(sub)}</td>
-                <td class="amount sub-cat-amount">${formatAmount(subAmt)}</td>
-              </tr>
-            `).join('') 
-            : ''}
-        `).join('');
+      const share = (value, total) => (total > 0 ? Math.round((value / total) * 100) : 0);
+
+      const renderCategoryList = (entries, total, tone) => {
+        if (entries.length === 0) return '<div class="empty">Keine Buchungen</div>';
+        return entries.map(([cat, dataObj]) => {
+          const subs = Object.entries(dataObj.subs).sort((a, b) => b[1] - a[1]);
+          const showSubs = subs.length > 1 || (subs.length === 1 && subs[0][0] !== 'Allgemein');
+          const pct = share(dataObj.total, total);
+          return `
+            <div class="cat">
+              <div class="cat-row">
+                <span class="cat-name">${escapeHtml(cat)}</span>
+                <span class="cat-pct">${pct} %</span>
+                <span class="cat-amt">${formatAmount(dataObj.total)} €</span>
+              </div>
+              <div class="bar"><div class="bar-fill ${tone}" style="width:${Math.max(pct, 1)}%"></div></div>
+              ${showSubs ? `
+                <div class="subs">
+                  ${subs.map(([sub, subAmt]) => `
+                    <span class="sub">
+                      <span class="sub-name">${escapeHtml(sub === 'Allgemein' ? 'ohne Unterkategorie' : sub)}</span>
+                      <span class="sub-amt">${formatAmount(subAmt)} €</span>
+                    </span>
+                  `).join('')}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
       };
 
       const yearlyRowsHtml = yearlyContributionSummary.map(item => `
-        <tr>
-          <td class="fw-bold text-center">${item.year}</td>
+        <tr class="${item.year === year ? 'current' : ''}">
+          <td class="text-center fw-bold">${item.year}</td>
           <td class="text-right">${formatAmount(item.spende)}</td>
           <td class="text-right">${formatAmount(item.mitgliederbeitrag)}</td>
           <td class="text-right">${formatAmount(item.sonstiges)}</td>
-          <td class="text-right text-red fw-bold">${formatAmount(item.ausgaben)}</td>
+          <td class="text-right text-red">${formatAmount(item.ausgaben)}</td>
           <td class="text-right fw-bold ${item.total >= 0 ? 'text-green' : 'text-red'}">${item.total > 0 ? '+' : ''}${formatAmount(item.total)}</td>
           <td class="text-right fw-black ${item.closingBalance >= 0 ? 'text-blue' : 'text-red'}">${formatAmount(item.closingBalance)}</td>
         </tr>
@@ -345,23 +358,14 @@ export default function BuchhaltungDashboard() {
         <html lang="de">
         <head>
           <meta charset="utf-8" />
-          <title>Finanzbericht - Bürgertreff Wissen e.V.</title>
+          <title>Finanzbericht ${year} - Bürgertreff Wissen e.V.</title>
           <style>
             @page { size: A4 portrait; margin: 8mm; }
             * { box-sizing: border-box; }
-            html, body { margin: 0; padding: 0; }
-            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; line-height: 1.25; font-size: 9pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #report { width: 194mm; transform-origin: top left; }
-            .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 3mm; border-bottom: 2px solid #cbd5e1; padding-bottom: 2mm; }
-            .header h1 { margin: 0; color: #0f172a; font-size: 14pt; }
-            .header h2 { margin: 0.5mm 0 0 0; color: #475569; font-size: 10.5pt; font-weight: normal; }
-            .header p { margin: 0; color: #64748b; font-size: 8pt; text-align: right; }
+            html, body { margin: 0; padding: 0; background: #ffffff; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #report { width: 194mm; font-size: 9pt; line-height: 1.3; display: flex; flex-direction: column; gap: 0.9em; overflow: hidden; }
 
-            .top-cards { display: flex; justify-content: space-between; margin-bottom: 2.5mm; gap: 3mm; }
-            .card { flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2mm; background: #f8fafc; text-align: center; }
-            .card.main { border-color: #93c5fd; background: #eff6ff; border-width: 2px; }
-            .card-title { font-size: 7pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.8mm; font-weight: bold; }
-            .card-value { font-size: 11.5pt; font-weight: bold; }
             .text-green { color: #059669; }
             .text-red { color: #e11d48; }
             .text-blue { color: #1d4ed8; }
@@ -371,167 +375,193 @@ export default function BuchhaltungDashboard() {
             .text-right { text-align: right; }
             .text-center { text-align: center; }
 
-            .accounts-banner { display: flex; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 5px; padding: 1.5mm 2.5mm; margin-bottom: 3mm; gap: 2.5mm; }
-            .accounts-label { font-size: 7pt; font-weight: bold; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-            .accounts-list { display: flex; gap: 1.5mm; flex-wrap: wrap; }
-            .acc-pill { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 3px; padding: 0.6mm 2mm; font-size: 7.5pt; display: flex; align-items: center; gap: 1mm; }
-            .loan-pill { border-color: #fde68a; background: #fffbeb; }
-            .acc-name { font-weight: 600; color: #334155; }
-            .acc-val { font-weight: bold; }
+            /* Kopf */
+            .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 0.25em solid #1d4ed8; padding-bottom: 0.5em; }
+            .header .org { font-size: 0.85em; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+            .header h1 { margin: 0.1em 0 0 0; font-size: 1.8em; color: #0f172a; line-height: 1.1; }
+            .header .meta { text-align: right; font-size: 0.85em; color: #64748b; line-height: 1.5; }
 
-            .section-title { font-size: 10.5pt; color: #334155; border-bottom: 1.5px solid #94a3b8; margin: 0 0 1.8mm 0; padding-bottom: 0.8mm; }
+            /* Kennzahlen */
+            .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7em; }
+            .kpi { border: 1px solid #e2e8f0; border-radius: 0.5em; padding: 0.6em 0.8em; background: #f8fafc; border-left-width: 0.35em; }
+            .kpi.inc { border-left-color: #059669; }
+            .kpi.exp { border-left-color: #e11d48; }
+            .kpi.res { border-left-color: #6366f1; }
+            .kpi.bal { border-left-color: #1d4ed8; background: #eff6ff; }
+            .kpi-label { font-size: 0.75em; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+            .kpi-value { font-size: 1.45em; font-weight: 800; margin-top: 0.15em; white-space: nowrap; }
+            .kpi-hint { font-size: 0.75em; color: #94a3b8; margin-top: 0.1em; }
 
-            .table-container { margin-bottom: 3.5mm; }
-            table.overview-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
-            table.overview-table th, table.overview-table td { border: 1px solid #cbd5e1; padding: 2px 4px; }
-            table.overview-table th { background: #f1f5f9; font-weight: bold; text-align: center; }
-            table.overview-table tr:nth-child(even) { background: #f8fafc; }
-            table.overview-table tfoot th, table.overview-table tfoot td { background: #e2e8f0; font-weight: bold; }
+            /* Konten */
+            .accounts { display: flex; align-items: center; gap: 0.6em; flex-wrap: wrap; font-size: 0.9em; }
+            .accounts-label { font-size: 0.85em; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.2em; }
+            .acc-pill { border: 1px solid #cbd5e1; border-radius: 0.35em; padding: 0.2em 0.6em; background: #ffffff; }
+            .acc-pill.loan { border-color: #fde68a; background: #fffbeb; }
+            .acc-name { color: #475569; }
+            .acc-val { font-weight: 700; margin-left: 0.3em; }
 
-            .grid { display: flex; width: 100%; gap: 4mm; align-items: stretch; }
-            .col { flex: 1; min-width: 0; }
-            .box { border: 1px solid #e2e8f0; border-radius: 5px; padding: 2mm 2.5mm; background: #ffffff; height: 100%; }
-            .box h3 { margin: 0 0 1.2mm 0; font-size: 9.5pt; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 0.8mm; display: flex; justify-content: space-between; align-items: center; }
+            .section-title { font-size: 1.15em; font-weight: 700; color: #0f172a; margin: 0 0 0.45em 0; display: flex; align-items: baseline; gap: 0.5em; }
+            .section-title small { font-size: 0.75em; font-weight: 400; color: #94a3b8; }
 
-            table.detail-table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
-            table.detail-table td { padding: 1.2px 0; border-bottom: 1px dashed #e2e8f0; vertical-align: top; }
-            table.detail-table tr:last-child td { border-bottom: none; }
-            .amount { text-align: right; font-weight: bold; white-space: nowrap; padding-left: 2mm !important; }
-            .cat-name { color: #334155; font-weight: 700; }
-            .sub-cat { padding-left: 10px !important; font-size: 7pt; color: #64748b; font-weight: normal; }
-            .sub-cat-amount { font-size: 7pt; color: #64748b; font-weight: normal; }
-            .empty { color: #94a3b8; font-style: italic; font-size: 7.5pt; text-align: center; }
+            /* Einnahmen / Ausgaben */
+            .detail { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+            .grid { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0.9em; }
+            .box { border: 1px solid #e2e8f0; border-radius: 0.5em; padding: 0.6em 0.8em; display: flex; flex-direction: column; }
+            .box-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 1.1em; font-weight: 800; padding-bottom: 0.35em; margin-bottom: 0.4em; border-bottom: 0.15em solid currentColor; }
+            .cat { padding: 0.3em 0; border-bottom: 1px dashed #e2e8f0; break-inside: avoid; }
+            .cat:last-child { border-bottom: none; }
+            .cat-row { display: flex; align-items: baseline; gap: 0.5em; }
+            .cat-name { flex: 1; font-weight: 700; color: #334155; }
+            .cat-pct { font-size: 0.8em; color: #94a3b8; min-width: 2.8em; text-align: right; }
+            .cat-amt { font-weight: 700; white-space: nowrap; min-width: 5.5em; text-align: right; }
+            .bar { height: 0.3em; background: #f1f5f9; border-radius: 0.2em; margin-top: 0.2em; overflow: hidden; }
+            .bar-fill { height: 100%; border-radius: 0.2em; }
+            .bar-fill.inc { background: #34d399; }
+            .bar-fill.exp { background: #fb7185; }
+            .subs { display: flex; flex-wrap: wrap; gap: 0.25em 0.9em; margin-top: 0.25em; padding-left: 0.6em; font-size: 0.82em; color: #64748b; }
+            .sub-name::before { content: '↳ '; color: #cbd5e1; }
+            .sub-amt { font-weight: 600; color: #475569; margin-left: 0.2em; white-space: nowrap; }
+            .empty { color: #94a3b8; font-style: italic; text-align: center; padding: 1em 0; }
 
-            .result-box { margin-top: 3mm; padding: 2mm 3mm; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; display: flex; justify-content: space-around; align-items: center; text-align: center; }
-            .result-item { flex: 1; }
-            .result-label { font-size: 7pt; color: #3b82f6; font-weight: bold; text-transform: uppercase; margin-bottom: 0.8mm; letter-spacing: 0.4px; }
-            .result-val { font-size: 11pt; font-weight: bold; }
-            .result-val.big { font-size: 12.5pt; }
-            .operator { font-size: 14pt; font-weight: 300; color: #93c5fd; }
+            /* Ergebnis */
+            .result { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; text-align: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.5em; padding: 0.6em 0.8em; }
+            .result-label { font-size: 0.75em; color: #3b82f6; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+            .result-val { font-size: 1.35em; font-weight: 800; margin-top: 0.1em; }
+            .result-val.big { font-size: 1.6em; }
+            .operator { font-size: 1.8em; color: #93c5fd; font-weight: 300; padding: 0 0.4em; }
+
+            /* Jahresübersicht */
+            table.overview { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+            table.overview th, table.overview td { border: 1px solid #e2e8f0; padding: 0.25em 0.5em; }
+            table.overview thead th { background: #f1f5f9; font-weight: 700; color: #475569; text-align: center; }
+            table.overview tbody tr:nth-child(even) { background: #f8fafc; }
+            table.overview tbody tr.current { background: #eff6ff; outline: 1.5px solid #93c5fd; }
+            table.overview tfoot td { background: #e2e8f0; font-weight: 700; }
+
+            .footer { display: flex; justify-content: space-between; font-size: 0.75em; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 0.4em; }
           </style>
         </head>
         <body>
           <div id="report">
-          <div class="header">
-            <div>
-              <h1>Bürgertreff Wissen e.V.</h1>
-              <h2>Finanzieller Monatsbericht</h2>
+            <div class="header">
+              <div>
+                <div class="org">Bürgertreff Wissen e.V.</div>
+                <h1>Finanzbericht ${year}</h1>
+              </div>
+              <div class="meta">
+                Stand: ${new Date().toLocaleDateString('de-DE')}<br/>
+                Geschäftsjahr: ${year}
+              </div>
             </div>
-            <p>Bericht erstellt am: ${new Date().toLocaleDateString('de-DE')}<br/>Berichtsjahr: ${year}</p>
-          </div>
 
-          <div class="top-cards">
-            <div class="card">
-              <div class="card-title">Gesamteinnahmen (${year})</div>
-              <div class="card-value text-green">+ ${formatAmount(totalInc)} €</div>
+            <div class="kpis">
+              <div class="kpi inc">
+                <div class="kpi-label">Einnahmen ${year}</div>
+                <div class="kpi-value text-green">+ ${formatAmount(totalInc)} €</div>
+                <div class="kpi-hint">${incEntries.length} Kategorien</div>
+              </div>
+              <div class="kpi exp">
+                <div class="kpi-label">Ausgaben ${year}</div>
+                <div class="kpi-value text-red">- ${formatAmount(totalExp)} €</div>
+                <div class="kpi-hint">${expEntries.length} Kategorien</div>
+              </div>
+              <div class="kpi res">
+                <div class="kpi-label">Jahresergebnis ${year}</div>
+                <div class="kpi-value ${netResult >= 0 ? 'text-green' : 'text-red'}">${netResult > 0 ? '+ ' : ''}${formatAmount(netResult)} €</div>
+                <div class="kpi-hint">${netResult >= 0 ? 'Überschuss' : 'Fehlbetrag'}</div>
+              </div>
+              <div class="kpi bal">
+                <div class="kpi-label">Gesamtbestand aktuell</div>
+                <div class="kpi-value ${stats.totalBalance >= 0 ? 'text-blue' : 'text-red'}">${formatAmount(stats.totalBalance)} €</div>
+                <div class="kpi-hint">alle Konten</div>
+              </div>
             </div>
-            <div class="card main">
-              <div class="card-title">Aktueller Gesamtsaldo</div>
-              <div class="card-value ${stats.totalBalance >= 0 ? 'text-blue' : 'text-red'}">${formatAmount(stats.totalBalance)} €</div>
-            </div>
-            <div class="card">
-              <div class="card-title">Gesamtausgaben (${year})</div>
-              <div class="card-value text-red">- ${formatAmount(totalExp)} €</div>
-            </div>
-          </div>
 
-          <div class="accounts-banner">
-            <span class="accounts-label">Kassen- &amp; Bankbestände (Aktuell):</span>
-            <div class="accounts-list">
+            <div class="accounts">
+              <span class="accounts-label">Kontostände:</span>
               ${accountBalances.map(acc => `
-                <div class="acc-pill">
-                  <span class="acc-name">${escapeHtml(acc.name)}:</span>
+                <span class="acc-pill">
+                  <span class="acc-name">${escapeHtml(acc.name)}</span>
                   <span class="acc-val ${acc.balance >= 0 ? 'text-blue' : 'text-red'}">${formatAmount(acc.balance)} €</span>
-                </div>
+                </span>
               `).join('')}
               ${stats.loanBalance !== 0 ? `
-                <div class="acc-pill loan-pill">
-                  <span class="acc-name">Offenes Darlehen:</span>
+                <span class="acc-pill loan">
+                  <span class="acc-name">Offenes Darlehen</span>
                   <span class="acc-val text-amber">${formatAmount(stats.loanBalance)} €</span>
-                </div>
+                </span>
               ` : ''}
             </div>
-          </div>
 
-          <div class="table-container">
-            <h2 class="section-title">Jahresübersicht (Alle Jahre)</h2>
-            <table class="overview-table">
-              <thead>
-                <tr>
-                  <th rowspan="2">Jahr</th>
-                  <th colspan="3">Einnahmen</th>
-                  <th rowspan="2">Ausgaben</th>
-                  <th colspan="2">Saldo & Bestand</th>
-                </tr>
-                <tr>
-                  <th>Spenden</th>
-                  <th>Beiträge</th>
-                  <th>Sonstiges</th>
-                  <th>Ergebnis</th>
-                  <th>Bestand (Ende Jahr)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${yearlyRowsHtml}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td class="text-right">Gesamt</td>
-                  <td class="text-right">${formatAmount(summaryTotals.spende)}</td>
-                  <td class="text-right">${formatAmount(summaryTotals.mitgliederbeitrag)}</td>
-                  <td class="text-right">${formatAmount(summaryTotals.sonstiges)}</td>
-                  <td class="text-right text-red">${formatAmount(summaryTotals.ausgaben)}</td>
-                  <td class="text-right ${stats.totalBalance >= 0 ? 'text-green' : 'text-red'}">${stats.totalBalance > 0 ? '+' : ''}${formatAmount(stats.totalBalance)}</td>
-                  <td class="text-right text-blue">${formatAmount(stats.totalBalance)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div class="detail-section">
-            <h2 class="section-title">Detaillierte Bilanz für das Geschäftsjahr ${year}</h2>
-            <div class="grid">
-              <div class="col">
+            <div class="detail">
+              <div class="section-title">Einnahmen &amp; Ausgaben nach Kategorien <small>Geschäftsjahr ${year} · Anteil am Gesamtbetrag</small></div>
+              <div class="grid">
                 <div class="box">
-                  <h3 class="text-green"><span>Einnahmen</span> <span>${formatAmount(totalInc)} €</span></h3>
-                  <table class="detail-table">
-                    <tbody>${renderTableRows(incEntries)}</tbody>
-                  </table>
+                  <div class="box-head text-green"><span>Einnahmen</span><span>${formatAmount(totalInc)} €</span></div>
+                  ${renderCategoryList(incEntries, totalInc, 'inc')}
                 </div>
-              </div>
-              <div class="col">
                 <div class="box">
-                  <h3 class="text-red"><span>Ausgaben</span> <span>${formatAmount(totalExp)} €</span></h3>
-                  <table class="detail-table">
-                    <tbody>${renderTableRows(expEntries)}</tbody>
-                  </table>
+                  <div class="box-head text-red"><span>Ausgaben</span><span>${formatAmount(totalExp)} €</span></div>
+                  ${renderCategoryList(expEntries, totalExp, 'exp')}
                 </div>
               </div>
             </div>
 
-            <div class="result-box">
-              <div class="result-item">
+            <div class="result">
+              <div>
                 <div class="result-label">Übertrag aus Vorjahr</div>
                 <div class="result-val text-blue">${formatAmount(uebertrag)} €</div>
               </div>
-              <div class="result-item">
-                <div class="operator">+</div>
-              </div>
-              <div class="result-item">
+              <div class="operator">+</div>
+              <div>
                 <div class="result-label">Jahresergebnis ${year}</div>
                 <div class="result-val ${netResult >= 0 ? 'text-green' : 'text-red'}">${netResult > 0 ? '+' : ''}${formatAmount(netResult)} €</div>
               </div>
-              <div class="result-item">
-                <div class="operator">=</div>
-              </div>
-              <div class="result-item">
-                <div class="result-label">Neuer Bestand (Ende ${year})</div>
+              <div class="operator">=</div>
+              <div>
+                <div class="result-label">Bestand Ende ${year}</div>
                 <div class="result-val big text-blue">${formatAmount(summaryItem.closingBalance)} €</div>
               </div>
             </div>
-          </div>
+
+            <div>
+              <div class="section-title">Jahresübersicht <small>alle Jahre</small></div>
+              <table class="overview">
+                <thead>
+                  <tr>
+                    <th>Jahr</th>
+                    <th>Spenden</th>
+                    <th>Beiträge</th>
+                    <th>Sonstige Einn.</th>
+                    <th>Ausgaben</th>
+                    <th>Ergebnis</th>
+                    <th>Bestand Jahresende</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${yearlyRowsHtml}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td class="text-center">Gesamt</td>
+                    <td class="text-right">${formatAmount(summaryTotals.spende)}</td>
+                    <td class="text-right">${formatAmount(summaryTotals.mitgliederbeitrag)}</td>
+                    <td class="text-right">${formatAmount(summaryTotals.sonstiges)}</td>
+                    <td class="text-right text-red">${formatAmount(summaryTotals.ausgaben)}</td>
+                    <td class="text-right ${stats.totalBalance >= 0 ? 'text-green' : 'text-red'}">${stats.totalBalance > 0 ? '+' : ''}${formatAmount(stats.totalBalance)}</td>
+                    <td class="text-right text-blue">${formatAmount(stats.totalBalance)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div class="footer">
+              <span>Bürgertreff Wissen e.V. · Finanzbericht ${year}</span>
+              <span>Erstellt am ${new Date().toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+            </div>
           </div>
           <script>
+            // Schriftgröße so wählen, dass der Bericht genau eine A4-Seite füllt
             function fitToOnePage() {
               var report = document.getElementById('report');
               var probe = document.createElement('div');
@@ -539,22 +569,22 @@ export default function BuchhaltungDashboard() {
               document.body.appendChild(probe);
               var pxPerMm = probe.offsetHeight / 100;
               document.body.removeChild(probe);
-              // A4 (297mm) minus 2 x 8mm Seitenrand, kleiner Sicherheitspuffer
-              var availableHeight = 279 * pxPerMm;
-              if (report.scrollHeight <= availableHeight) return;
-              // Beim Verkleinern wird der Inhalt breiter und damit kürzer -> iterativ annähern
-              var scale = 1;
-              for (var i = 0; i < 6; i++) {
-                report.style.width = (194 / scale) + 'mm';
-                var next = Math.max(0.45, Math.min(1, availableHeight / report.scrollHeight));
-                if (Math.abs(next - scale) < 0.005) { scale = next; break; }
-                scale = next;
+              // A4 (297mm) minus 2 x 8mm Rand, 2mm Sicherheitspuffer
+              var available = 279 * pxPerMm;
+              var lo = 5.5, hi = 11.5, best = null;
+              report.style.height = 'auto';
+              for (var i = 0; i < 14; i++) {
+                var mid = (lo + hi) / 2;
+                report.style.fontSize = mid + 'pt';
+                if (report.scrollHeight <= available) { best = mid; lo = mid; } else { hi = mid; }
               }
-              report.style.width = (194 / scale) + 'mm';
-              scale = Math.max(0.45, Math.min(scale, availableHeight / report.scrollHeight));
-              report.style.transform = 'scale(' + scale + ')';
-              document.body.style.height = (report.scrollHeight * scale) + 'px';
-              document.body.style.overflow = 'hidden';
+              if (best === null) {
+                report.style.fontSize = lo + 'pt';
+                report.style.overflow = 'visible';
+                return;
+              }
+              report.style.fontSize = best + 'pt';
+              report.style.height = available + 'px';
             }
             window.onload = function() {
               fitToOnePage();
