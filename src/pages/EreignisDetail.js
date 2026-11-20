@@ -113,6 +113,12 @@ const EreignisDetail = () => {
     const videoIds = videoUrls.map(getYouTubeID).filter(Boolean);
     
     const archiveImageUrls = event.archive_photos || [];
+    const displayDescription = !isPastEvent
+        ? (event.description || event.archive_summary)
+        : (!event.archive_summary ? event.description : null);
+    const showPastArchive = isPastEvent && (event.archive_summary || archiveImageUrls.length > 0 || videoIds.length > 0);
+    const showUpcomingMedia = !isPastEvent && (archiveImageUrls.length > 1 || videoIds.length > 0);
+    const showCarousel = isPastEvent ? archiveImageUrls.length > 0 : archiveImageUrls.length > 1;
     
     return (
         <div className="bg-white">
@@ -150,12 +156,12 @@ const EreignisDetail = () => {
                     {/* Sol Sütun (Ana İçerik) */}
                     <div className="lg:w-2/3 space-y-10">
                         
-                        {/* AÇIKLAMA (Sadece gelecek etkinliklerde veya arşiv özeti yoksa göster) */}
-                        {event.description && (!isPastEvent || !event.archive_summary) && (
+                        {/* AÇIKLAMA (Gelecek etkinliklerde description veya archive_summary, geçmiş etkinliklerde sadece archive_summary yoksa) */}
+                        {displayDescription && (
                             <section>
                                 <h2 className="text-3xl font-semibold text-rcDarkGray mb-4 pb-2 border-b-2 border-rcLightBlue">Beschreibung</h2>
                                 <p className="text-lg text-gray-700 whitespace-pre-wrap leading-relaxed">
-                                    {event.description}
+                                    {displayDescription}
                                 </p>
                             </section>
                         )}
@@ -175,13 +181,15 @@ const EreignisDetail = () => {
                             </section>
                         )}
                         
-                        {/* DÜZELTME: 'archiveSummary' -> 'event.archive_summary' olarak değiştirildi */}
-                        {isPastEvent && (event.archive_summary || archiveImageUrls.length > 0 || videoIds.length > 0) && (
+                        {/* MEDYA & RÜCKBLICK (Geçmiş etkinlikler veya birden fazla fotoğraf/video içeren gelecek etkinlikler için) */}
+                        {(showPastArchive || showUpcomingMedia) && (
                             <section className="p-6 bg-blue-50 border-2 border-rcLightBlue rounded-lg">
-                                <h2 className="text-3xl font-semibold text-rcBlue mb-4">Rückblick: So war's!</h2>
+                                <h2 className="text-3xl font-semibold text-rcBlue mb-4">
+                                    {isPastEvent ? "Rückblick: So war's!" : "Bilder & Medien"}
+                                </h2>
                                 
-                                {/* Arşiv Özeti */}
-                                {event.archive_summary && (
+                                {/* Arşiv Özeti (Sadece geçmiş etkinliklerde; gelecek etkinliklerde yukarıda Beschreibung altında gösterilir) */}
+                                {isPastEvent && event.archive_summary && (
                                     <blockquote className="border-l-4 border-rcBlue pl-5 py-1 mb-6">
                                         <p className="text-[10px] font-bold uppercase tracking-widest text-rcBlue mb-3">Kurzbericht</p>
                                         <p className="text-base text-gray-700 whitespace-pre-wrap leading-relaxed">
@@ -190,7 +198,7 @@ const EreignisDetail = () => {
                                     </blockquote>
                                 )}
                                 
-                                {/* Arşiv Videoları */}
+                                {/* Videolar */}
                                 {videoIds.length > 0 && (
                                     <div className="mb-6 space-y-6">
                                         {videoIds.map((vId, index) => (
@@ -201,8 +209,8 @@ const EreignisDetail = () => {
                                     </div>
                                 )}
 
-                                {/* Arşiv Fotoğraf Galerisi */}
-                                {archiveImageUrls.length > 0 && (
+                                {/* Fotoğraf Galerisi */}
+                                {showCarousel && (
                                     <div className="rounded-lg overflow-hidden shadow-lg border border-gray-200">
                                         <ImageCarousel images={archiveImageUrls} />
                                     </div>
