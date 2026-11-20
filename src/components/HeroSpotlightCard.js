@@ -84,7 +84,10 @@ const HeroSpotlightCard = ({ event }) => {
 
     const isUpcoming = event?.event_date ? !isEventInPast(event.event_date, new Date()) : false;
     const { dateLabel, timeLabel } = formatSpotlightDateTime(event?.event_date, event?.end_time);
-    const summaryText = (event?.archive_summary || event?.description || '').trim();
+    const rawSummaryText = (event?.archive_summary || event?.description || '').trim();
+    const summaryText = dateLabel
+        ? rawSummaryText.replace(/^\s*\d{1,2}\.\d{1,2}\.\d{2,4}\s*\r?\n+/, '').trim()
+        : rawSummaryText;
 
     return (
         <>
@@ -92,7 +95,7 @@ const HeroSpotlightCard = ({ event }) => {
             <div
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="w-full max-w-md sm:max-w-lg lg:max-w-none bg-slate-900/40 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 lg:p-7 xl:p-8 shadow-2xl text-left text-white transition-all duration-300 hover:bg-slate-900/50 hover:border-white/30"
+                className="w-full max-w-md sm:max-w-lg lg:max-w-none bg-slate-900/40 backdrop-blur-xl border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl text-left text-white transition-all duration-300 hover:bg-slate-900/50 hover:border-white/30"
             >
                 {/* Üst Başlık & Rozet */}
                 <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
@@ -164,7 +167,7 @@ const HeroSpotlightCard = ({ event }) => {
 
                 {/* İnteraktif Fotoğraf Vitrini (Afişlerin kesilmemesi için object-contain + bulanık ambiyans dolgusu) */}
                 <div 
-                    className="relative h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 2xl:h-96 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-950/60 border border-white/15 cursor-pointer group shadow-inner"
+                    className="relative h-48 sm:h-52 md:h-56 lg:h-60 xl:h-64 2xl:h-72 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-950/60 border border-white/15 cursor-pointer group shadow-inner"
                     onClick={() => setLightboxOpen(true)}
                 >
                     {/* Arka Plan Ambiyans Dolgusu */}

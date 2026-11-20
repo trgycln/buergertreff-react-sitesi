@@ -5,7 +5,7 @@ import AnnouncementTicker from './AnnouncementTicker';
 
 const Hero = ({ imageUrl, videoUrl, children, tickerItems = [], showScrollIndicator = true }) => {
   return (
-    <div className="relative min-h-[90vh] md:h-screen flex items-center justify-center text-center text-white px-4 overflow-hidden pt-10 md:pt-12 pb-6 md:pb-10">
+    <div className="relative min-h-[85vh] md:min-h-[calc(100vh-5rem)] flex items-center justify-center text-center text-white px-4 overflow-hidden pt-16 md:pt-20 pb-12 md:pb-24">
       {/* İntro Üzerinde Kayan Yazı Şeridi */}
       {tickerItems && tickerItems.length > 0 && (
         <div className="absolute top-0 left-0 w-full z-30">
@@ -45,7 +45,7 @@ const Hero = ({ imageUrl, videoUrl, children, tickerItems = [], showScrollIndica
         <a 
           href="#aktivitaeten" 
           aria-label="Zu den Aktivitäten scrollen"
-          className="hidden md:flex absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex-col items-center text-white/75 hover:text-white transition-all group cursor-pointer"
+          className="hidden md:flex absolute bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 flex-col items-center text-white/75 hover:text-white transition-all group cursor-pointer"
         >
           <span className="text-xs font-semibold tracking-widest uppercase mb-1 drop-shadow opacity-90 group-hover:opacity-100">
             Aktivitäten entdecken
