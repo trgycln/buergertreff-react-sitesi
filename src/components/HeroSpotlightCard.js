@@ -2,8 +2,38 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaTimes, FaCameraRetro, FaArrowRight, FaYoutube } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaTimes, FaCameraRetro, FaArrowRight, FaYoutube, FaCalendarAlt, FaClock, FaMapMarkerAlt } from 'react-icons/fa';
 import fallbackImage from '../assets/images/ana_logo.jpg';
+import { isEventInPast, getComparableEventDate } from '../utils/calendarUtils';
+
+const formatSpotlightDateTime = (eventDateStr, endTimeStr) => {
+    if (!eventDateStr) return { dateLabel: '', timeLabel: '' };
+
+    const parsed = getComparableEventDate(eventDateStr);
+    if (!parsed || Number.isNaN(parsed.getTime())) {
+        return { dateLabel: '', timeLabel: '' };
+    }
+
+    const dateLabel = parsed.toLocaleDateString('de-DE', {
+        weekday: 'short',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+    });
+
+    const rawStartTime = String(parsed.toTimeString()).slice(0, 5);
+    const startTime = rawStartTime && rawStartTime !== '00:00' ? rawStartTime : '';
+    const endTime = endTimeStr ? String(endTimeStr).slice(0, 5) : '';
+
+    let timeLabel = '';
+    if (startTime && endTime) {
+        timeLabel = `${startTime} – ${endTime} Uhr`;
+    } else if (startTime) {
+        timeLabel = `${startTime} Uhr`;
+    }
+
+    return { dateLabel, timeLabel };
+};
 
 const HeroSpotlightCard = ({ event }) => {
     const photos = Array.isArray(event?.archive_photos) && event.archive_photos.length > 0
@@ -52,6 +82,10 @@ const HeroSpotlightCard = ({ event }) => {
 
     if (!event) return null;
 
+    const isUpcoming = event?.event_date ? !isEventInPast(event.event_date, new Date()) : false;
+    const { dateLabel, timeLabel } = formatSpotlightDateTime(event?.event_date, event?.end_time);
+    const summaryText = (event?.archive_summary || event?.description || '').trim();
+
     return (
         <>
             {/* Buzlu Cam (Glassmorphism) Entegre Kart (Tüm ekran boyutlarında orantılı ölçeklenen responsive kart) */}
@@ -63,9 +97,24 @@ const HeroSpotlightCard = ({ event }) => {
                 {/* Üst Başlık & Rozet */}
                 <div className="flex items-center justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
                     <div className="flex items-center gap-2">
-                        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider text-blue-100 border border-white/15 whitespace-nowrap">
-                            <FaCameraRetro className="text-rcRed" />
-                            <span>Letzte Aktivität</span>
+                        <div
+                            className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1 rounded-full backdrop-blur-md text-[11px] sm:text-xs md:text-sm font-bold uppercase tracking-wider border whitespace-nowrap ${
+                                isUpcoming
+                                    ? 'bg-emerald-500/25 border-emerald-400/40 text-emerald-100'
+                                    : 'bg-white/20 border-white/15 text-blue-100'
+                            }`}
+                        >
+                            {isUpcoming ? (
+                                <>
+                                    <FaCalendarAlt className="text-emerald-300" />
+                                    <span>Nächste Aktivität</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FaCameraRetro className="text-rcRed" />
+                                    <span>Letzte Aktivität</span>
+                                </>
+                            )}
                         </div>
                         {event.youtube_url && (
                             <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 rounded-full bg-red-600/80 backdrop-blur-md text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white border border-red-500/30 shadow-sm whitespace-nowrap">
@@ -83,25 +132,56 @@ const HeroSpotlightCard = ({ event }) => {
                 </div>
 
                 {/* Başlık */}
-                <Link to={`/angebote/${event.id}`} className="block group mb-2.5 sm:mb-3.5">
-                    <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-white group-hover:text-rcLightBlue transition-colors line-clamp-1">
+                <Link to={`/angebote/${event.id}`} className="block group mb-2 sm:mb-2.5">
+                    <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-white group-hover:text-rcLightBlue transition-colors line-clamp-2">
                         {event.title}
                     </h3>
                 </Link>
 
-                {/* İnteraktif Fotoğraf Vitrini (Geniş ekranlarda orantılı büyüyen dinamik çerçeve) */}
+                {/* Tarih, Saat & Konum Bilgi Şeridi */}
+                {(dateLabel || timeLabel || event.location) && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-blue-100/95 font-medium mb-3 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-white/10">
+                        {dateLabel && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <FaCalendarAlt className="text-rcLightBlue flex-shrink-0 text-xs" />
+                                <span>{dateLabel}</span>
+                            </span>
+                        )}
+                        {timeLabel && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <FaClock className="text-rcLightBlue flex-shrink-0 text-xs" />
+                                <span>{timeLabel}</span>
+                            </span>
+                        )}
+                        {event.location && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <FaMapMarkerAlt className="text-rcRed flex-shrink-0 text-xs" />
+                                <span className="truncate">{event.location}</span>
+                            </span>
+                        )}
+                    </div>
+                )}
+
+                {/* İnteraktif Fotoğraf Vitrini (Afişlerin kesilmemesi için object-contain + bulanık ambiyans dolgusu) */}
                 <div 
-                    className="relative h-44 sm:h-56 md:h-64 lg:h-72 xl:h-80 2xl:h-96 rounded-xl sm:rounded-2xl overflow-hidden bg-black/40 border border-white/15 cursor-pointer group shadow-inner"
+                    className="relative h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80 2xl:h-96 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-950/60 border border-white/15 cursor-pointer group shadow-inner"
                     onClick={() => setLightboxOpen(true)}
                 >
-                    {/* Yumuşak Fade Geçişli Fotoğraf */}
+                    {/* Arka Plan Ambiyans Dolgusu */}
+                    <img
+                        src={photos[currentIndex]}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-45 pointer-events-none"
+                    />
+
+                    {/* Yumuşak Fade Geçişli Fotoğraf (Tam Görünüm) */}
                     <img
                         key={currentIndex}
                         src={photos[currentIndex]}
                         alt={event.title}
-                        className="w-full h-full object-cover animate-slide-up-fade transition-transform duration-700 group-hover:scale-105"
+                        className="relative z-[1] w-full h-full object-contain animate-slide-up-fade transition-transform duration-500 group-hover:scale-[1.02]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
 
                     {/* Fotoğraf Sayaç Rozeti */}
                     {photos.length > 1 && (
@@ -150,16 +230,14 @@ const HeroSpotlightCard = ({ event }) => {
                     )}
                 </div>
 
-                {/* Kısa Özet (Kurzbericht) */}
-                {event.archive_summary ? (
-                    <p className="mt-3 sm:mt-4 text-xs sm:text-sm md:text-base text-blue-50/90 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                        {event.archive_summary}
-                    </p>
-                ) : event.description ? (
-                    <p className="mt-3 sm:mt-4 text-xs sm:text-sm md:text-base text-blue-50/90 leading-relaxed line-clamp-2 sm:line-clamp-3">
-                        {event.description}
-                    </p>
-                ) : null}
+                {/* Kısa Özet (Satır sonlarını koruyarak okunaklı görünüm) */}
+                {summaryText && (
+                    <div className="mt-3 sm:mt-3.5 bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-2.5 border border-white/10">
+                        <p className="text-xs sm:text-sm text-white/95 leading-relaxed whitespace-pre-line line-clamp-4">
+                            {summaryText}
+                        </p>
+                    </div>
+                )}
 
                 {/* Aksiyon Bağlantısı */}
                 <div className="mt-3.5 sm:mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
@@ -168,7 +246,7 @@ const HeroSpotlightCard = ({ event }) => {
                         to={`/angebote/${event.id}`}
                         className="inline-flex items-center gap-1.5 text-xs sm:text-sm md:text-base font-bold text-white hover:text-rcLightBlue transition-colors group/link"
                     >
-                        <span>Zum Rückblick</span>
+                        <span>{isUpcoming ? 'Alle Infos & Details' : 'Zum Rückblick'}</span>
                         <FaArrowRight className="text-xs sm:text-sm transition-transform duration-300 group-hover/link:translate-x-1" />
                     </Link>
                 </div>

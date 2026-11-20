@@ -19,7 +19,7 @@ const formatActivityDate = (dateString) => {
     }
 };
 
-const ActivityShowcase = () => {
+const ActivityShowcase = ({ excludeId = null }) => {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -37,20 +37,19 @@ const ActivityShowcase = () => {
                 console.error('Fehler beim Laden der Aktivitäten:', error);
                 setActivities([]);
             } else {
-                const now = new Date();
-                const pastList = (data || []).filter((e) => {
-                    const isInPast = e.event_date ? isEventInPast(e.event_date, now) : true;
-                    const hasMedia = (Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || e.archive_summary || e.image_url || e.youtube_url;
-                    return isInPast && hasMedia;
+                const filteredList = (data || []).filter((e) => {
+                    if (excludeId && e.id === excludeId) return false;
+                    const hasMedia = (Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || e.archive_summary || e.image_url || e.youtube_url || e.description;
+                    return hasMedia;
                 });
 
-                setActivities(pastList.slice(0, 3));
+                setActivities(filteredList.slice(0, 3));
             }
             setLoading(false);
         };
 
         fetchPastActivities();
-    }, []);
+    }, [excludeId]);
 
     if (loading || activities.length === 0) {
         return null;
@@ -82,6 +81,7 @@ const ActivityShowcase = () => {
                         const coverImg = photos ? photos[0] : (activity.image_url || fallbackImage);
                         const photoCount = photos ? photos.length : 0;
                         const summaryText = activity.archive_summary || activity.description || '';
+                        const isUpcoming = activity.event_date ? !isEventInPast(activity.event_date, new Date()) : false;
 
                         return (
                             <Link
@@ -144,7 +144,7 @@ const ActivityShowcase = () => {
                                     )}
 
                                     <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-sm font-semibold text-rcBlue mt-auto">
-                                        <span className="group-hover:underline">Zum Rückblick</span>
+                                        <span className="group-hover:underline">{isUpcoming ? 'Alle Infos & Details' : 'Zum Rückblick'}</span>
                                         <FaArrowRight className="text-xs transition-transform duration-300 group-hover:translate-x-1" />
                                     </div>
                                 </div>

@@ -34,7 +34,7 @@ const formatTickerDate = (dateString) => {
 const Start = () => {
     const [bigEvent, setBigEvent] = useState(null);
     const [showBanner, setShowBanner] = useState(false);
-    const [latestPastEvent, setLatestPastEvent] = useState(null);
+    const [spotlightEvent, setSpotlightEvent] = useState(null);
     const [tickerAnnouncements, setTickerAnnouncements] = useState([]);
 
     // Büyük etkinliği, son fotoğraflı faaliyeti ve kayan yazı duyurularını çek
@@ -63,7 +63,7 @@ const Start = () => {
                     .select('id, title, category, location, event_date, end_time, description, image_url, archive_photos, archive_summary, is_big_event, youtube_url')
                     .eq('is_public', true)
                     .order('event_date', { ascending: false })
-                    .limit(10),
+                    .limit(12),
                 supabase
                     .from('calendar_recurring_entries')
                     .select('*')
@@ -87,16 +87,12 @@ const Start = () => {
             }
 
             if (!pastEventsRes.error && pastEventsRes.data) {
-                const withPhotos = pastEventsRes.data.find((e) => {
-                    const isPast = e.event_date ? isEventInPast(e.event_date, now) : true;
-                    return isPast && Array.isArray(e.archive_photos) && e.archive_photos.length > 0;
-                }) || pastEventsRes.data.find((e) => {
-                    const isPast = e.event_date ? isEventInPast(e.event_date, now) : true;
-                    return isPast && (e.archive_summary || e.image_url || e.youtube_url);
-                });
+                const spotlight = pastEventsRes.data.find(
+                    (e) => (Array.isArray(e.archive_photos) && e.archive_photos.length > 0) || e.image_url || e.archive_summary || e.description || e.youtube_url
+                );
 
-                if (withPhotos) {
-                    setLatestPastEvent(withPhotos);
+                if (spotlight) {
+                    setSpotlightEvent(spotlight);
                 }
 
                 // Ticker duyurularını hazırla
@@ -205,9 +201,9 @@ const Start = () => {
 
         <div>
             <Hero videoUrl={heroVideo} tickerItems={tickerAnnouncements}>
-                <div className={`w-full ${latestPastEvent ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 xl:gap-14 items-center' : 'flex flex-col items-center justify-center text-center'}`}>
+                <div className={`w-full ${spotlightEvent ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-10 xl:gap-14 items-center' : 'flex flex-col items-center justify-center text-center'}`}>
                     {/* Sol Sütun: Karşılama & Buton (Büyük ekranlarda 6 sütun genişliğinde ve ferah) */}
-                    <div className={`${latestPastEvent ? 'lg:col-span-6 xl:col-span-6' : 'w-full'} flex flex-col items-center justify-center text-center px-2 sm:px-4`}>
+                    <div className={`${spotlightEvent ? 'lg:col-span-6 xl:col-span-6' : 'w-full'} flex flex-col items-center justify-center text-center px-2 sm:px-4`}>
                         <div className='flex flex-col items-center justify-center text-center'>
                             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-dancing leading-tight">
                                 “Komm ren„
@@ -229,17 +225,17 @@ const Start = () => {
                         </div>
                     </div>
 
-                    {/* Sağ Sütun: Son Fotoğraflı Faaliyet Vitrin Kartı (Büyük ekranlarda 6 sütun genişliğinde ve orantılı) */}
-                    {latestPastEvent && (
+                    {/* Sağ Sütun: En Güncel veya Yaklaşan Faaliyet Vitrin Kartı (Büyük ekranlarda 6 sütun genişliğinde ve orantılı) */}
+                    {spotlightEvent && (
                         <div className="lg:col-span-6 xl:col-span-6 flex justify-center w-full mt-2 lg:mt-0 px-2 sm:px-4">
-                            <HeroSpotlightCard event={latestPastEvent} />
+                            <HeroSpotlightCard event={spotlightEvent} />
                         </div>
                     )}
                 </div>
             </Hero>
 
             {/* Geçmiş ve Görsel Faaliyetler Vitrini */}
-            <ActivityShowcase />
+            <ActivityShowcase excludeId={spotlightEvent?.id} />
 
             {/* Yaklaşan Program ve Etkinlikler */}
             <AktuellesTeaser />
