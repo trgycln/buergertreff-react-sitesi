@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
+import { parseDocumentUrls, serializeDocumentUrls } from '../../../utils/documentAssistant';
 import {
   FaSpinner,
   FaPaperclip,
@@ -9,7 +10,9 @@ import {
   FaUpload,
   FaEye,
   FaTimes,
-  FaFilter
+  FaFilter,
+  FaPlus,
+  FaTrash
 } from 'react-icons/fa';
 
 export default function Vouchers({ readOnly }) {
@@ -23,8 +26,9 @@ export default function Vouchers({ readOnly }) {
   const [previewModal, setPreviewModal] = useState({
     isOpen: false,
     trx: null,
-    signedUrl: null,
-    isPdf: false,
+    urls: [],
+    activeIndex: 0,
+    signedUrls: {},
     loading: false
   });
 
@@ -52,71 +56,106 @@ export default function Vouchers({ readOnly }) {
     setLoading(false);
   };
 
-  const openDocument = async (path) => {
-    if (!path) return;
-    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
+  const openDocument = async (rawPath, index = 0) => {
+    const paths = parseDocumentUrls(rawPath);
+    const targetPath = paths[index] || paths[0];
+    if (!targetPath) return;
+    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(targetPath, 60);
     if (error) { alert(error.message); return; }
     window.open(data.signedUrl, '_blank');
   };
 
-  const openPreviewModal = async (trx) => {
-    if (!trx?.document_url) return;
-    const isPdf = trx.document_url.toLowerCase().split('?')[0].endsWith('.pdf');
-    setPreviewModal({ isOpen: true, trx, signedUrl: null, isPdf, loading: true });
+  const loadSignedUrlsForPreview = async (trx, urls, activeIndex = 0) => {
+    setPreviewModal({ isOpen: true, trx, urls, activeIndex, signedUrls: {}, loading: true });
 
-    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(trx.document_url, 300);
-    if (error) {
-      alert('Fehler beim Laden des Belegs: ' + error.message);
-      setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+    const results = await Promise.all(
+      urls.map((path) => supabase.storage.from('receipts').createSignedUrl(path, 300))
+    );
+    const firstError = results.find((r) => r.error)?.error;
+    if (firstError) {
+      alert('Fehler beim Laden des Belegs: ' + firstError.message);
+      setPreviewModal({ isOpen: false, trx: null, urls: [], activeIndex: 0, signedUrls: {}, loading: false });
       return;
     }
 
-    setPreviewModal(prev =>
+    const signedMap = {};
+    results.forEach((res, idx) => {
+      if (res.data?.signedUrl) signedMap[idx] = res.data.signedUrl;
+    });
+
+    setPreviewModal((prev) =>
       prev.isOpen && prev.trx?.id === trx.id
-        ? { ...prev, signedUrl: data.signedUrl, loading: false }
+        ? { ...prev, signedUrls: signedMap, loading: false }
         : prev
     );
   };
 
-  const closePreviewModal = () => {
-    setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+  const openPreviewModal = async (trx, initialIndex = 0) => {
+    const urls = parseDocumentUrls(trx?.document_url);
+    if (urls.length === 0) return;
+    const safeIndex = Math.max(0, Math.min(initialIndex, urls.length - 1));
+    await loadSignedUrlsForPreview(trx, urls, safeIndex);
   };
 
-  const uploadDocumentForTransaction = async (trxId, file) => {
-    if (readOnly || !trxId || !file) return;
+  const closePreviewModal = () => {
+    setPreviewModal({ isOpen: false, trx: null, urls: [], activeIndex: 0, signedUrls: {}, loading: false });
+  };
+
+  const uploadDocumentsForTransaction = async (
+    trxId,
+    filesInput,
+    { mode = 'append', replaceIndex = null } = {}
+  ) => {
+    const files = Array.from(filesInput || []).filter(Boolean);
+    if (readOnly || !trxId || files.length === 0) return;
+
     try {
       setUploadingRowId(trxId);
-      const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
-      const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
+      const uploadedPaths = [];
+      for (const file of files) {
+        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
+        const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
 
-      const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, file);
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        uploadedPaths.push(filePath);
+      }
 
+      const currentTrx = transactions.find((t) => t.id === trxId);
+      const existingUrls = parseDocumentUrls(currentTrx?.document_url);
+
+      let nextUrls;
+      let targetActiveIndex = 0;
+      if (mode === 'replace' && replaceIndex !== null && existingUrls.length > 0) {
+        nextUrls = [...existingUrls];
+        nextUrls[replaceIndex] = uploadedPaths[0];
+        if (uploadedPaths.length > 1) {
+          nextUrls.splice(replaceIndex + 1, 0, ...uploadedPaths.slice(1));
+        }
+        targetActiveIndex = replaceIndex;
+      } else if (mode === 'replace_all') {
+        nextUrls = uploadedPaths;
+        targetActiveIndex = 0;
+      } else {
+        nextUrls = [...existingUrls, ...uploadedPaths];
+        targetActiveIndex = Math.max(0, existingUrls.length);
+      }
+
+      const serialized = serializeDocumentUrls(nextUrls);
       const { error: updateError } = await supabase
         .from('accounting_transactions')
-        .update({ document_url: filePath })
+        .update({ document_url: serialized || null })
         .eq('id', trxId);
       if (updateError) throw updateError;
 
-      setTransactions(prev =>
-        prev.map(t => (t.id === trxId ? { ...t, document_url: filePath } : t))
+      const updatedTrx = currentTrx ? { ...currentTrx, document_url: serialized } : null;
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === trxId ? { ...t, document_url: serialized } : t))
       );
 
       if (previewModal.isOpen && previewModal.trx?.id === trxId) {
-        const isPdf = filePath.toLowerCase().split('?')[0].endsWith('.pdf');
-        const { data: signedData } = await supabase.storage.from('receipts').createSignedUrl(filePath, 300);
-        setPreviewModal(prev =>
-          prev.isOpen && prev.trx?.id === trxId
-            ? {
-                ...prev,
-                trx: { ...prev.trx, document_url: filePath },
-                signedUrl: signedData?.signedUrl || prev.signedUrl,
-                isPdf,
-                loading: false
-              }
-            : prev
-        );
+        await loadSignedUrlsForPreview(updatedTrx || { ...previewModal.trx, document_url: serialized }, nextUrls, targetActiveIndex);
       }
     } catch (error) {
       alert('Upload-Fehler: ' + error.message);
@@ -125,11 +164,44 @@ export default function Vouchers({ readOnly }) {
     }
   };
 
-  const handleRowFileSelect = async (trxId, e) => {
-    const file = e.target.files?.[0];
+  const removeDocumentAtIndex = async (trx, indexToRemove) => {
+    if (readOnly || !trx) return;
+    const urls = parseDocumentUrls(trx.document_url);
+    if (urls.length <= 1) return;
+    if (!window.confirm(`${indexToRemove + 1}. evrakı bu işlemden kaldırmak istediğinize emin misiniz?`)) return;
+
+    const nextUrls = urls.filter((_, idx) => idx !== indexToRemove);
+    const serialized = serializeDocumentUrls(nextUrls);
+
+    try {
+      setUploadingRowId(trx.id);
+      const { error } = await supabase
+        .from('accounting_transactions')
+        .update({ document_url: serialized || null })
+        .eq('id', trx.id);
+      if (error) throw error;
+
+      const updatedTrx = { ...trx, document_url: serialized };
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === trx.id ? updatedTrx : t))
+      );
+
+      if (previewModal.isOpen && previewModal.trx?.id === trx.id) {
+        const nextIndex = Math.min(indexToRemove, nextUrls.length - 1);
+        await loadSignedUrlsForPreview(updatedTrx, nextUrls, nextIndex);
+      }
+    } catch (error) {
+      alert('Fehler: ' + error.message);
+    } finally {
+      setUploadingRowId(null);
+    }
+  };
+
+  const handleRowFileSelect = async (trxId, e, options = { mode: 'append' }) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    await uploadDocumentForTransaction(trxId, file);
+    if (files.length === 0) return;
+    await uploadDocumentsForTransaction(trxId, files, options);
   };
 
   const handleRowDragOver = (trxId, e) => {
@@ -150,9 +222,9 @@ export default function Vouchers({ readOnly }) {
     e.stopPropagation();
     setDragOverRowId(null);
     if (readOnly) return;
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      await uploadDocumentForTransaction(trxId, file);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length > 0) {
+      await uploadDocumentsForTransaction(trxId, files, { mode: 'append' });
     }
   };
 
@@ -161,22 +233,27 @@ export default function Vouchers({ readOnly }) {
   }
 
   const totalCount = transactions.length;
-  const withDocCount = transactions.filter(t => Boolean(t.document_url)).length;
+  const withDocCount = transactions.filter((t) => parseDocumentUrls(t.document_url).length > 0).length;
   const missingDocCount = totalCount - withDocCount;
   const completionRate = totalCount > 0 ? Math.round((withDocCount / totalCount) * 100) : 100;
 
-  const displayedTransactions = transactions.filter(t => {
-    if (docFilter === 'with_doc') return Boolean(t.document_url);
-    if (docFilter === 'missing_doc') return !t.document_url;
+  const displayedTransactions = transactions.filter((t) => {
+    const hasDocs = parseDocumentUrls(t.document_url).length > 0;
+    if (docFilter === 'with_doc') return hasDocs;
+    if (docFilter === 'missing_doc') return !hasDocs;
     return true;
   });
+
+  const activePreviewPath = previewModal.urls[previewModal.activeIndex] || '';
+  const activePreviewSignedUrl = previewModal.signedUrls[previewModal.activeIndex] || '';
+  const activePreviewIsPdf = activePreviewPath.toLowerCase().split('?')[0].endsWith('.pdf');
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h3 className="text-xl font-bold text-gray-800">Buchungsbelege (Evrak Kontrol &amp; Yükleme)</h3>
-          <p className="text-sm text-gray-600">Rechnungen, Quittungen und Bankbelege – eksik ve yüklü evrak takibi</p>
+          <p className="text-sm text-gray-600">Rechnungen, Quittungen und Bankbelege – birden fazla fatura / evrak ekleme ve takip</p>
         </div>
         <select
           value={filterYear}
@@ -297,7 +374,8 @@ export default function Vouchers({ readOnly }) {
           </p>
         ) : (
           displayedTransactions.map(trx => {
-            const hasDoc = Boolean(trx.document_url);
+            const docUrls = parseDocumentUrls(trx.document_url);
+            const hasDoc = docUrls.length > 0;
             const isUploading = uploadingRowId === trx.id;
             const isDragOver = dragOverRowId === trx.id;
 
@@ -355,11 +433,11 @@ export default function Vouchers({ readOnly }) {
                     ) : hasDoc ? (
                       <>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                          <FaCheckCircle /> Beleg vorhanden (Yüklü)
+                          <FaCheckCircle /> {docUrls.length > 1 ? `Beleg vorhanden (${docUrls.length} Evrak)` : 'Beleg vorhanden (Yüklü)'}
                         </span>
                         <button
                           type="button"
-                          onClick={() => openPreviewModal(trx)}
+                          onClick={() => openPreviewModal(trx, 0)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
                           title="Beleg ansehen / Önizle"
                         >
@@ -367,25 +445,42 @@ export default function Vouchers({ readOnly }) {
                         </button>
                         <button
                           type="button"
-                          onClick={() => openDocument(trx.document_url)}
+                          onClick={() => openDocument(trx.document_url, 0)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition"
                           title="In neuem Tab öffnen / Yeni sekmede aç"
                         >
                           <FaPaperclip /> <FaExternalLinkAlt className="text-[10px]" />
                         </button>
                         {!readOnly && (
-                          <label
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold cursor-pointer transition"
-                            title="Evrakı değiştir"
-                          >
-                            <FaUpload className="text-[11px]" /> Değiştir
-                            <input
-                              type="file"
-                              accept="image/*,.pdf"
-                              className="hidden"
-                              onChange={(e) => handleRowFileSelect(trx.id, e)}
-                            />
-                          </label>
+                          <>
+                            <label
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition"
+                              title="Bu işleme ek fatura / evrak ekle"
+                            >
+                              <FaPlus className="text-[10px]" /> Ek Evrak
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'append' })}
+                              />
+                            </label>
+                            {docUrls.length === 1 && (
+                              <label
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold cursor-pointer transition"
+                                title="Evrakı değiştir"
+                              >
+                                <FaUpload className="text-[11px]" /> Değiştir
+                                <input
+                                  type="file"
+                                  accept="image/*,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'replace', replaceIndex: 0 })}
+                                />
+                              </label>
+                            )}
+                          </>
                         )}
                       </>
                     ) : (
@@ -398,9 +493,10 @@ export default function Vouchers({ readOnly }) {
                             <FaUpload /> Beleg hochladen / Evrak Yükle
                             <input
                               type="file"
+                              multiple
                               accept="image/*,.pdf"
                               className="hidden"
-                              onChange={(e) => handleRowFileSelect(trx.id, e)}
+                              onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'append' })}
                             />
                           </label>
                         )}
@@ -420,7 +516,9 @@ export default function Vouchers({ readOnly }) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-start gap-4 px-6 py-4 border-b bg-gray-50">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Belegvorschau / Evrak Önizleme</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Belegvorschau / Evrak Önizleme {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Evrak)` : ''}
+                </h3>
                 <p className="text-xs text-gray-600 mt-1">
                   {new Date(previewModal.trx.date).toLocaleDateString('de-DE')}
                   {previewModal.trx.receipt_no ? ` • Beleg-Nr: ${previewModal.trx.receipt_no}` : ''}
@@ -442,23 +540,42 @@ export default function Vouchers({ readOnly }) {
               </button>
             </div>
 
+            {previewModal.urls.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 px-6 py-2.5 border-b bg-slate-50">
+                {previewModal.urls.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPreviewModal((prev) => ({ ...prev, activeIndex: idx }))}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                      previewModal.activeIndex === idx
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    {idx + 1}. Evrak
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="p-4 flex-1 overflow-auto bg-gray-100 flex items-center justify-center min-h-[300px]">
               {previewModal.loading ? (
                 <div className="flex flex-col items-center gap-2 text-gray-600">
                   <FaSpinner className="animate-spin text-3xl text-blue-600" />
                   <span className="text-sm">Beleg wird geladen...</span>
                 </div>
-              ) : previewModal.isPdf && previewModal.signedUrl ? (
+              ) : activePreviewIsPdf && activePreviewSignedUrl ? (
                 <iframe
-                  src={previewModal.signedUrl}
+                  src={activePreviewSignedUrl}
                   title="Beleg PDF"
-                  className="w-full h-[65vh] rounded border bg-white"
+                  className="w-full h-[62vh] rounded border bg-white"
                 />
-              ) : previewModal.signedUrl ? (
+              ) : activePreviewSignedUrl ? (
                 <img
-                  src={previewModal.signedUrl}
+                  src={activePreviewSignedUrl}
                   alt="Beleg"
-                  className="max-w-full max-h-[65vh] mx-auto rounded shadow object-contain bg-white"
+                  className="max-w-full max-h-[62vh] mx-auto rounded shadow object-contain bg-white"
                 />
               ) : null}
             </div>
@@ -467,21 +584,47 @@ export default function Vouchers({ readOnly }) {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => openDocument(previewModal.trx.document_url)}
+                  onClick={() => openDocument(previewModal.trx.document_url, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition"
                 >
                   <FaExternalLinkAlt /> Yeni Sekmede Aç
                 </button>
                 {!readOnly && (
-                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
-                    <FaUpload /> Yeni Evrak Yükle / Değiştir
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => handleRowFileSelect(previewModal.trx.id, e)}
-                    />
-                  </label>
+                  <>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
+                      <FaPlus /> + Ek Evrak / 2. Fatura Ekle
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => handleRowFileSelect(previewModal.trx.id, e, { mode: 'append' })}
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
+                      <FaUpload /> Seçili Evrakı Değiştir
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleRowFileSelect(previewModal.trx.id, e, {
+                            mode: 'replace',
+                            replaceIndex: previewModal.activeIndex
+                          })
+                        }
+                      />
+                    </label>
+                    {previewModal.urls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDocumentAtIndex(previewModal.trx, previewModal.activeIndex)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
+                      >
+                        <FaTrash /> Seçili Evrakı Sil
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               <button
