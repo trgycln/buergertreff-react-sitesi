@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
+import { extractTextFromFile, parseDocumentText } from '../../utils/documentAssistant';
 import { 
   FaPlus, FaEdit, FaTrash, FaPrint, FaHandHoldingHeart, 
-  FaArrowDown, FaArrowUp, FaPaperclip, FaExclamationTriangle, FaSpinner 
+  FaArrowDown, FaArrowUp, FaPaperclip, FaExclamationTriangle, FaSpinner,
+  FaCheckCircle, FaUpload, FaEye, FaTimes, FaExternalLinkAlt, FaFilter,
+  FaMagic, FaUserPlus
 } from 'react-icons/fa';
 
 // --- YARDIMCI FONKSİYON: Sayıyı Almanca Yazıya Çevirme ---
@@ -89,6 +92,31 @@ export default function BuchhaltungTransactions({ readOnly }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [docFilter, setDocFilter] = useState('all'); // 'all' | 'with_doc' | 'missing_doc'
+  const [uploadingRowId, setUploadingRowId] = useState(null);
+  const [dragOverRowId, setDragOverRowId] = useState(null);
+  const [previewModal, setPreviewModal] = useState({
+    isOpen: false,
+    trx: null,
+    signedUrl: null,
+    isPdf: false,
+    loading: false
+  });
+  const [assistantState, setAssistantState] = useState({
+    analyzing: false,
+    progressText: '',
+    error: '',
+    result: null,
+    localPreviewUrl: null,
+    isPdf: false,
+    fileName: '',
+    appliedFields: {}
+  });
+  const [addingContactFromAssistant, setAddingContactFromAssistant] = useState(false);
+  const [modalDragOver, setModalDragOver] = useState(false);
+  const assistantFileInputRef = useRef(null);
+  const modalSessionRef = useRef(0);
+  const blobUrlRef = useRef(null);
   
   const currentYear = new Date().getFullYear();
   const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
@@ -332,26 +360,290 @@ export default function BuchhaltungTransactions({ readOnly }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = async (e) => {
-    try {
-      setUploading(true);
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error } = await supabase.storage.from('receipts').upload(filePath, file);
-      if (error) throw error;
-
-      setFormData(prev => ({ ...prev, document_url: filePath }));
-      alert('Datei erfolgreich hochgeladen!');
-    } catch (error) {
-      alert('Fehler: ' + error.message);
-    } finally {
-      setUploading(false);
+  const clearAssistantState = () => {
+    modalSessionRef.current += 1;
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
     }
+    setModalDragOver(false);
+    setAssistantState({
+      analyzing: false,
+      progressText: '',
+      error: '',
+      result: null,
+      localPreviewUrl: null,
+      isPdf: false,
+      fileName: '',
+      appliedFields: {}
+    });
+  };
+
+  const mergeAssistantIntoForm = (prev, parsed, onlyEmpty) => {
+    const next = { ...prev };
+    const applied = {};
+
+    const applyField = (field, value) => {
+      if (!value) return;
+      if (onlyEmpty && prev[field]) return;
+      next[field] = value;
+      applied[field] = true;
+    };
+
+    if (!onlyEmpty && parsed.type && (parsed.type === 'income' || parsed.type === 'expense')) {
+      if (prev.type !== parsed.type) {
+        next.type = parsed.type;
+        applied.type = true;
+        if (!parsed.categoryId) {
+          next.category_id = '';
+        }
+      }
+    }
+
+    applyField('date', parsed.date);
+    applyField('amount', parsed.amount);
+    applyField('receipt_no', parsed.receiptNo);
+    if ((!onlyEmpty || !prev.category_id) && parsed.categoryId && next.type === parsed.type) {
+      next.category_id = parsed.categoryId;
+      applied.category_id = true;
+    }
+    applyField('account_id', parsed.accountId);
+    applyField('contact_id', parsed.matchedContactId);
+    applyField('description', parsed.description);
+
+    return { next, applied };
+  };
+
+  const applyAssistantResultToForm = (parsed, { onlyEmpty = false } = {}) => {
+    if (!parsed) return;
+    let appliedMap = {};
+    setFormData(prev => {
+      const { next, applied } = mergeAssistantIntoForm(prev, parsed, onlyEmpty);
+      appliedMap = applied;
+      return next;
+    });
+    setAssistantState(prev => ({
+      ...prev,
+      appliedFields: { ...prev.appliedFields, ...appliedMap }
+    }));
+  };
+
+  const applySingleAssistantField = (field, value) => {
+    if (!value) return;
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (field === 'type' && prev.type !== value) {
+        next.category_id = '';
+      }
+      return next;
+    });
+    setAssistantState(prev => ({
+      ...prev,
+      appliedFields: { ...prev.appliedFields, [field]: true }
+    }));
+  };
+
+  const analyzeDocumentWithAssistant = async (
+    fileOrBlob,
+    fileName,
+    { autoFillNew = false, sessionId = modalSessionRef.current } = {}
+  ) => {
+    try {
+      setAssistantState(prev => ({
+        ...prev,
+        analyzing: true,
+        progressText: 'Evrak okunuyor...',
+        error: ''
+      }));
+
+      const rawText = await extractTextFromFile(fileOrBlob, fileName, (progressText) => {
+        if (modalSessionRef.current === sessionId) {
+          setAssistantState(prev => ({ ...prev, progressText }));
+        }
+      });
+
+      if (modalSessionRef.current !== sessionId) return;
+
+      const parsed = parseDocumentText(rawText, fileName, {
+        categories,
+        accounts,
+        contacts
+      });
+
+      const hasAnyField = Boolean(
+        parsed.vendorName || parsed.date || parsed.receiptNo || parsed.amount || parsed.categoryId || parsed.accountId
+      );
+
+      let autoApplied = {};
+      if (autoFillNew && hasAnyField) {
+        setFormData(prev => {
+          const { next, applied } = mergeAssistantIntoForm(prev, parsed, false);
+          autoApplied = applied;
+          return next;
+        });
+      }
+
+      setAssistantState(prev => ({
+        ...prev,
+        analyzing: false,
+        progressText: '',
+        error: hasAnyField
+          ? ''
+          : 'Evraktan otomatik bilgi çıkarılamadı. Soldaki önizlemeye bakarak alanları doldurabilirsiniz.',
+        result: parsed,
+        appliedFields: autoFillNew ? autoApplied : prev.appliedFields
+      }));
+    } catch (err) {
+      if (modalSessionRef.current !== sessionId) return;
+      setAssistantState(prev => ({
+        ...prev,
+        analyzing: false,
+        progressText: '',
+        error: err.message || 'Evrak okunurken bir hata oluştu.'
+      }));
+    }
+  };
+
+  const processModalFile = async (file, isNewRecordOverride = null) => {
+    if (!file) return;
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    blobUrlRef.current = previewUrl;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const sessionId = modalSessionRef.current;
+    const shouldAutoFill = isNewRecordOverride !== null ? isNewRecordOverride : !editingId;
+
+    setAssistantState({
+      analyzing: true,
+      progressText: 'Evrak yükleniyor ve okunuyor...',
+      error: '',
+      result: null,
+      localPreviewUrl: previewUrl,
+      isPdf,
+      fileName: file.name,
+      appliedFields: {}
+    });
+
+    const uploadTask = (async () => {
+      try {
+        setUploading(true);
+        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
+        const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
+
+        const { error } = await supabase.storage.from('receipts').upload(filePath, file);
+        if (error) throw error;
+
+        if (modalSessionRef.current === sessionId) {
+          setFormData(prev => ({ ...prev, document_url: filePath }));
+        }
+      } catch (error) {
+        alert('Fehler: ' + error.message);
+      } finally {
+        setUploading(false);
+      }
+    })();
+
+    const analyzeTask = analyzeDocumentWithAssistant(file, file.name, {
+      autoFillNew: shouldAutoFill,
+      sessionId
+    });
+
+    await Promise.all([uploadTask, analyzeTask]);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await processModalFile(file);
+  };
+
+  const analyzeExistingDocumentInModal = async (documentPath) => {
+    if (!documentPath) return;
+    const sessionId = modalSessionRef.current;
+    setAssistantState(prev => ({
+      ...prev,
+      analyzing: true,
+      progressText: 'Kayıtlı evrak indiriliyor...',
+      error: ''
+    }));
+    try {
+      const { data, error } = await supabase.storage.from('receipts').download(documentPath);
+      if (error) throw error;
+      if (modalSessionRef.current !== sessionId) return;
+      await analyzeDocumentWithAssistant(data, documentPath, { autoFillNew: false, sessionId });
+    } catch (err) {
+      if (modalSessionRef.current !== sessionId) return;
+      setAssistantState(prev => ({
+        ...prev,
+        analyzing: false,
+        progressText: '',
+        error: 'Evrak okunamadı: ' + err.message
+      }));
+    }
+  };
+
+  const handleQuickAddContactFromAssistant = async (vendorName) => {
+    const cleanName = (vendorName || '').trim();
+    if (readOnly || !cleanName) return;
+
+    setAddingContactFromAssistant(true);
+    try {
+      let result = await supabase
+        .from('accounting_contacts')
+        .insert([{ name: cleanName, category: 'institution', type: 'supplier' }])
+        .select('id, name, address')
+        .single();
+
+      if (result.error && result.error.message?.includes('category')) {
+        result = await supabase
+          .from('accounting_contacts')
+          .insert([{ name: cleanName, type: 'supplier' }])
+          .select('id, name, address')
+          .single();
+      }
+
+      if (result.error) {
+        result = await supabase
+          .from('accounting_contacts')
+          .insert([{ name: cleanName }])
+          .select('id, name, address')
+          .single();
+      }
+
+      if (result.error) throw result.error;
+
+      const created = result.data;
+      setContacts(prev => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setFormData(prev => ({ ...prev, contact_id: String(created.id) }));
+      setAssistantState(prev => ({
+        ...prev,
+        result: prev.result ? { ...prev.result, matchedContactId: String(created.id) } : prev.result,
+        appliedFields: { ...prev.appliedFields, contact_id: true }
+      }));
+    } catch (error) {
+      alert('Kontakt eklenemedi: ' + error.message);
+    } finally {
+      setAddingContactFromAssistant(false);
+    }
+  };
+
+  const openNewWithAssistant = () => {
+    resetForm();
+    setIsFormOpen(true);
+    assistantFileInputRef.current?.click();
+  };
+
+  const handleAssistantQuickUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await processModalFile(file, true);
   };
 
   const openDocument = async (path) => {
@@ -359,6 +651,103 @@ export default function BuchhaltungTransactions({ readOnly }) {
     const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
     if (error) { alert(error.message); return; }
     window.open(data.signedUrl, '_blank');
+  };
+
+  const openPreviewModal = async (trx) => {
+    if (!trx?.document_url) return;
+    const isPdf = trx.document_url.toLowerCase().split('?')[0].endsWith('.pdf');
+    setPreviewModal({ isOpen: true, trx, signedUrl: null, isPdf, loading: true });
+
+    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(trx.document_url, 300);
+    if (error) {
+      alert('Fehler beim Laden des Belegs: ' + error.message);
+      setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+      return;
+    }
+
+    setPreviewModal(prev =>
+      prev.isOpen && prev.trx?.id === trx.id
+        ? { ...prev, signedUrl: data.signedUrl, loading: false }
+        : prev
+    );
+  };
+
+  const closePreviewModal = () => {
+    setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+  };
+
+  const uploadDocumentForTransaction = async (trxId, file) => {
+    if (readOnly || !trxId || !file) return;
+    try {
+      setUploadingRowId(trxId);
+      const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
+      const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
+
+      const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from('accounting_transactions')
+        .update({ document_url: filePath })
+        .eq('id', trxId);
+      if (dbError) throw dbError;
+
+      setTransactions(prev =>
+        prev.map(t => (t.id === trxId ? { ...t, document_url: filePath } : t))
+      );
+
+      if (previewModal.isOpen && previewModal.trx?.id === trxId) {
+        const isPdf = filePath.toLowerCase().split('?')[0].endsWith('.pdf');
+        const { data: signedData } = await supabase.storage.from('receipts').createSignedUrl(filePath, 300);
+        setPreviewModal(prev =>
+          prev.isOpen && prev.trx?.id === trxId
+            ? {
+                ...prev,
+                trx: { ...prev.trx, document_url: filePath },
+                signedUrl: signedData?.signedUrl || prev.signedUrl,
+                isPdf,
+                loading: false
+              }
+            : prev
+        );
+      }
+    } catch (error) {
+      alert('Fehler: ' + error.message);
+    } finally {
+      setUploadingRowId(null);
+    }
+  };
+
+  const handleRowFileSelect = async (trxId, e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await uploadDocumentForTransaction(trxId, file);
+  };
+
+  const handleRowDragOver = (trxId, e) => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverRowId !== trxId) setDragOverRowId(trxId);
+  };
+
+  const handleRowDragLeave = (trxId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverRowId === trxId) setDragOverRowId(null);
+  };
+
+  const handleRowDrop = async (trxId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverRowId(null);
+    if (readOnly) return;
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      await uploadDocumentForTransaction(trxId, file);
+    }
   };
 
   // --- YAZDIRMA FONKSİYONLARI ---
@@ -996,6 +1385,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   const handleEdit = (trx) => {
+    clearAssistantState();
+    const sessionId = modalSessionRef.current;
+
     setFormData({
       date: trx.date, type: trx.type, amount: trx.amount, category_id: trx.category_id,
       account_id: trx.account_id, contact_id: trx.contact_id || '', receipt_no: trx.receipt_no || '',
@@ -1004,6 +1396,23 @@ export default function BuchhaltungTransactions({ readOnly }) {
     });
     setEditingId(trx.id);
     setIsFormOpen(true);
+
+    if (trx.document_url) {
+      const isPdf = trx.document_url.toLowerCase().split('?')[0].endsWith('.pdf');
+      supabase.storage
+        .from('receipts')
+        .createSignedUrl(trx.document_url, 300)
+        .then(({ data }) => {
+          if (modalSessionRef.current === sessionId && data?.signedUrl) {
+            setAssistantState(prev => ({
+              ...prev,
+              localPreviewUrl: data.signedUrl,
+              isPdf,
+              fileName: trx.document_url
+            }));
+          }
+        });
+    }
   };
 
   const handleDelete = (id) => {
@@ -1032,6 +1441,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   const resetForm = () => {
+    clearAssistantState();
     setFormData({
       date: new Date().toISOString().slice(0, 10), type: 'expense', amount: '', category_id: '',
       account_id: '', contact_id: '', receipt_no: '', file_no: '', description: '', document_url: '', target_year: '', subcategory: ''
@@ -1050,6 +1460,18 @@ export default function BuchhaltungTransactions({ readOnly }) {
   // 0 tutarlı kayıtları bul
   const zeroAmountTrx = transactions.filter(t => parseFloat(t.amount) === 0);
 
+  // Evrak (Beleg) Takip İstatistikleri ve Filtreleme
+  const totalCount = transactions.length;
+  const withDocCount = transactions.filter(t => Boolean(t.document_url)).length;
+  const missingDocCount = totalCount - withDocCount;
+  const completionRate = totalCount > 0 ? Math.round((withDocCount / totalCount) * 100) : 100;
+
+  const displayedTransactions = transactions.filter(t => {
+    if (docFilter === 'with_doc') return Boolean(t.document_url);
+    if (docFilter === 'missing_doc') return !t.document_url;
+    return true;
+  });
+
   const deleteZeroAmountTransactions = () => {
     if (zeroAmountTrx.length === 0) return;
     setDeleteConfirm({ 
@@ -1059,6 +1481,21 @@ export default function BuchhaltungTransactions({ readOnly }) {
       message: `${zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt silinecek. Emin misiniz?` 
     });
   };
+
+  const showAssistantColumn = Boolean(
+    formData.document_url ||
+      assistantState.localPreviewUrl ||
+      assistantState.analyzing ||
+      assistantState.result ||
+      assistantState.error
+  );
+
+  const renderAssistantBadge = (field) =>
+    assistantState.appliedFields?.[field] ? (
+      <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+        <FaMagic className="text-[9px]" /> Asistan
+      </span>
+    ) : null;
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -1099,11 +1536,28 @@ export default function BuchhaltungTransactions({ readOnly }) {
             </div>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={printList} className="bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Liste</button>
           <button onClick={printIndex} className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPrint /> Verzeichnis</button>
           {!readOnly && (
-            <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
+            <>
+              <input
+                ref={assistantFileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleAssistantQuickUpload}
+              />
+              <button
+                type="button"
+                onClick={openNewWithAssistant}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+                title="Evrak yükle ve asistan ile otomatik doldur"
+              >
+                <FaMagic /> Evraktan Kayıt (Asistan)
+              </button>
+              <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
+            </>
           )}
         </div>
       </div>
@@ -1111,99 +1565,403 @@ export default function BuchhaltungTransactions({ readOnly }) {
       {/* Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <h3 className="text-lg font-bold mb-4">{editingId ? 'Bearbeiten' : 'Neue Transaktion'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex gap-4">
-                <label className="flex-1 border p-2 text-center rounded cursor-pointer hover:bg-gray-50"><input type="radio" name="type" value="income" checked={formData.type === 'income'} onChange={handleInputChange} className="mr-2"/>Einnahme (+)</label>
-                <label className="flex-1 border p-2 text-center rounded cursor-pointer hover:bg-gray-50"><input type="radio" name="type" value="expense" checked={formData.type === 'expense'} onChange={handleInputChange} className="mr-2"/>Ausgabe (-)</label>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <input type="date" name="date" value={formData.date} onChange={handleInputChange} className="border p-2 rounded w-full" required />
-                <input type="number" name="amount" value={formData.amount} onChange={handleInputChange} placeholder="Betrag €" className="border p-2 rounded w-full" step="0.01" required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <select name="category_id" value={formData.category_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
-                  <option value="">Kategorie wählen...</option>
-                  {uniqueDisplayedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <select name="account_id" value={formData.account_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
-                  <option value="">Konto wählen...</option>
-                  {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
+          <div className={`bg-white rounded-xl shadow-2xl w-full ${showAssistantColumn ? 'max-w-6xl' : 'max-w-2xl'} max-h-[92vh] overflow-y-auto p-6`}>
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                {editingId ? 'Bearbeiten' : 'Neue Transaktion'}
+                {assistantState.analyzing && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                    <FaSpinner className="animate-spin" /> {assistantState.progressText}
+                  </span>
+                )}
+              </h3>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg transition"
+                aria-label="Kapat"
+              >
+                <FaTimes className="text-lg" />
+              </button>
+            </div>
 
-              {/* Beleg-Nr. ve Ordner-Nr. Alanları */}
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Beleg-Nr. (Fiş / Fatura No)
-                  </label>
-                  <input
-                    type="text"
-                    name="receipt_no"
-                    value={formData.receipt_no || ''}
-                    onChange={handleInputChange}
-                    placeholder="z.B. BAR-001, RE-2026-05"
-                    className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <span className="text-[11px] text-gray-500">Kassenbuch'taki "Beleg-Nr." sütununda görünür</span>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Aktenzeichen / Ordner (Klasör No)
-                  </label>
-                  <input
-                    type="text"
-                    name="file_no"
-                    value={formData.file_no || ''}
-                    onChange={handleInputChange}
-                    placeholder="z.B. Ordner 2026 / Kasse"
-                    className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <span className="text-[11px] text-gray-500">Fiziksel arşiv yeri (Opsiyonel)</span>
-                </div>
-              </div>
+            <div className={showAssistantColumn ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 items-start' : ''}>
+              {showAssistantColumn && (
+                <div className="lg:col-span-5 space-y-4">
+                  {/* Akıllı Evrak Asistanı Kartı */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 rounded-lg bg-emerald-600 text-white text-xs">
+                          <FaMagic />
+                        </span>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">Akıllı Evrak Asistanı</h4>
+                          <p className="text-[11px] text-gray-600">Evraktan okunan taslak bilgiler</p>
+                        </div>
+                      </div>
+                      {assistantState.result && (
+                        <div className="flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => applyAssistantResultToForm(assistantState.result, { onlyEmpty: true })}
+                            className="px-2 py-1 rounded bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-semibold transition"
+                          >
+                            Eksikleri Tamamla
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyAssistantResultToForm(assistantState.result, { onlyEmpty: false })}
+                            className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition"
+                          >
+                            Tümünü Uygula
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-              {formData.category_id && categories.find(c => c.id == formData.category_id)?.subcategories && (
-                <div className="bg-gray-50 p-3 border border-gray-200 rounded-lg">
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Unterkategorie (Optional)</label>
-                  <select name="subcategory" value={formData.subcategory || ''} onChange={handleInputChange} className="border p-2 rounded w-full text-sm">
-                    <option value="">Keine Auswahl (Allgemein)</option>
-                    {categories.find(c => c.id == formData.category_id).subcategories.split(',').map((sub, i) => (
-                      <option key={i} value={sub.trim()}>{sub.trim()}</option>
-                    ))}
-                  </select>
+                    {assistantState.analyzing ? (
+                      <div className="flex items-center gap-2 text-xs text-blue-800 bg-white/80 rounded-lg p-3 border border-blue-200">
+                        <FaSpinner className="animate-spin text-blue-600 shrink-0" />
+                        <span>{assistantState.progressText || 'Evrak analiz ediliyor...'}</span>
+                      </div>
+                    ) : assistantState.result ? (
+                      <div className="space-y-2 text-xs">
+                        {assistantState.error && (
+                          <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-800">
+                            {assistantState.error}
+                          </div>
+                        )}
+
+                        <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
+                          {[
+                            {
+                              label: 'İşletme / Kurum',
+                              value: assistantState.result.vendorName,
+                              field: 'contact_id',
+                              applyValue: assistantState.result.matchedContactId
+                            },
+                            {
+                              label: 'Tarih (Datum)',
+                              value: assistantState.result.date ? formatDateDE(assistantState.result.date) : '',
+                              field: 'date',
+                              applyValue: assistantState.result.date
+                            },
+                            {
+                              label: 'Belge No (Beleg-Nr.)',
+                              value: assistantState.result.receiptNo,
+                              field: 'receipt_no',
+                              applyValue: assistantState.result.receiptNo
+                            },
+                            {
+                              label: 'Tutar (Betrag)',
+                              value: assistantState.result.amount ? `${assistantState.result.amount} €` : '',
+                              field: 'amount',
+                              applyValue: assistantState.result.amount
+                            },
+                            {
+                              label: 'Tür',
+                              value: assistantState.result.type === 'income' ? 'Einnahme (+)' : 'Ausgabe (-)',
+                              field: 'type',
+                              applyValue: assistantState.result.type
+                            },
+                            {
+                              label: 'Önerilen Kategori',
+                              value: assistantState.result.categoryName,
+                              field: 'category_id',
+                              applyValue: assistantState.result.categoryId
+                            },
+                            {
+                              label: 'Önerilen Hesap',
+                              value: assistantState.result.accountName,
+                              field: 'account_id',
+                              applyValue: assistantState.result.accountId
+                            },
+                            {
+                              label: 'Açıklama',
+                              value: assistantState.result.description,
+                              field: 'description',
+                              applyValue: assistantState.result.description
+                            }
+                          ].map((row) => (
+                            <div key={row.label} className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+                              <div className="min-w-0">
+                                <span className="text-gray-500">{row.label}: </span>
+                                <span className={`font-semibold ${row.value ? 'text-gray-900' : 'text-gray-400 italic'}`}>
+                                  {row.value || 'Bulunamadı'}
+                                </span>
+                              </div>
+                              {row.applyValue && (
+                                <button
+                                  type="button"
+                                  onClick={() => applySingleAssistantField(row.field, row.applyValue)}
+                                  className={`shrink-0 px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                                    assistantState.appliedFields?.[row.field] || formData[row.field] === row.applyValue
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
+                                  }`}
+                                >
+                                  {formData[row.field] === row.applyValue ? '✓ Seçili' : 'Uygula'}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {assistantState.result.vendorName && !assistantState.result.matchedContactId && !readOnly && (
+                          <button
+                            type="button"
+                            disabled={addingContactFromAssistant}
+                            onClick={() => handleQuickAddContactFromAssistant(assistantState.result.vendorName)}
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-semibold transition"
+                          >
+                            {addingContactFromAssistant ? <FaSpinner className="animate-spin" /> : <FaUserPlus />}
+                            <span>&quot;{assistantState.result.vendorName}&quot; Kişilere (Kontakte) Ekle &amp; Seç</span>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-xs">
+                        {assistantState.error && (
+                          <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-800">
+                            {assistantState.error}
+                          </div>
+                        )}
+                        {formData.document_url && (
+                          <button
+                            type="button"
+                            onClick={() => analyzeExistingDocumentInModal(formData.document_url)}
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition"
+                          >
+                            <FaMagic /> Evrakı Asistan İle Oku
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Belge Önizleme */}
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-2">
+                    <div className="flex items-center justify-between px-1 pb-2 text-xs text-gray-600">
+                      <span className="font-semibold truncate">
+                        {assistantState.fileName || 'Belge Önizleme'}
+                      </span>
+                      {formData.document_url && (
+                        <button
+                          type="button"
+                          onClick={() => openDocument(formData.document_url)}
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold shrink-0"
+                        >
+                          <FaExternalLinkAlt className="text-[10px]" /> Yeni Sekme
+                        </button>
+                      )}
+                    </div>
+                    {assistantState.localPreviewUrl ? (
+                      assistantState.isPdf ? (
+                        <iframe
+                          src={assistantState.localPreviewUrl}
+                          title="Evrak Önizleme"
+                          className="w-full h-[380px] rounded border bg-white"
+                        />
+                      ) : (
+                        <img
+                          src={assistantState.localPreviewUrl}
+                          alt="Evrak Önizleme"
+                          className="w-full max-h-[380px] object-contain rounded border bg-white"
+                        />
+                      )
+                    ) : (
+                      <div className="h-[200px] flex items-center justify-center text-xs text-gray-500">
+                        <FaSpinner className="animate-spin mr-2" /> Belge önizlemesi yükleniyor...
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {formData.type === 'income' && (
-                <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                  <label className="block text-xs font-bold text-blue-800 mb-1">Beitragsjahr (Optional)</label>
-                  <select name="target_year" value={formData.target_year} onChange={handleInputChange} className="border p-2 rounded w-full text-sm">
-                    <option value="">Automatisch (aktuelles Datum)</option>
-                    {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              )}
+              <div className={showAssistantColumn ? 'lg:col-span-7' : ''}>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex gap-4">
+                    <label className="flex-1 border p-2 text-center rounded cursor-pointer hover:bg-gray-50">
+                      <input type="radio" name="type" value="income" checked={formData.type === 'income'} onChange={handleInputChange} className="mr-2"/>
+                      Einnahme (+)
+                      {assistantState.appliedFields?.type && formData.type === 'income' && renderAssistantBadge('type')}
+                    </label>
+                    <label className="flex-1 border p-2 text-center rounded cursor-pointer hover:bg-gray-50">
+                      <input type="radio" name="type" value="expense" checked={formData.type === 'expense'} onChange={handleInputChange} className="mr-2"/>
+                      Ausgabe (-)
+                      {assistantState.appliedFields?.type && formData.type === 'expense' && renderAssistantBadge('type')}
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Datum {renderAssistantBadge('date')}
+                      </label>
+                      <input type="date" name="date" value={formData.date} onChange={handleInputChange} className="border p-2 rounded w-full" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Betrag (€) {renderAssistantBadge('amount')}
+                      </label>
+                      <input type="number" name="amount" value={formData.amount} onChange={handleInputChange} placeholder="Betrag €" className="border p-2 rounded w-full" step="0.01" required />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Kategorie {renderAssistantBadge('category_id')}
+                      </label>
+                      <select name="category_id" value={formData.category_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
+                        <option value="">Kategorie wählen...</option>
+                        {uniqueDisplayedCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Konto {renderAssistantBadge('account_id')}
+                      </label>
+                      <select name="account_id" value={formData.account_id} onChange={handleInputChange} className="border p-2 rounded w-full" required>
+                        <option value="">Konto wählen...</option>
+                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
 
-              <select name="contact_id" value={formData.contact_id} onChange={handleInputChange} className="border p-2 rounded w-full">
-                <option value="">Kontakt (Optional)...</option>
-                {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <input type="text" name="description" value={formData.description} onChange={handleInputChange} placeholder="Beschreibung" className="border p-2 rounded w-full" />
-              
-              <div className="border-t pt-4">
-                <label className="block text-sm mb-2">Beleg (Optional)</label>
-                <input type="file" onChange={handleFileUpload} disabled={uploading} className="block w-full text-sm text-gray-500" />
-                {formData.document_url && <div className="text-xs text-green-600 mt-1"><FaPaperclip /> Datei vorhanden</div>}
-              </div>
+                  {/* Beleg-Nr. ve Ordner-Nr. Alanları */}
+                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Beleg-Nr. (Fiş / Fatura No) {renderAssistantBadge('receipt_no')}
+                      </label>
+                      <input
+                        type="text"
+                        name="receipt_no"
+                        value={formData.receipt_no || ''}
+                        onChange={handleInputChange}
+                        placeholder="z.B. BAR-001, RE-2026-05"
+                        className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                      <span className="text-[11px] text-gray-500">Kassenbuch'taki "Beleg-Nr." sütununda görünür</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">
+                        Aktenzeichen / Ordner (Klasör No)
+                      </label>
+                      <input
+                        type="text"
+                        name="file_no"
+                        value={formData.file_no || ''}
+                        onChange={handleInputChange}
+                        placeholder="z.B. Ordner 2026 / Kasse"
+                        className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      />
+                      <span className="text-[11px] text-gray-500">Fiziksel arşiv yeri (Opsiyonel)</span>
+                    </div>
+                  </div>
 
-              <div className="flex justify-end gap-2 mt-4">
-                <button type="button" onClick={resetForm} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Abbrechen</button>
-                <button type="submit" disabled={uploading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Speichern</button>
+                  {formData.category_id && categories.find(c => c.id == formData.category_id)?.subcategories && (
+                    <div className="bg-gray-50 p-3 border border-gray-200 rounded-lg">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Unterkategorie (Optional)</label>
+                      <select name="subcategory" value={formData.subcategory || ''} onChange={handleInputChange} className="border p-2 rounded w-full text-sm">
+                        <option value="">Keine Auswahl (Allgemein)</option>
+                        {categories.find(c => c.id == formData.category_id).subcategories.split(',').map((sub, i) => (
+                          <option key={i} value={sub.trim()}>{sub.trim()}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {formData.type === 'income' && (
+                    <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                      <label className="block text-xs font-bold text-blue-800 mb-1">Beitragsjahr (Optional)</label>
+                      <select name="target_year" value={formData.target_year} onChange={handleInputChange} className="border p-2 rounded w-full text-sm">
+                        <option value="">Automatisch (aktuelles Datum)</option>
+                        {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Kontakt / İşletme {renderAssistantBadge('contact_id')}
+                    </label>
+                    <select name="contact_id" value={formData.contact_id} onChange={handleInputChange} className="border p-2 rounded w-full">
+                      <option value="">Kontakt (Optional)...</option>
+                      {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Beschreibung {renderAssistantBadge('description')}
+                    </label>
+                    <input type="text" name="description" value={formData.description} onChange={handleInputChange} placeholder="Beschreibung" className="border p-2 rounded w-full" />
+                  </div>
+                  
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!modalDragOver) setModalDragOver(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setModalDragOver(false);
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setModalDragOver(false);
+                      const file = e.dataTransfer?.files?.[0];
+                      if (file) await processModalFile(file);
+                    }}
+                    className={`border-2 border-dashed rounded-lg p-3 transition ${
+                      modalDragOver ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 bg-gray-50'
+                    }`}
+                  >
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Beleg (PDF veya Görsel sürükleyin ya da seçin – Asistan otomatik okur)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="block w-full text-sm text-gray-500"
+                    />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {uploading && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700">
+                          <FaSpinner className="animate-spin" /> Dosya yükleniyor...
+                        </span>
+                      )}
+                      {formData.document_url && (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                            <FaCheckCircle /> Evrak yüklü
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openDocument(formData.document_url)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition"
+                          >
+                            <FaEye /> Görüntüle
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button type="button" onClick={resetForm} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Abbrechen</button>
+                    <button type="submit" disabled={uploading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300">
+                      {uploading ? 'Yükleniyor...' : 'Speichern'}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -1229,6 +1987,107 @@ export default function BuchhaltungTransactions({ readOnly }) {
         </div>
       )}
 
+      {/* Lexware-Style Beleg-Kontrolle / Evrak Takip Paneli */}
+      <div className="mb-5 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => setDocFilter('all')}
+            className={`text-left p-3 rounded-lg border transition ${
+              docFilter === 'all'
+                ? 'bg-white border-blue-500 ring-2 ring-blue-100 shadow-sm'
+                : 'bg-white border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="text-xs font-semibold uppercase text-gray-500">Gesamt (Seçili Dönem)</div>
+            <div className="text-2xl font-bold text-gray-800 mt-1">{totalCount}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Toplam işlem kaydı</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDocFilter('with_doc')}
+            className={`text-left p-3 rounded-lg border transition ${
+              docFilter === 'with_doc'
+                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-100 shadow-sm'
+                : 'bg-white border-emerald-200 hover:bg-emerald-50/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase text-emerald-700">Beleg vorhanden / Yüklü</span>
+              <FaCheckCircle className="text-emerald-600" />
+            </div>
+            <div className="text-2xl font-bold text-emerald-700 mt-1">{withDocCount}</div>
+            <div className="text-xs text-emerald-600 mt-0.5">Evrakı yüklenmiş kayıt</div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDocFilter('missing_doc')}
+            className={`text-left p-3 rounded-lg border transition ${
+              docFilter === 'missing_doc'
+                ? 'bg-rose-50 border-rose-500 ring-2 ring-rose-100 shadow-sm'
+                : 'bg-white border-rose-200 hover:bg-rose-50/60'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase text-rose-700">Beleg fehlt / Eksik</span>
+              <FaExclamationTriangle className="text-rose-600" />
+            </div>
+            <div className="text-2xl font-bold text-rose-700 mt-1">{missingDocCount}</div>
+            <div className="text-xs text-rose-600 mt-0.5">Evrak yüklenmesi gereken</div>
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div className="flex-1">
+            <div className="flex justify-between text-xs font-medium text-gray-600 mb-1">
+              <span>Evrak Tamamlanma Durumu</span>
+              <span>{completionRate}% tamamlandı ({withDocCount}/{totalCount})</span>
+            </div>
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  completionRate === 100 ? 'bg-emerald-500' : completionRate >= 50 ? 'bg-blue-500' : 'bg-amber-500'
+                }`}
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs text-gray-500 flex items-center gap-1 mr-1"><FaFilter /> Göster:</span>
+            <button
+              type="button"
+              onClick={() => setDocFilter('all')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                docFilter === 'all' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+              }`}
+            >
+              Alle ({totalCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDocFilter('with_doc')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                docFilter === 'with_doc' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50'
+              }`}
+            >
+              Yüklü ({withDocCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setDocFilter('missing_doc')}
+              className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                docFilter === 'missing_doc' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-700 border-rose-300 hover:bg-rose-50'
+              }`}
+            >
+              Eksik ({missingDocCount})
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Tablo */}
       <style>{`
         @media (max-width: 768px) {
@@ -1246,54 +2105,230 @@ export default function BuchhaltungTransactions({ readOnly }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto / Kontakt</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Beleg / Evrak</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Betrag</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((trx) => {
-              const isZero = parseFloat(trx.amount) === 0;
-              return (
-              <tr key={trx.id} className={`hover:bg-gray-50 ${isZero ? 'bg-orange-50' : ''}`}>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  <div className="font-medium text-gray-800">{formatDateDE(trx.date)}</div>
-                  {trx.receipt_no && (
-                    <div className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded w-fit mt-1">
-                      Beleg: {trx.receipt_no}
-                    </div>
-                  )}
-                  {trx.file_no && <div className="text-xs text-blue-600 mt-0.5">Ordner: {trx.file_no}</div>}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
-                  {trx.accounting_categories?.name}
-                  {trx.subcategory && <div className="text-xs text-gray-500">↳ {trx.subcategory}</div>}
-                  <div className="text-xs text-gray-500">{trx.description}</div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
-                  {trx.accounting_accounts?.name}
-                  {trx.accounting_contacts && <div className="text-xs text-blue-600">{trx.accounting_contacts.name}</div>}
-                </td>
-                <td className={`px-6 py-4 text-right text-sm font-bold amount-cell ${trx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                  {trx.type === 'income' ? '+' : '-'} {parseFloat(trx.amount).toFixed(2)} €
-                </td>
-                <td className="px-6 py-4 text-right text-sm font-medium flex justify-end gap-2">
-                  <button onClick={() => printVoucher(trx)} className="text-gray-600 hover:text-gray-900" title="Beleg"><FaPrint /></button>
-                  {trx.type === 'income' && parseFloat(trx.amount) >= 50 && (
-                    <button onClick={() => printDonationReceipt(trx)} className="text-pink-600 hover:text-pink-900" title="Spendenbescheinigung"><FaHandHoldingHeart /></button>
-                  )}
-                  {!readOnly && (
-                    <>
-                      <button onClick={() => handleEdit(trx)} className="text-blue-600 hover:text-blue-900"><FaEdit /></button>
-                      <button onClick={() => handleDelete(trx.id)} className="text-red-600 hover:text-red-900"><FaTrash /></button>
-                    </>
-                  )}
+            {displayedTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">
+                  {transactions.length === 0
+                    ? 'Seçili dönemde işlem kaydı bulunamadı.'
+                    : 'Seçilen evrak filtresine uygun kayıt bulunamadı.'}
                 </td>
               </tr>
-              );
-            })}
+            ) : (
+              displayedTransactions.map((trx) => {
+                const isZero = parseFloat(trx.amount) === 0;
+                const hasDoc = Boolean(trx.document_url);
+                const isUploadingRow = uploadingRowId === trx.id;
+                const isDragOver = dragOverRowId === trx.id;
+
+                return (
+                <tr key={trx.id} className={`hover:bg-gray-50 ${isZero ? 'bg-orange-50' : ''}`}>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    <div className="font-medium text-gray-800">{formatDateDE(trx.date)}</div>
+                    {trx.receipt_no && (
+                      <div className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded w-fit mt-1">
+                        Beleg: {trx.receipt_no}
+                      </div>
+                    )}
+                    {trx.file_no && <div className="text-xs text-blue-600 mt-0.5">Ordner: {trx.file_no}</div>}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {trx.accounting_categories?.name}
+                    {trx.subcategory && <div className="text-xs text-gray-500">↳ {trx.subcategory}</div>}
+                    <div className="text-xs text-gray-500">{trx.description}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {trx.accounting_accounts?.name}
+                    {trx.accounting_contacts && <div className="text-xs text-blue-600">{trx.accounting_contacts.name}</div>}
+                  </td>
+                  <td
+                    onDragOver={(e) => handleRowDragOver(trx.id, e)}
+                    onDragLeave={(e) => handleRowDragLeave(trx.id, e)}
+                    onDrop={(e) => handleRowDrop(trx.id, e)}
+                    className={`px-4 py-3 text-center align-middle transition ${
+                      isDragOver ? 'bg-blue-50 ring-2 ring-inset ring-blue-400 rounded' : ''
+                    }`}
+                  >
+                    {isUploadingRow ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                        <FaSpinner className="animate-spin" /> Yükleniyor...
+                      </span>
+                    ) : hasDoc ? (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold whitespace-nowrap">
+                          <FaCheckCircle /> Beleg yüklü
+                        </span>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openPreviewModal(trx)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition"
+                            title="Ansehen / Önizle"
+                          >
+                            <FaEye /> Ansehen
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDocument(trx.document_url)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition"
+                            title="Yeni Sekme"
+                          >
+                            <FaExternalLinkAlt />
+                          </button>
+                          {!readOnly && (
+                            <label
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium cursor-pointer transition"
+                              title="Evrakı değiştir"
+                            >
+                              <FaUpload />
+                              <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={(e) => handleRowFileSelect(trx.id, e)}
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-xs font-semibold whitespace-nowrap">
+                          <FaExclamationTriangle /> Eksik (Beleg fehlt)
+                        </span>
+                        {!readOnly && (
+                          <>
+                            <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer shadow-xs transition whitespace-nowrap">
+                              <FaUpload /> Evrak Yükle
+                              <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={(e) => handleRowFileSelect(trx.id, e)}
+                              />
+                            </label>
+                            <span className="text-[10px] text-gray-400">veya dosyayı buraya sürükleyin</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className={`px-6 py-4 text-right text-sm font-bold amount-cell ${trx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {trx.type === 'income' ? '+' : '-'} {parseFloat(trx.amount).toFixed(2)} €
+                  </td>
+                  <td className="px-6 py-4 text-right text-sm font-medium flex justify-end gap-2">
+                    <button onClick={() => printVoucher(trx)} className="text-gray-600 hover:text-gray-900" title="Beleg"><FaPrint /></button>
+                    {trx.type === 'income' && parseFloat(trx.amount) >= 50 && (
+                      <button onClick={() => printDonationReceipt(trx)} className="text-pink-600 hover:text-pink-900" title="Spendenbescheinigung"><FaHandHoldingHeart /></button>
+                    )}
+                    {!readOnly && (
+                      <>
+                        <button onClick={() => handleEdit(trx)} className="text-blue-600 hover:text-blue-900"><FaEdit /></button>
+                        <button onClick={() => handleDelete(trx.id)} className="text-red-600 hover:text-red-900"><FaTrash /></button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* In-App Document Preview Modal */}
+      {previewModal.isOpen && previewModal.trx && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+            <div className="flex justify-between items-start gap-4 px-6 py-4 border-b bg-gray-50">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Belegvorschau / Evrak Önizleme</h3>
+                <p className="text-xs text-gray-600 mt-1">
+                  {formatDateDE(previewModal.trx.date)}
+                  {previewModal.trx.receipt_no ? ` • Beleg-Nr: ${previewModal.trx.receipt_no}` : ''}
+                  {previewModal.trx.accounting_categories?.name ? ` • ${previewModal.trx.accounting_categories.name}` : ''}
+                  {' • '}
+                  <span className={previewModal.trx.type === 'income' ? 'text-green-700 font-semibold' : 'text-red-700 font-semibold'}>
+                    {previewModal.trx.type === 'income' ? '+' : '-'}{parseFloat(previewModal.trx.amount).toFixed(2)} €
+                  </span>
+                  {previewModal.trx.description ? ` • ${previewModal.trx.description}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreviewModal}
+                className="p-2 text-gray-400 hover:text-gray-700 rounded-lg transition"
+                aria-label="Schließen"
+              >
+                <FaTimes className="text-lg" />
+              </button>
+            </div>
+
+            <div className="p-4 flex-1 overflow-auto bg-gray-100 flex items-center justify-center min-h-[300px]">
+              {previewModal.loading ? (
+                <div className="flex flex-col items-center gap-2 text-gray-600">
+                  <FaSpinner className="animate-spin text-3xl text-blue-600" />
+                  <span className="text-sm">Beleg wird geladen...</span>
+                </div>
+              ) : previewModal.isPdf && previewModal.signedUrl ? (
+                <iframe
+                  src={previewModal.signedUrl}
+                  title="Beleg PDF"
+                  className="w-full h-[65vh] rounded border bg-white"
+                />
+              ) : previewModal.signedUrl ? (
+                <img
+                  src={previewModal.signedUrl}
+                  alt="Beleg"
+                  className="max-w-full max-h-[65vh] mx-auto rounded shadow object-contain bg-white"
+                />
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap justify-between items-center gap-2 px-6 py-3 border-t bg-white">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openDocument(previewModal.trx.document_url)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition"
+                >
+                  <FaExternalLinkAlt /> Yeni Sekmede Aç
+                </button>
+                <button
+                  type="button"
+                  onClick={() => printVoucher(previewModal.trx)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold transition"
+                >
+                  <FaPrint /> Yazdır
+                </button>
+                {!readOnly && (
+                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
+                    <FaUpload /> Yeni Evrak Yükle / Değiştir
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={(e) => handleRowFileSelect(previewModal.trx.id, e)}
+                    />
+                  </label>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={closePreviewModal}
+                className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold transition"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm.isOpen && (
