@@ -168,7 +168,7 @@ export default function Vouchers({ readOnly }) {
     if (readOnly || !trx) return;
     const urls = parseDocumentUrls(trx.document_url);
     if (urls.length <= 1) return;
-    if (!window.confirm(`${indexToRemove + 1}. evrakı bu işlemden kaldırmak istediğinize emin misiniz?`)) return;
+    if (!window.confirm(`Möchten Sie Beleg ${indexToRemove + 1} wirklich aus dieser Buchung entfernen?`)) return;
 
     const nextUrls = urls.filter((_, idx) => idx !== indexToRemove);
     const serialized = serializeDocumentUrls(nextUrls);
@@ -252,8 +252,8 @@ export default function Vouchers({ readOnly }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Buchungsbelege (Evrak Kontrol &amp; Yükleme)</h3>
-          <p className="text-sm text-gray-600">Rechnungen, Quittungen und Bankbelege – birden fazla fatura / evrak ekleme ve takip</p>
+          <h3 className="text-xl font-bold text-gray-800">Buchungsbelege</h3>
+          <p className="text-sm text-gray-600">Rechnungen, Quittungen und Bankbelege – Belegkontrolle und Upload</p>
         </div>
         <select
           value={filterYear}
@@ -264,7 +264,7 @@ export default function Vouchers({ readOnly }) {
         </select>
       </div>
 
-      {/* Beleg-Kontrolle / Evrak Durumu Özeti */}
+      {/* Beleg-Kontrolle Übersicht */}
       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
@@ -278,7 +278,7 @@ export default function Vouchers({ readOnly }) {
           >
             <div className="text-xs font-semibold uppercase text-gray-500">Gesamt ({filterYear})</div>
             <div className="text-2xl font-bold text-gray-800 mt-1">{totalCount}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Tüm kayıtlar</div>
+            <div className="text-xs text-gray-500 mt-0.5">Alle Buchungen</div>
           </button>
 
           <button
@@ -291,11 +291,11 @@ export default function Vouchers({ readOnly }) {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Beleg vorhanden (Yüklü)</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700">Beleg vorhanden</span>
               <FaCheckCircle className="text-emerald-600" />
             </div>
             <div className="text-2xl font-bold text-emerald-700 mt-1">{withDocCount}</div>
-            <div className="text-xs text-emerald-600 mt-0.5">Evrakı yüklenmiş kayıt</div>
+            <div className="text-xs text-emerald-600 mt-0.5">Buchungen mit Beleg</div>
           </button>
 
           <button
@@ -308,19 +308,19 @@ export default function Vouchers({ readOnly }) {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase text-rose-700">Beleg fehlt (Eksik)</span>
+              <span className="text-xs font-semibold uppercase text-rose-700">Beleg fehlt</span>
               <FaExclamationTriangle className="text-rose-600" />
             </div>
             <div className="text-2xl font-bold text-rose-700 mt-1">{missingDocCount}</div>
-            <div className="text-xs text-rose-600 mt-0.5">Evrak yüklenmesi gereken</div>
+            <div className="text-xs text-rose-600 mt-0.5">Buchungen ohne Beleg</div>
           </button>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
           <div className="flex-1">
             <div className="flex justify-between text-xs font-medium text-gray-600 mb-1">
-              <span>Evrak Tamamlanma Oranı ({filterYear})</span>
-              <span>{completionRate}% ({withDocCount}/{totalCount})</span>
+              <span>Beleg-Vollständigkeit ({filterYear})</span>
+              <span>{completionRate} % ({withDocCount}/{totalCount})</span>
             </div>
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -333,7 +333,7 @@ export default function Vouchers({ readOnly }) {
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-gray-500 flex items-center gap-1 mr-1"><FaFilter /> Filtre:</span>
+            <span className="text-xs text-gray-500 flex items-center gap-1 mr-1"><FaFilter /> Filter:</span>
             <button
               type="button"
               onClick={() => setDocFilter('all')}
@@ -370,7 +370,7 @@ export default function Vouchers({ readOnly }) {
           <p className="text-gray-500 text-center py-12">
             {transactions.length === 0
               ? 'Keine Transaktionen gefunden.'
-              : 'Bu filtreye uygun kayıt bulunamadı.'}
+              : 'Keine Einträge für den ausgewählten Belegfilter gefunden.'}
           </p>
         ) : (
           displayedTransactions.map(trx => {
@@ -428,18 +428,18 @@ export default function Vouchers({ readOnly }) {
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {isUploading ? (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
-                        <FaSpinner className="animate-spin" /> Yükleniyor...
+                        <FaSpinner className="animate-spin" /> Wird hochgeladen...
                       </span>
                     ) : hasDoc ? (
                       <>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                          <FaCheckCircle /> {docUrls.length > 1 ? `Beleg vorhanden (${docUrls.length} Evrak)` : 'Beleg vorhanden (Yüklü)'}
+                          <FaCheckCircle /> {docUrls.length > 1 ? `${docUrls.length} Belege vorhanden` : 'Beleg vorhanden'}
                         </span>
                         <button
                           type="button"
                           onClick={() => openPreviewModal(trx, 0)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
-                          title="Beleg ansehen / Önizle"
+                          title="Beleg ansehen"
                         >
                           <FaEye /> Ansehen
                         </button>
@@ -447,7 +447,7 @@ export default function Vouchers({ readOnly }) {
                           type="button"
                           onClick={() => openDocument(trx.document_url, 0)}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition"
-                          title="In neuem Tab öffnen / Yeni sekmede aç"
+                          title="Im neuen Tab öffnen"
                         >
                           <FaPaperclip /> <FaExternalLinkAlt className="text-[10px]" />
                         </button>
@@ -455,9 +455,9 @@ export default function Vouchers({ readOnly }) {
                           <>
                             <label
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition"
-                              title="Bu işleme ek fatura / evrak ekle"
+                              title="Weitere Rechnung / weiteren Beleg hinzufügen"
                             >
-                              <FaPlus className="text-[10px]" /> Ek Evrak
+                              <FaPlus className="text-[10px]" /> Weiterer Beleg
                               <input
                                 type="file"
                                 multiple
@@ -469,9 +469,9 @@ export default function Vouchers({ readOnly }) {
                             {docUrls.length === 1 && (
                               <label
                                 className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold cursor-pointer transition"
-                                title="Evrakı değiştir"
+                                title="Beleg ersetzen"
                               >
-                                <FaUpload className="text-[11px]" /> Değiştir
+                                <FaUpload className="text-[11px]" /> Ersetzen
                                 <input
                                   type="file"
                                   accept="image/*,.pdf"
@@ -486,11 +486,11 @@ export default function Vouchers({ readOnly }) {
                     ) : (
                       <>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-semibold">
-                          <FaExclamationTriangle /> Beleg fehlt (Eksik)
+                          <FaExclamationTriangle /> Beleg fehlt
                         </span>
                         {!readOnly && (
                           <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer shadow-sm transition">
-                            <FaUpload /> Beleg hochladen / Evrak Yükle
+                            <FaUpload /> Beleg hochladen
                             <input
                               type="file"
                               multiple
@@ -517,7 +517,7 @@ export default function Vouchers({ readOnly }) {
             <div className="flex justify-between items-start gap-4 px-6 py-4 border-b bg-gray-50">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  Belegvorschau / Evrak Önizleme {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Evrak)` : ''}
+                  Belegvorschau {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Belege)` : ''}
                 </h3>
                 <p className="text-xs text-gray-600 mt-1">
                   {new Date(previewModal.trx.date).toLocaleDateString('de-DE')}
@@ -553,7 +553,7 @@ export default function Vouchers({ readOnly }) {
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
                     }`}
                   >
-                    {idx + 1}. Evrak
+                    Beleg {idx + 1}
                   </button>
                 ))}
               </div>
@@ -587,12 +587,12 @@ export default function Vouchers({ readOnly }) {
                   onClick={() => openDocument(previewModal.trx.document_url, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition"
                 >
-                  <FaExternalLinkAlt /> Yeni Sekmede Aç
+                  <FaExternalLinkAlt /> Im neuen Tab öffnen
                 </button>
                 {!readOnly && (
                   <>
                     <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
-                      <FaPlus /> + Ek Evrak / 2. Fatura Ekle
+                      <FaPlus /> Weiterer Beleg
                       <input
                         type="file"
                         multiple
@@ -602,7 +602,7 @@ export default function Vouchers({ readOnly }) {
                       />
                     </label>
                     <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
-                      <FaUpload /> Seçili Evrakı Değiştir
+                      <FaUpload /> Aktuellen Beleg ersetzen
                       <input
                         type="file"
                         accept="image/*,.pdf"
@@ -621,7 +621,7 @@ export default function Vouchers({ readOnly }) {
                         onClick={() => removeDocumentAtIndex(previewModal.trx, previewModal.activeIndex)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
                       >
-                        <FaTrash /> Seçili Evrakı Sil
+                        <FaTrash /> Aktuellen Beleg entfernen
                       </button>
                     )}
                   </>
@@ -632,7 +632,7 @@ export default function Vouchers({ readOnly }) {
                 onClick={closePreviewModal}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold transition"
               >
-                Kapat
+                Schließen
               </button>
             </div>
           </div>
