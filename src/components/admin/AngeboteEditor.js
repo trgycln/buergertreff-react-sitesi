@@ -160,16 +160,16 @@ export default function AngeboteEditor({ pageInfo }) {
           Aktuelle Ankündigung (für Angebotsseite)
         </h2>
 
-        <FormInput label="Titel (Başlık)" value={title} onChange={(e) => setTitle(e.target.value)} required />
-        <FormInput label="Ort (Yer)" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+        <FormInput label="Titel" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <FormInput label="Ort" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
         {/* Tarih/Saat için daha iyi bir input kullanılabilir (örn: type="datetime-local") */}
         <FormInput label="Datum & Uhrzeit (Format: JJJJ-MM-TT HH:MM)" value={eventDateText} onChange={(e) => setEventDateText(e.target.value)} placeholder="z.B. 2025-11-15 13:30" />
-        <FormTextarea label="Beschreibung (Açıklama)" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <FormInput label="Haupt-Bild URL (Ana Resim URL'i)" value={mainImageUrl} onChange={(e) => setMainImageUrl(e.target.value)} placeholder="httpsNote: Upload via 'Alle Ereignisse' form, then copy the URL here." />
+        <FormTextarea label="Beschreibung" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <FormInput label="Hauptbild-URL" value={mainImageUrl} onChange={(e) => setMainImageUrl(e.target.value)} placeholder="httpsNote: Upload via 'Alle Ereignisse' form, then copy the URL here." />
 
         {/* Program Detayları kaldırıldı */}
 
-        <FormTextarea label="Anmeldung Infos (Kayıt Bilgisi)" value={registrationInfo} onChange={(e) => setRegistrationInfo(e.target.value)} />
+        <FormTextarea label="Anmeldeinformationen" value={registrationInfo} onChange={(e) => setRegistrationInfo(e.target.value)} />
         {/* Destekçi Bilgisi kaldırıldı */}
 
         <div className="flex items-center justify-between">
