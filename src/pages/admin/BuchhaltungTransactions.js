@@ -488,7 +488,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
       docs: updatedList,
       activeDocIndex: startIndex,
       analyzing: true,
-      progressText: files.length > 1 ? `${files.length} evrak yükleniyor ve okunuyor...` : 'Evrak yükleniyor ve okunuyor...',
+      progressText: files.length > 1 ? `${files.length} Belege werden hochgeladen und ausgelesen...` : 'Beleg wird hochgeladen und ausgelesen...',
       error: ''
     }));
 
@@ -545,7 +545,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
           if (modalSessionRef.current !== sessionId) return;
           const nextDocs = updateAssistantDocs(docs =>
             docs.map(d =>
-              d.id === entry.id ? { ...d, analyzing: false, error: err.message || 'Okunamadı' } : d
+              d.id === entry.id ? { ...d, analyzing: false, error: err.message || 'Nicht lesbar' } : d
             )
           );
           setAssistantState(prev => ({ ...prev, docs: nextDocs }));
@@ -583,7 +583,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         result: combined,
         error: hasAnyField
           ? ''
-          : 'Evraklardan otomatik bilgi çıkarılamadı. Soldaki önizlemeye bakarak alanları doldurabilirsiniz.',
+          : 'Keine Daten automatisch erkannt. Bitte ergänzen Sie die Felder anhand der Vorschau.',
         appliedFields: shouldAutoFill ? { ...prev.appliedFields, ...autoApplied } : prev.appliedFields
       }));
     })();
@@ -624,7 +624,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
     setAssistantState(prev => ({
       ...prev,
       analyzing: true,
-      progressText: 'Kayıtlı evraklar indiriliyor ve okunuyor...',
+      progressText: 'Gespeicherte Belege werden geladen und ausgelesen...',
       error: ''
     }));
 
@@ -635,7 +635,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         if (modalSessionRef.current !== sessionId) return;
 
         const prefix = docsToAnalyze.length > 1 ? `[${i + 1}/${docsToAnalyze.length}] ` : '';
-        setAssistantState(prev => ({ ...prev, progressText: `${prefix}Evrak indiriliyor...` }));
+        setAssistantState(prev => ({ ...prev, progressText: `${prefix}Beleg wird geladen...` }));
 
         const { data, error } = await supabase.storage.from('receipts').download(docItem.path);
         if (error) throw error;
@@ -681,7 +681,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         result: combined,
         error: hasAnyField
           ? ''
-          : 'Evraklardan otomatik bilgi çıkarılamadı. Önizlemeye bakarak alanları doldurabilirsiniz.'
+          : 'Keine Daten automatisch erkannt. Bitte ergänzen Sie die Felder anhand der Vorschau.'
       }));
     } catch (err) {
       if (modalSessionRef.current !== sessionId) return;
@@ -689,7 +689,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         ...prev,
         analyzing: false,
         progressText: '',
-        error: 'Evrak okunamadı: ' + err.message
+        error: 'Beleg konnte nicht gelesen werden: ' + err.message
       }));
     }
   };
@@ -733,7 +733,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         appliedFields: { ...prev.appliedFields, contact_id: true }
       }));
     } catch (error) {
-      alert('Kontakt eklenemedi: ' + error.message);
+      alert('Kontakt konnte nicht hinzugefügt werden: ' + error.message);
     } finally {
       setAddingContactFromAssistant(false);
     }
@@ -864,7 +864,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
     if (readOnly || !trx) return;
     const urls = parseDocumentUrls(trx.document_url);
     if (urls.length <= 1) return;
-    if (!window.confirm(`${indexToRemove + 1}. evrakı bu işlemden kaldırmak istediğinize emin misiniz?`)) return;
+    if (!window.confirm(`Möchten Sie Beleg ${indexToRemove + 1} wirklich aus dieser Buchung entfernen?`)) return;
 
     const nextUrls = urls.filter((_, idx) => idx !== indexToRemove);
     const serialized = serializeDocumentUrls(nextUrls);
@@ -1699,7 +1699,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
   const renderAssistantBadge = (field) =>
     assistantState.appliedFields?.[field] ? (
       <span className="ml-1.5 inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-        <FaMagic className="text-[9px]" /> Asistan
+        <FaMagic className="text-[9px]" /> Assistent
       </span>
     ) : null;
 
@@ -1768,9 +1768,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 type="button"
                 onClick={openNewWithAssistant}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-                title="Bir veya birden fazla evrak yükle ve asistan ile otomatik doldur"
+                title="Einen oder mehrere Belege hochladen und automatisch ausfüllen lassen"
               >
-                <FaMagic /> Evraktan Kayıt (Asistan)
+                <FaMagic /> Beleg erfassen (Assistent)
               </button>
               <button onClick={() => { resetForm(); setIsFormOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"><FaPlus /> Neu</button>
             </>
@@ -1795,7 +1795,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 type="button"
                 onClick={resetForm}
                 className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg transition"
-                aria-label="Kapat"
+                aria-label="Schließen"
               >
                 <FaTimes className="text-lg" />
               </button>
@@ -1804,7 +1804,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
             <div className={showAssistantColumn ? 'grid grid-cols-1 lg:grid-cols-12 gap-6 items-start' : ''}>
               {showAssistantColumn && (
                 <div className="lg:col-span-5 space-y-4">
-                  {/* Akıllı Evrak Asistanı Kartı */}
+                  {/* Intelligenter Beleg-Assistent */}
                   <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -1813,9 +1813,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         </span>
                         <div>
                           <h4 className="text-sm font-bold text-gray-900">
-                            Akıllı Evrak Asistanı {assistantState.docs.length > 1 ? `(${assistantState.docs.length} Evrak)` : ''}
+                            Intelligenter Beleg-Assistent {assistantState.docs.length > 1 ? `(${assistantState.docs.length} Belege)` : ''}
                           </h4>
-                          <p className="text-[11px] text-gray-600">Evraklardan okunan taslak bilgiler ve tutar kontrolü</p>
+                          <p className="text-[11px] text-gray-600">Erkannte Entwurfsdaten und Betragsabgleich</p>
                         </div>
                       </div>
                       {assistantState.result && (
@@ -1825,14 +1825,14 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             onClick={() => applyAssistantResultToForm(assistantState.result, { onlyEmpty: true })}
                             className="px-2 py-1 rounded bg-white hover:bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-semibold transition"
                           >
-                            Eksikleri Tamamla
+                            Fehlende ergänzen
                           </button>
                           <button
                             type="button"
                             onClick={() => applyAssistantResultToForm(assistantState.result, { onlyEmpty: false })}
                             className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition"
                           >
-                            Tümünü Uygula
+                            Alles übernehmen
                           </button>
                         </div>
                       )}
@@ -1841,7 +1841,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     {assistantState.analyzing ? (
                       <div className="flex items-center gap-2 text-xs text-blue-800 bg-white/80 rounded-lg p-3 border border-blue-200">
                         <FaSpinner className="animate-spin text-blue-600 shrink-0" />
-                        <span>{assistantState.progressText || 'Evraklar analiz ediliyor...'}</span>
+                        <span>{assistantState.progressText || 'Belege werden analysiert...'}</span>
                       </div>
                     ) : assistantState.result ? (
                       <div className="space-y-2 text-xs">
@@ -1854,12 +1854,12 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         {assistantState.result.items && assistantState.result.items.length > 1 && (
                           <div className="bg-white rounded-lg border border-indigo-200 p-2.5 space-y-1">
                             <div className="text-[11px] font-bold text-indigo-800">
-                              Çoklu Fatura / Sammelbeleg Özeti ({assistantState.result.items.length} Evrak)
+                              Sammelbeleg-Übersicht ({assistantState.result.items.length} Belege)
                             </div>
                             {assistantState.result.items.map((item) => (
                               <div key={item.index} className="flex justify-between text-[11px] text-gray-700">
                                 <span className="truncate pr-2">
-                                  {item.index + 1}. Evrak {item.receiptNo ? `(${item.receiptNo})` : ''}
+                                  Beleg {item.index + 1} {item.receiptNo ? `(${item.receiptNo})` : ''}
                                 </span>
                                 <span className="font-semibold shrink-0">
                                   {item.amount ? `${item.amount} €` : '—'}
@@ -1867,7 +1867,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               </div>
                             ))}
                             <div className="flex justify-between pt-1 mt-1 border-t border-indigo-100 text-xs font-bold text-indigo-900">
-                              <span>Evrakların Toplamı:</span>
+                              <span>Summe der Belege:</span>
                               <span>{invoiceSum > 0 ? `${invoiceSum.toFixed(2)} €` : '—'}</span>
                             </div>
                           </div>
@@ -1883,14 +1883,14 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           >
                             {Math.abs(amountDiff) < 0.02 ? (
                               <span>
-                                ✓ Kayıt tutarı ({parsedFormAmount.toFixed(2)} €) ile yüklenen evrakların toplamı ({invoiceSum.toFixed(2)} €) birebir eşleşiyor.
+                                ✓ Buchungsbetrag ({parsedFormAmount.toFixed(2)} €) stimmt exakt mit der Summe der hochgeladenen Belege ({invoiceSum.toFixed(2)} €) überein.
                               </span>
                             ) : (
                               <div className="space-y-1">
                                 <div>
-                                  ⚠ Kayıt tutarı <strong>{parsedFormAmount.toFixed(2)} €</strong>, okunan evrak toplamı{' '}
-                                  <strong>{invoiceSum.toFixed(2)} €</strong> (Fark: <strong>{Math.abs(amountDiff).toFixed(2)} €</strong>).
-                                  Karşılığı olan diğer faturayı &quot;+ Ek Fatura / Evrak Ekle&quot; ile ekleyebilirsiniz.
+                                  ⚠ Buchungsbetrag <strong>{parsedFormAmount.toFixed(2)} €</strong>, erkannte Belegsumme{' '}
+                                  <strong>{invoiceSum.toFixed(2)} €</strong> (Differenz: <strong>{Math.abs(amountDiff).toFixed(2)} €</strong>).
+                                  Falls noch eine Rechnung fehlt, können Sie diese über &quot;+ Weiterer Beleg&quot; hinzufügen.
                                 </div>
                                 <div className="flex flex-wrap gap-1.5 pt-1">
                                   <button
@@ -1898,7 +1898,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                                     onClick={() => applySingleAssistantField('amount', invoiceSum.toFixed(2))}
                                     className="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold"
                                   >
-                                    Tutarı {invoiceSum.toFixed(2)} € yap
+                                    Betrag auf {invoiceSum.toFixed(2)} € setzen
                                   </button>
                                   {assistantState.result.receiptNo && (
                                     <button
@@ -1906,7 +1906,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                                       onClick={() => applySingleAssistantField('receipt_no', assistantState.result.receiptNo)}
                                       className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold"
                                     >
-                                      Beleg-Nr: {assistantState.result.receiptNo} uygula
+                                      Beleg-Nr.: {assistantState.result.receiptNo} übernehmen
                                     </button>
                                   )}
                                 </div>
@@ -1918,49 +1918,49 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         <div className="bg-white rounded-lg border border-gray-200 divide-y divide-gray-100">
                           {[
                             {
-                              label: 'İşletme / Kurum',
+                              label: 'Geschäft / Kontakt',
                               value: assistantState.result.vendorName,
                               field: 'contact_id',
                               applyValue: assistantState.result.matchedContactId
                             },
                             {
-                              label: 'Tarih (Datum)',
+                              label: 'Datum',
                               value: assistantState.result.date ? formatDateDE(assistantState.result.date) : '',
                               field: 'date',
                               applyValue: assistantState.result.date
                             },
                             {
-                              label: 'Belge No (Beleg-Nr.)',
+                              label: 'Beleg-Nr.',
                               value: assistantState.result.receiptNo,
                               field: 'receipt_no',
                               applyValue: assistantState.result.receiptNo
                             },
                             {
-                              label: assistantState.result.docCount > 1 ? 'Evrak Toplamı' : 'Tutar (Betrag)',
+                              label: assistantState.result.docCount > 1 ? 'Belegsumme' : 'Betrag',
                               value: assistantState.result.amount ? `${assistantState.result.amount} €` : '',
                               field: 'amount',
                               applyValue: assistantState.result.amount
                             },
                             {
-                              label: 'Tür',
+                              label: 'Typ',
                               value: assistantState.result.type === 'income' ? 'Einnahme (+)' : 'Ausgabe (-)',
                               field: 'type',
                               applyValue: assistantState.result.type
                             },
                             {
-                              label: 'Önerilen Kategori',
+                              label: 'Vorgeschlagene Kategorie',
                               value: assistantState.result.categoryName,
                               field: 'category_id',
                               applyValue: assistantState.result.categoryId
                             },
                             {
-                              label: 'Önerilen Hesap',
+                              label: 'Vorgeschlagenes Konto',
                               value: assistantState.result.accountName,
                               field: 'account_id',
                               applyValue: assistantState.result.accountId
                             },
                             {
-                              label: 'Açıklama',
+                              label: 'Beschreibung',
                               value: assistantState.result.description,
                               field: 'description',
                               applyValue: assistantState.result.description
@@ -1970,7 +1970,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               <div className="min-w-0">
                                 <span className="text-gray-500">{row.label}: </span>
                                 <span className={`font-semibold ${row.value ? 'text-gray-900' : 'text-gray-400 italic'}`}>
-                                  {row.value || 'Bulunamadı'}
+                                  {row.value || 'Nicht erkannt'}
                                 </span>
                               </div>
                               {row.applyValue && (
@@ -1983,7 +1983,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                                       : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
                                   }`}
                                 >
-                                  {formData[row.field] === row.applyValue ? '✓ Seçili' : 'Uygula'}
+                                  {formData[row.field] === row.applyValue ? '✓ Übernommen' : 'Übernehmen'}
                                 </button>
                               )}
                             </div>
@@ -1996,7 +1996,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             onClick={analyzeAllExistingModalDocs}
                             className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition"
                           >
-                            <FaMagic /> Okunmamış Evrakları Da Oku
+                            <FaMagic /> Ungelesene Belege auslesen
                           </button>
                         )}
 
@@ -2008,7 +2008,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-xs font-semibold transition"
                           >
                             {addingContactFromAssistant ? <FaSpinner className="animate-spin" /> : <FaUserPlus />}
-                            <span>&quot;{assistantState.result.vendorName}&quot; Kişilere (Kontakte) Ekle &amp; Seç</span>
+                            <span>&bdquo;{assistantState.result.vendorName}&ldquo; zu Kontakten hinzufügen &amp; auswählen</span>
                           </button>
                         )}
                       </div>
@@ -2025,14 +2025,14 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             onClick={analyzeAllExistingModalDocs}
                             className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition"
                           >
-                            <FaMagic /> Evrakları Asistan İle Oku
+                            <FaMagic /> Belege mit Assistent auslesen
                           </button>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Çoklu Belge Sekmeleri & Belge Önizleme */}
+                  {/* Mehrfach-Beleg Tabs & Vorschau */}
                   <div className="bg-gray-100 border border-gray-200 rounded-xl p-2 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2 px-1">
                       <div className="flex flex-wrap items-center gap-1">
@@ -2050,8 +2050,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               onClick={() => setAssistantState(prev => ({ ...prev, activeDocIndex: idx }))}
                               className="px-2.5 py-1"
                             >
-                              {idx + 1}. Evrak
-                              {docItem.parsed?.amount ? ` (${docItem.parsed.amount}€)` : ''}
+                              Beleg {idx + 1}
+                              {docItem.parsed?.amount ? ` (${docItem.parsed.amount} €)` : ''}
                             </button>
                             {!readOnly && (
                               <button
@@ -2060,7 +2060,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                                 className={`pr-2 pl-0.5 py-1 hover:opacity-75 ${
                                   idx === assistantState.activeDocIndex ? 'text-blue-100' : 'text-gray-400 hover:text-red-600'
                                 }`}
-                                title="Bu evrakı kaldır"
+                                title="Beleg entfernen"
                               >
                                 ×
                               </button>
@@ -2070,7 +2070,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                       </div>
                       {!readOnly && (
                         <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
-                          <FaPlus className="text-[10px]" /> Ek Fatura / Evrak Ekle
+                          <FaPlus className="text-[10px]" /> Weiterer Beleg
                           <input
                             type="file"
                             multiple
@@ -2084,7 +2084,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
 
                     <div className="flex items-center justify-between px-1 text-xs text-gray-600">
                       <span className="font-semibold truncate">
-                        {activeAssistantDoc?.fileName || 'Belge Önizleme'}
+                        {activeAssistantDoc?.fileName || 'Belegvorschau'}
                       </span>
                       {activeAssistantDoc?.path && (
                         <button
@@ -2092,7 +2092,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           onClick={() => openDocument(activeAssistantDoc.path, 0)}
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold shrink-0"
                         >
-                          <FaExternalLinkAlt className="text-[10px]" /> Yeni Sekme
+                          <FaExternalLinkAlt className="text-[10px]" /> Im neuen Tab öffnen
                         </button>
                       )}
                     </div>
@@ -2101,19 +2101,19 @@ export default function BuchhaltungTransactions({ readOnly }) {
                       activeAssistantDoc.isPdf ? (
                         <iframe
                           src={activeAssistantDoc.previewUrl}
-                          title="Evrak Önizleme"
+                          title="Belegvorschau"
                           className="w-full h-[360px] rounded border bg-white"
                         />
                       ) : (
                         <img
                           src={activeAssistantDoc.previewUrl}
-                          alt="Evrak Önizleme"
+                          alt="Belegvorschau"
                           className="w-full max-h-[360px] object-contain rounded border bg-white"
                         />
                       )
                     ) : (
                       <div className="h-[200px] flex items-center justify-center text-xs text-gray-500">
-                        <FaSpinner className="animate-spin mr-2" /> Belge önizlemesi yükleniyor...
+                        <FaSpinner className="animate-spin mr-2" /> Belegvorschau wird geladen...
                       </div>
                     )}
                   </div>
@@ -2225,7 +2225,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
 
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Kontakt / İşletme {renderAssistantBadge('contact_id')}
+                      Kontakt / Geschäft {renderAssistantBadge('contact_id')}
                     </label>
                     <select name="contact_id" value={formData.contact_id} onChange={handleInputChange} className="border p-2 rounded w-full">
                       <option value="">Kontakt (Optional)...</option>
@@ -2262,7 +2262,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     }`}
                   >
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Beleg (Tek veya birden fazla PDF/Görsel seçin ya da sürükleyin – Asistan toplamını hesaplar)
+                      Beleg (Eine oder mehrere PDF-/Bilddateien auswählen oder hierher ziehen – Assistent berechnet Summe)
                     </label>
                     <input
                       type="file"
@@ -2275,7 +2275,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {uploading && (
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700">
-                          <FaSpinner className="animate-spin" /> Dosya yükleniyor...
+                          <FaSpinner className="animate-spin" /> Datei wird hochgeladen...
                         </span>
                       )}
                       {parseDocumentUrls(formData.document_url).length > 0 && (
@@ -2283,15 +2283,15 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
                             <FaCheckCircle />
                             {parseDocumentUrls(formData.document_url).length > 1
-                              ? `${parseDocumentUrls(formData.document_url).length} Evrak yüklü`
-                              : 'Evrak yüklü'}
+                              ? `${parseDocumentUrls(formData.document_url).length} Belege vorhanden`
+                              : 'Beleg vorhanden'}
                           </span>
                           <button
                             type="button"
                             onClick={() => openDocument(formData.document_url, 0)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition"
                           >
-                            <FaEye /> Görüntüle
+                            <FaEye /> Ansehen
                           </button>
                         </>
                       )}
@@ -2301,7 +2301,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                   <div className="flex justify-end gap-2 mt-4">
                     <button type="button" onClick={resetForm} className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">Abbrechen</button>
                     <button type="submit" disabled={uploading} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300">
-                      {uploading ? 'Yükleniyor...' : 'Speichern'}
+                      {uploading ? 'Wird hochgeladen...' : 'Speichern'}
                     </button>
                   </div>
                 </form>
@@ -2332,7 +2332,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         </div>
       )}
 
-      {/* Lexware-Style Beleg-Kontrolle / Evrak Takip Paneli */}
+      {/* Beleg-Kontrolle Übersicht */}
       <div className="mb-5 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
@@ -2344,9 +2344,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 : 'bg-white border-gray-200 hover:border-gray-300'
             }`}
           >
-            <div className="text-xs font-semibold uppercase text-gray-500">Gesamt (Seçili Dönem)</div>
+            <div className="text-xs font-semibold uppercase text-gray-500">Gesamt (Zeitraum)</div>
             <div className="text-2xl font-bold text-gray-800 mt-1">{totalCount}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Toplam işlem kaydı</div>
+            <div className="text-xs text-gray-500 mt-0.5">Alle Buchungen</div>
           </button>
 
           <button
@@ -2359,11 +2359,11 @@ export default function BuchhaltungTransactions({ readOnly }) {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Beleg vorhanden / Yüklü</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700">Beleg vorhanden</span>
               <FaCheckCircle className="text-emerald-600" />
             </div>
             <div className="text-2xl font-bold text-emerald-700 mt-1">{withDocCount}</div>
-            <div className="text-xs text-emerald-600 mt-0.5">Evrakı yüklenmiş kayıt</div>
+            <div className="text-xs text-emerald-600 mt-0.5">Buchungen mit Beleg</div>
           </button>
 
           <button
@@ -2376,19 +2376,19 @@ export default function BuchhaltungTransactions({ readOnly }) {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase text-rose-700">Beleg fehlt / Eksik</span>
+              <span className="text-xs font-semibold uppercase text-rose-700">Beleg fehlt</span>
               <FaExclamationTriangle className="text-rose-600" />
             </div>
             <div className="text-2xl font-bold text-rose-700 mt-1">{missingDocCount}</div>
-            <div className="text-xs text-rose-600 mt-0.5">Evrak yüklenmesi gereken</div>
+            <div className="text-xs text-rose-600 mt-0.5">Buchungen ohne Beleg</div>
           </button>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
           <div className="flex-1">
             <div className="flex justify-between text-xs font-medium text-gray-600 mb-1">
-              <span>Evrak Tamamlanma Durumu</span>
-              <span>{completionRate}% tamamlandı ({withDocCount}/{totalCount})</span>
+              <span>Beleg-Vollständigkeit</span>
+              <span>{completionRate} % vollständig ({withDocCount}/{totalCount})</span>
             </div>
             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
@@ -2401,7 +2401,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
           </div>
 
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-gray-500 flex items-center gap-1 mr-1"><FaFilter /> Göster:</span>
+            <span className="text-xs text-gray-500 flex items-center gap-1 mr-1"><FaFilter /> Filter:</span>
             <button
               type="button"
               onClick={() => setDocFilter('all')}
@@ -2418,7 +2418,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 docFilter === 'with_doc' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-emerald-700 border-emerald-300 hover:bg-emerald-50'
               }`}
             >
-              Yüklü ({withDocCount})
+              Mit Beleg ({withDocCount})
             </button>
             <button
               type="button"
@@ -2427,7 +2427,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 docFilter === 'missing_doc' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-700 border-rose-300 hover:bg-rose-50'
               }`}
             >
-              Eksik ({missingDocCount})
+              Ohne Beleg ({missingDocCount})
             </button>
           </div>
         </div>
@@ -2450,7 +2450,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategorie</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Konto / Kontakt</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Beleg / Evrak</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Beleg</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Betrag</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aktionen</th>
             </tr>
@@ -2460,8 +2460,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
               <tr>
                 <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">
                   {transactions.length === 0
-                    ? 'Seçili dönemde işlem kaydı bulunamadı.'
-                    : 'Seçilen evrak filtresine uygun kayıt bulunamadı.'}
+                    ? 'Keine Buchungen im ausgewählten Zeitraum gefunden.'
+                    : 'Keine Einträge für den ausgewählten Belegfilter gefunden.'}
                 </td>
               </tr>
             ) : (
@@ -2502,19 +2502,19 @@ export default function BuchhaltungTransactions({ readOnly }) {
                   >
                     {isUploadingRow ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
-                        <FaSpinner className="animate-spin" /> Yükleniyor...
+                        <FaSpinner className="animate-spin" /> Wird hochgeladen...
                       </span>
                     ) : hasDoc ? (
                       <div className="flex flex-col items-center gap-1.5">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold whitespace-nowrap">
-                          <FaCheckCircle /> {docUrls.length > 1 ? `${docUrls.length} Evrak yüklü` : 'Beleg yüklü'}
+                          <FaCheckCircle /> {docUrls.length > 1 ? `${docUrls.length} Belege vorhanden` : 'Beleg vorhanden'}
                         </span>
                         <div className="flex flex-wrap items-center justify-center gap-1">
                           <button
                             type="button"
                             onClick={() => openPreviewModal(trx, 0)}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition"
-                            title="Ansehen / Önizle"
+                            title="Beleg ansehen"
                           >
                             <FaEye /> Ansehen
                           </button>
@@ -2522,7 +2522,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             type="button"
                             onClick={() => openDocument(trx.document_url, 0)}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition"
-                            title="Yeni Sekme"
+                            title="Im neuen Tab öffnen"
                           >
                             <FaExternalLinkAlt />
                           </button>
@@ -2530,9 +2530,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             <>
                               <label
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium cursor-pointer transition whitespace-nowrap"
-                                title="Bu işleme ek fatura / evrak ekle"
+                                title="Weiteren Beleg oder Rechnung zu dieser Buchung hinzufügen"
                               >
-                                <FaPlus className="text-[10px]" /> Ek Evrak
+                                <FaPlus className="text-[10px]" /> Weiterer Beleg
                                 <input
                                   type="file"
                                   multiple
@@ -2544,7 +2544,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               {docUrls.length === 1 && (
                                 <label
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium cursor-pointer transition"
-                                  title="Evrakı değiştir"
+                                  title="Beleg ersetzen"
                                 >
                                   <FaUpload />
                                   <input
@@ -2562,12 +2562,12 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     ) : (
                       <div className="flex flex-col items-center gap-1.5">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 text-xs font-semibold whitespace-nowrap">
-                          <FaExclamationTriangle /> Eksik (Beleg fehlt)
+                          <FaExclamationTriangle /> Beleg fehlt
                         </span>
                         {!readOnly && (
                           <>
                             <label className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer shadow-xs transition whitespace-nowrap">
-                              <FaUpload /> Evrak Yükle
+                              <FaUpload /> Beleg hochladen
                               <input
                                 type="file"
                                 multiple
@@ -2576,7 +2576,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                                 onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'append' })}
                               />
                             </label>
-                            <span className="text-[10px] text-gray-400">veya dosyaları buraya sürükleyin</span>
+                            <span className="text-[10px] text-gray-400">oder Dateien hierher ziehen</span>
                           </>
                         )}
                       </div>
@@ -2612,7 +2612,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
             <div className="flex justify-between items-start gap-4 px-6 py-4 border-b bg-gray-50">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  Belegvorschau / Evrak Önizleme {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Evrak)` : ''}
+                  Belegvorschau {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Belege)` : ''}
                 </h3>
                 <p className="text-xs text-gray-600 mt-1">
                   {formatDateDE(previewModal.trx.date)}
@@ -2648,7 +2648,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
                     }`}
                   >
-                    {idx + 1}. Evrak
+                    Beleg {idx + 1}
                   </button>
                 ))}
               </div>
@@ -2682,19 +2682,19 @@ export default function BuchhaltungTransactions({ readOnly }) {
                   onClick={() => openDocument(previewModal.trx.document_url, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition"
                 >
-                  <FaExternalLinkAlt /> Yeni Sekmede Aç
+                  <FaExternalLinkAlt /> Im neuen Tab öffnen
                 </button>
                 <button
                   type="button"
                   onClick={() => printVoucher(previewModal.trx, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold transition"
                 >
-                  <FaPrint /> Yazdır
+                  <FaPrint /> Drucken
                 </button>
                 {!readOnly && (
                   <>
                     <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
-                      <FaPlus /> + Ek Evrak / 2. Fatura Ekle
+                      <FaPlus /> Weiterer Beleg
                       <input
                         type="file"
                         multiple
@@ -2704,7 +2704,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                       />
                     </label>
                     <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
-                      <FaUpload /> Seçili Evrakı Değiştir
+                      <FaUpload /> Aktuellen Beleg ersetzen
                       <input
                         type="file"
                         accept="image/*,.pdf"
@@ -2723,7 +2723,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         onClick={() => removeDocumentFromTransaction(previewModal.trx, previewModal.activeIndex)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
                       >
-                        <FaTrash /> Seçili Evrakı Sil
+                        <FaTrash /> Aktuellen Beleg entfernen
                       </button>
                     )}
                   </>
@@ -2734,7 +2734,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 onClick={closePreviewModal}
                 className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold transition"
               >
-                Kapat
+                Schließen
               </button>
             </div>
           </div>

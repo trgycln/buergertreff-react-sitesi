@@ -26,7 +26,7 @@ function loadExternalScript(src) {
     };
     script.onerror = () => {
       delete scriptPromises[src];
-      reject(new Error(`Kütüphane yüklenemedi: ${src}`));
+      reject(new Error(`Bibliothek konnte nicht geladen werden: ${src}`));
     };
     document.head.appendChild(script);
   });
@@ -39,7 +39,7 @@ async function ensurePdfJs() {
     await loadExternalScript(PDFJS_CDN_URL);
   }
   if (!window.pdfjsLib) {
-    throw new Error('PDF okuyucu yüklenemedi. Lütfen internet bağlantınızı kontrol edin.');
+    throw new Error('PDF-Reader konnte nicht geladen werden. Bitte prüfen Sie Ihre Internetverbindung.');
   }
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
   return window.pdfjsLib;
@@ -50,19 +50,19 @@ async function ensureTesseract() {
     await loadExternalScript(TESSERACT_CDN_URL);
   }
   if (!window.Tesseract) {
-    throw new Error('OCR motoru yüklenemedi. Lütfen internet bağlantınızı kontrol edin.');
+    throw new Error('OCR-Engine konnte nicht geladen werden. Bitte prüfen Sie Ihre Internetverbindung.');
   }
   return window.Tesseract;
 }
 
-async function runOcrOnSource(source, onProgress, labelPrefix = 'Görsel okunuyor') {
-  onProgress?.(`${labelPrefix} (OCR hazırlanıyor)...`);
+async function runOcrOnSource(source, onProgress, labelPrefix = 'Bild wird gelesen') {
+  onProgress?.(`${labelPrefix} (OCR wird vorbereitet)...`);
   const Tesseract = await ensureTesseract();
   const result = await Tesseract.recognize(source, 'deu', {
     logger: (msg) => {
       if (msg.status === 'recognizing text' && typeof msg.progress === 'number') {
         const pct = Math.round(msg.progress * 100);
-        onProgress?.(`${labelPrefix} (OCR %${pct})...`);
+        onProgress?.(`${labelPrefix} (OCR ${pct} %)...`);
       }
     }
   });
@@ -102,7 +102,7 @@ export async function extractTextFromFile(fileOrBlob, fileName = '', onProgress)
   const isPdf = mime === 'application/pdf' || lowerName.endsWith('.pdf');
 
   if (isPdf) {
-    onProgress?.('PDF metni okunuyor...');
+    onProgress?.('PDF-Text wird gelesen...');
     const pdfjsLib = await ensurePdfJs();
     const arrayBuffer = await fileOrBlob.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -122,7 +122,7 @@ export async function extractTextFromFile(fileOrBlob, fileName = '', onProgress)
     }
 
     // Scanned PDF fallback: render page 1 onto offscreen canvas and run OCR
-    onProgress?.('Taranmış PDF tespit edildi, OCR başlatılıyor...');
+    onProgress?.('Gescanntes PDF erkannt, OCR wird gestartet...');
     const page1 = await pdf.getPage(1);
     const viewport = page1.getViewport({ scale: 2.0 });
     const canvas = document.createElement('canvas');
@@ -133,14 +133,14 @@ export async function extractTextFromFile(fileOrBlob, fileName = '', onProgress)
     try {
       await page1.render({ canvasContext: ctx, viewport }).promise;
       const imageDataUrl = canvas.toDataURL('image/png');
-      return await runOcrOnSource(imageDataUrl, onProgress, 'Taranmış PDF okunuyor');
+      return await runOcrOnSource(imageDataUrl, onProgress, 'Gescanntes PDF wird gelesen');
     } finally {
       canvas.width = 0;
       canvas.height = 0;
     }
   }
 
-  return runOcrOnSource(fileOrBlob, onProgress, 'Görsel okunuyor');
+  return runOcrOnSource(fileOrBlob, onProgress, 'Bild wird gelesen');
 }
 
 const normalizeSearch = (value = '') =>
@@ -738,7 +738,7 @@ export function combineParsedDocuments(items = []) {
     const numericAmount = Number.parseFloat(item.parsed.amount) || 0;
     return {
       index: idx,
-      fileName: item.fileName || `Evrak ${idx + 1}`,
+      fileName: item.fileName || `Beleg ${idx + 1}`,
       receiptNo: item.parsed.receiptNo || '',
       amount: item.parsed.amount || '',
       numericAmount,
@@ -791,7 +791,7 @@ export function combineParsedDocuments(items = []) {
   const accountId = firstWith((p) => p.accountId);
   const accountName = firstWith((p) => p.accountName);
 
-  const countLabel = `${valid.length} Fatura/Evrak`;
+  const countLabel = `${valid.length} Belege`;
   let description = '';
   if (vendorName && receiptNo) {
     description = `${vendorName} – ${countLabel} (${receiptNo})`;
