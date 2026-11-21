@@ -151,20 +151,20 @@ export default function CashJournal({ readOnly }) {
 
   const deleteZeroTransactions = async () => {
     if (!zeroAmountTransactions || zeroAmountTransactions.length === 0) return;
-    if (!window.confirm(`${zeroAmountTransactions.length} adet 0,00 € tutarlı kasa hareketi veritabanından kalıcı olarak silinecektir. Emin misiniz?`)) {
+    if (!window.confirm(`${zeroAmountTransactions.length} Kassenbuchung(en) mit 0,00 € werden dauerhaft aus der Datenbank gelöscht. Sind Sie sicher?`)) {
       return;
     }
     try {
       const ids = zeroAmountTransactions.map(t => t.id);
       const { error } = await supabase.from('accounting_transactions').delete().in('id', ids);
       if (!error) {
-        alert(`${ids.length} adet 0,00 € tutarlı kayıt başarıyla silindi.`);
+        alert(`${ids.length} Buchung(en) mit 0,00 € wurden erfolgreich gelöscht.`);
         fetchTransactions();
       } else {
-        alert('Hata: ' + error.message);
+        alert('Fehler: ' + error.message);
       }
     } catch (err) {
-      alert('Hata: ' + err.message);
+      alert('Fehler: ' + err.message);
     }
   };
 
@@ -185,8 +185,8 @@ export default function CashJournal({ readOnly }) {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Kassenbuch (Kasa Defteri)</h3>
-          <p className="text-sm text-gray-600">Alman GoBD standartlarında, sayfa sayfa (20 satır) ve çift imzalı resmi döküm</p>
+          <h3 className="text-xl font-bold text-gray-800">Kassenbuch</h3>
+          <p className="text-sm text-gray-600">Offizielles Kassenbuch nach deutschen GoBD-Standards (20 Zeilen pro Blatt, mit zwei Unterschriften)</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
@@ -204,7 +204,7 @@ export default function CashJournal({ readOnly }) {
             title="Druckvorschau anzeigen"
           >
             <FaEye className="mr-2" />
-            Druckvorschau (Önizleme)
+            Druckvorschau
           </button>
 
           <button
@@ -214,31 +214,31 @@ export default function CashJournal({ readOnly }) {
             title="Kassenbuch drucken"
           >
             <FaPrint className="mr-2" />
-            Drucken (Yazdır)
+            Drucken
           </button>
         </div>
       </div>
 
-      {/* 0 Tutarlı Kayıt Uyarısı ve Temizleme */}
+      {/* Hinweis zu 0,00-€-Buchungen */}
       {zeroAmountTransactions.length > 0 && (
         <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <FaExclamationTriangle className="text-amber-600 mt-1 shrink-0 text-lg" />
             <div>
               <p className="font-bold text-amber-900 text-sm">
-                Dikkat: Veritabanında Kasaya (Kasse / Bargeld) ait {zeroAmountTransactions.length} adet 0,00 € tutarlı kayıt tespit edildi!
+                Hinweis: Es wurden {zeroAmountTransactions.length} Kassenbuchung(en) (Kasse / Bargeld) mit 0,00 € gefunden!
               </p>
               <p className="text-amber-800 text-xs mt-1">
-                Alman vergi mevzuatı (GoBD) gereği kasa defterinde yalnızca gerçek nakit hareketleri bulunabilir. Bu 0,00 € kayıtlar otomatik olarak dökümden ve hesaplamalardan filtrelenmiştir.
+                Gemäß den deutschen GoBD-Grundsätzen dürfen im Kassenbuch nur tatsächliche Bargeldbewegungen aufgeführt werden. Diese 0,00-€-Einträge wurden automatisch aus dem Ausdruck und den Berechnungen herausgefiltert.
               </p>
               <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-amber-900">
                 {zeroAmountTransactions.slice(0, 5).map((t, idx) => (
                   <span key={t.id || idx} className="bg-amber-100 px-2 py-0.5 rounded border border-amber-200">
-                    {t.date} | {t.receipt_no || t.file_no || 'Belgesiz'} | {t.accounting_categories?.name || 'Kategorisiz'} ({t.description || 'Açıklama yok'})
+                    {t.date} | {t.receipt_no || t.file_no || 'Ohne Beleg-Nr.'} | {t.accounting_categories?.name || 'Ohne Kategorie'} ({t.description || 'Keine Beschreibung'})
                   </span>
                 ))}
                 {zeroAmountTransactions.length > 5 && (
-                  <span className="text-amber-700 italic">...ve {zeroAmountTransactions.length - 5} kayıt daha</span>
+                  <span className="text-amber-700 italic">...und {zeroAmountTransactions.length - 5} weitere Einträge</span>
                 )}
               </div>
             </div>
@@ -248,10 +248,10 @@ export default function CashJournal({ readOnly }) {
               type="button"
               onClick={deleteZeroTransactions}
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow-sm whitespace-nowrap flex items-center gap-1.5 transition self-end md:self-center"
-              title="Tüm 0,00 € tutarlı kasa kayıtlarını veritabanından kalıcı olarak siler"
+              title="Alle Kassenbuchungen mit 0,00 € dauerhaft aus der Datenbank löschen"
             >
               <FaTrash />
-              0,00 € Kayıtları Sil ({zeroAmountTransactions.length})
+              0,00-€-Einträge löschen ({zeroAmountTransactions.length})
             </button>
           )}
         </div>

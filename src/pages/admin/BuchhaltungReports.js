@@ -85,8 +85,8 @@ export default function BuchhaltungReports() {
 
     transactions.forEach(trx => {
       const amount = parseFloat(trx.amount);
-      const catName = trx.accounting_categories?.name || 'Diğer';
-      const accName = trx.accounting_accounts?.name || 'Diğer';
+      const catName = trx.accounting_categories?.name || 'Sonstige';
+      const accName = trx.accounting_accounts?.name || 'Sonstige';
 
       // Geldtransit (Kasse ↔ Bank): nur Kontobewegung, keine Einnahme/Ausgabe
       if (isGeldtransitCategory(catName)) {

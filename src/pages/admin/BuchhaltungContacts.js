@@ -692,7 +692,7 @@ export default function BuchhaltungContacts({ readOnly }) {
                         onChange={handleInputChange}
                         className="accent-blue-600"
                       />
-                      <span className="text-xs">👤 Privatperson (Şahıs)</span>
+                      <span className="text-xs">👤 Privatperson</span>
                     </label>
 
                     <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
@@ -708,7 +708,7 @@ export default function BuchhaltungContacts({ readOnly }) {
                         onChange={handleInputChange}
                         className="accent-blue-600"
                       />
-                      <span className="text-xs">🏢 Unternehmen / Institution (Kurum)</span>
+                      <span className="text-xs">🏢 Unternehmen / Institution</span>
                     </label>
                   </div>
                 </div>
@@ -783,7 +783,7 @@ export default function BuchhaltungContacts({ readOnly }) {
                 {/* Logo ve Website URL */}
                 <div className="border-t pt-3 mt-2 bg-gray-50 p-3 rounded-lg">
                   <div className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <FaBuilding /> Sponsor / Kurum Bilgileri (Website & Logo)
+                    <FaBuilding /> Sponsor- / Unternehmensdaten (Website & Logo)
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

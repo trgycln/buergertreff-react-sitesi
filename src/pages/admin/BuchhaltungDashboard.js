@@ -633,7 +633,7 @@ export default function BuchhaltungDashboard() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-red-700 hover:shadow-md disabled:cursor-not-allowed disabled:bg-red-300"
           >
             {isPrinting ? <FaSpinner className="animate-spin" /> : <FaPrint />}
-            <span>{isPrinting ? 'Bericht wird vorbereitet...' : 'Toplantı Raporu Oluştur (PDF / Yazdır)'}</span>
+            <span>{isPrinting ? 'Bericht wird vorbereitet...' : 'Sitzungsbericht erstellen (PDF / Drucken)'}</span>
           </button>
         </div>
       </div>
@@ -880,7 +880,7 @@ export default function BuchhaltungDashboard() {
                     <div className="hidden md:block text-blue-200 text-3xl font-light">=</div>
                     
                     <div className="bg-white rounded-xl px-6 py-3 shadow-sm border border-blue-100/50 text-center md:text-right">
-                      <div className="text-xs uppercase tracking-wider font-extrabold text-slate-400 mb-1">Neuer Bestand (Kasa)</div>
+                      <div className="text-xs uppercase tracking-wider font-extrabold text-slate-400 mb-1">Neuer Bestand (Gesamt)</div>
                       <div className="text-2xl font-black text-blue-700">{formatAmount(neuerBestand)} €</div>
                     </div>
                   </div>

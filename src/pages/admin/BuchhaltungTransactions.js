@@ -1625,7 +1625,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
       isOpen: true, 
       id: id, 
       type: 'single', 
-      message: 'Bu kaydı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.' 
+      message: 'Möchten Sie diese Buchung wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.' 
     });
   };
 
@@ -1684,7 +1684,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
       isOpen: true, 
       id: null, 
       type: 'bulk', 
-      message: `${zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt silinecek. Emin misiniz?` 
+      message: `Es werden ${zeroAmountTrx.length} Buchung(en) mit dem Betrag 0,00 € gelöscht. Sind Sie sicher?` 
     });
   };
 
@@ -2173,7 +2173,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Beleg-Nr. (Fiş / Fatura No) {renderAssistantBadge('receipt_no')}
+                        Beleg-Nr. (Quittungs- / Rechnungs-Nr.) {renderAssistantBadge('receipt_no')}
                       </label>
                       <input
                         type="text"
@@ -2183,11 +2183,11 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         placeholder="z.B. BAR-001, RE-2026-05"
                         className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
-                      <span className="text-[11px] text-gray-500">Kassenbuch'taki "Beleg-Nr." sütununda görünür</span>
+                      <span className="text-[11px] text-gray-500">Erscheint in der Spalte „Beleg-Nr.“ im Kassenbuch</span>
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">
-                        Aktenzeichen / Ordner (Klasör No)
+                        Aktenzeichen / Ordner-Nr.
                       </label>
                       <input
                         type="text"
@@ -2197,7 +2197,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                         placeholder="z.B. Ordner 2026 / Kasse"
                         className="border p-2 rounded w-full text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       />
-                      <span className="text-[11px] text-gray-500">Fiziksel arşiv yeri (Opsiyonel)</span>
+                      <span className="text-[11px] text-gray-500">Physischer Ablageort (Optional)</span>
                     </div>
                   </div>
 
@@ -2311,21 +2311,21 @@ export default function BuchhaltungTransactions({ readOnly }) {
         </div>
       )}
 
-      {/* 0 Tutarlı Kayıt Uyarısı */}
+      {/* Hinweis zu 0,00-€-Buchungen */}
       {zeroAmountTrx.length > 0 && (
         <div className="mb-4 bg-orange-50 border border-orange-300 rounded-lg p-4 flex items-start gap-3">
           <FaExclamationTriangle className="text-orange-500 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="font-bold text-orange-800 text-sm">Dikkat: {zeroAmountTrx.length} adet tutarı 0,00 € olan kayıt var!</p>
+            <p className="font-bold text-orange-800 text-sm">Hinweis: Es gibt {zeroAmountTrx.length} Buchung(en) mit einem Betrag von 0,00 €!</p>
             <p className="text-orange-700 text-xs mt-1">
-              Bu kayıtlar, form doğrulama açığından dolayı daha önce oluşmuş olabilir (0 yazılmış). Silmeden önce inceleyebilirsiniz. Artık forma 0 girişi engellendi.
+              Diese Einträge stammen möglicherweise aus früheren Eingaben ohne Betragsprüfung. Sie können diese vor dem Löschen prüfen. Neue Buchungen mit 0,00 € sind nicht mehr möglich.
             </p>
             {!readOnly && (
               <button
                 onClick={deleteZeroAmountTransactions}
                 className="mt-2 bg-orange-600 text-white text-xs px-3 py-1 rounded hover:bg-orange-700"
               >
-                Tüm 0,00 € kayıtları sil ({zeroAmountTrx.length} adet)
+                Alle 0,00-€-Buchungen löschen ({zeroAmountTrx.length})
               </button>
             )}
           </div>
@@ -2746,7 +2746,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h3 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
-              <FaTrash /> Silme Onayı
+              <FaTrash /> Löschbestätigung
             </h3>
             <p className="text-gray-700 mb-6">{deleteConfirm.message}</p>
             <div className="flex justify-end gap-3">
@@ -2754,13 +2754,13 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 onClick={() => setDeleteConfirm({ isOpen: false, id: null, type: '', message: '' })} 
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium"
               >
-                İptal
+                Abbrechen
               </button>
               <button 
                 onClick={executeDelete} 
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium flex items-center gap-2"
               >
-                <FaTrash /> Evet, Sil
+                <FaTrash /> Ja, löschen
               </button>
             </div>
           </div>
