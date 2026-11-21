@@ -688,3 +688,137 @@ export function parseDocumentText(rawText = '', fileName = '', options = {}) {
     description
   };
 }
+
+export function parseDocumentUrls(rawUrl) {
+  if (!rawUrl) return [];
+
+  if (Array.isArray(rawUrl)) {
+    return rawUrl.map((item) => String(item || '').trim()).filter(Boolean);
+  }
+
+  if (typeof rawUrl === 'string') {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item || '').trim()).filter(Boolean);
+        }
+      } catch (e) {
+        // Fallback to plain string path
+      }
+    }
+    return [trimmed];
+  }
+
+  return [];
+}
+
+export function serializeDocumentUrls(urls) {
+  const rawList = Array.isArray(urls) ? urls : parseDocumentUrls(urls);
+  const unique = [];
+  rawList.forEach((item) => {
+    const clean = String(item || '').trim();
+    if (clean && !unique.includes(clean)) {
+      unique.push(clean);
+    }
+  });
+
+  if (unique.length === 0) return '';
+  if (unique.length === 1) return unique[0];
+  return JSON.stringify(unique);
+}
+
+export function combineParsedDocuments(items = []) {
+  const valid = (items || []).filter((item) => item && item.parsed);
+  if (valid.length === 0) return null;
+
+  const itemSummaries = valid.map((item, idx) => {
+    const numericAmount = Number.parseFloat(item.parsed.amount) || 0;
+    return {
+      index: idx,
+      fileName: item.fileName || `Evrak ${idx + 1}`,
+      receiptNo: item.parsed.receiptNo || '',
+      amount: item.parsed.amount || '',
+      numericAmount,
+      vendorName: item.parsed.vendorName || '',
+      date: item.parsed.date || ''
+    };
+  });
+
+  const totalNumeric = itemSummaries.reduce((sum, item) => sum + item.numericAmount, 0);
+  const totalAmount = totalNumeric > 0 ? totalNumeric.toFixed(2) : '';
+
+  if (valid.length === 1) {
+    return {
+      ...valid[0].parsed,
+      totalAmount,
+      items: itemSummaries,
+      docCount: 1
+    };
+  }
+
+  const receiptNos = [];
+  const vendors = [];
+  valid.forEach(({ parsed }) => {
+    if (parsed.receiptNo && !receiptNos.includes(parsed.receiptNo)) {
+      receiptNos.push(parsed.receiptNo);
+    }
+    if (
+      parsed.vendorName &&
+      !vendors.some((existing) => normalizeSearch(existing) === normalizeSearch(parsed.vendorName))
+    ) {
+      vendors.push(parsed.vendorName);
+    }
+  });
+
+  const receiptNo = receiptNos.join(', ');
+  const vendorName = vendors.join(' / ');
+  const firstWith = (getter) => {
+    for (const item of valid) {
+      const val = getter(item.parsed);
+      if (val) return val;
+    }
+    return '';
+  };
+
+  const matchedContactId = firstWith((p) => p.matchedContactId);
+  const date = firstWith((p) => p.date);
+  const type = firstWith((p) => p.type) || 'expense';
+  const categoryId = firstWith((p) => p.categoryId);
+  const categoryName = firstWith((p) => p.categoryName);
+  const accountId = firstWith((p) => p.accountId);
+  const accountName = firstWith((p) => p.accountName);
+
+  const countLabel = `${valid.length} Fatura/Evrak`;
+  let description = '';
+  if (vendorName && receiptNo) {
+    description = `${vendorName} – ${countLabel} (${receiptNo})`;
+  } else if (vendorName) {
+    description = `${vendorName} – ${countLabel}`;
+  } else if (receiptNo) {
+    description = `${countLabel} (${receiptNo})`;
+  } else {
+    description = `${countLabel} (Sammelbeleg)`;
+  }
+
+  return {
+    rawText: valid.map((v) => v.parsed.rawText || '').filter(Boolean).join('\n---\n'),
+    docLabel: countLabel,
+    vendorName,
+    matchedContactId,
+    date,
+    receiptNo,
+    amount: totalAmount,
+    totalAmount,
+    type,
+    categoryId,
+    categoryName,
+    accountId,
+    accountName,
+    description,
+    items: itemSummaries,
+    docCount: valid.length
+  };
+}

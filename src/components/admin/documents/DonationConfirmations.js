@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
+import { parseDocumentUrls } from '../../../utils/documentAssistant';
 import { FaSpinner, FaPaperclip, FaExternalLinkAlt, FaHandHoldingHeart } from 'react-icons/fa';
 
 export default function DonationConfirmations({ readOnly }) {
@@ -81,11 +82,19 @@ export default function DonationConfirmations({ readOnly }) {
     setLoading(false);
   };
 
-  const openDocument = async (path) => {
-    if (!path) return;
-    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
-    if (error) { alert(error.message); return; }
-    window.open(data.signedUrl, '_blank');
+  const openDocument = async (rawPath) => {
+    const paths = parseDocumentUrls(rawPath);
+    if (paths.length === 0) return;
+
+    const results = await Promise.all(
+      paths.map((path) => supabase.storage.from('receipts').createSignedUrl(path, 60))
+    );
+    const firstErr = results.find((r) => r.error)?.error;
+    if (firstErr) { alert(firstErr.message); return; }
+
+    results.forEach(({ data }) => {
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    });
   };
 
   const formatDateDE = (dateString) => {
@@ -277,13 +286,18 @@ export default function DonationConfirmations({ readOnly }) {
                     >
                       <FaHandHoldingHeart />
                     </button>
-                    {donation.document_url && (
+                    {parseDocumentUrls(donation.document_url).length > 0 && (
                       <button
                         onClick={() => openDocument(donation.document_url)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900"
                         title="Bankbeleg öffnen"
                       >
                         <FaPaperclip />
+                        {parseDocumentUrls(donation.document_url).length > 1 && (
+                          <span className="text-xs font-semibold">
+                            ({parseDocumentUrls(donation.document_url).length})
+                          </span>
+                        )}
                       </button>
                     )}
                   </td>

@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
-import { extractTextFromFile, parseDocumentText } from '../../utils/documentAssistant';
+import {
+  extractTextFromFile,
+  parseDocumentText,
+  parseDocumentUrls,
+  serializeDocumentUrls,
+  combineParsedDocuments
+} from '../../utils/documentAssistant';
 import { 
   FaPlus, FaEdit, FaTrash, FaPrint, FaHandHoldingHeart, 
   FaArrowDown, FaArrowUp, FaPaperclip, FaExclamationTriangle, FaSpinner,
@@ -98,25 +104,26 @@ export default function BuchhaltungTransactions({ readOnly }) {
   const [previewModal, setPreviewModal] = useState({
     isOpen: false,
     trx: null,
-    signedUrl: null,
-    isPdf: false,
+    urls: [],
+    activeIndex: 0,
+    signedUrls: {},
     loading: false
   });
   const [assistantState, setAssistantState] = useState({
+    docs: [],
+    activeDocIndex: 0,
     analyzing: false,
     progressText: '',
     error: '',
     result: null,
-    localPreviewUrl: null,
-    isPdf: false,
-    fileName: '',
     appliedFields: {}
   });
   const [addingContactFromAssistant, setAddingContactFromAssistant] = useState(false);
   const [modalDragOver, setModalDragOver] = useState(false);
   const assistantFileInputRef = useRef(null);
   const modalSessionRef = useRef(0);
-  const blobUrlRef = useRef(null);
+  const blobUrlsRef = useRef([]);
+  const assistantDocsRef = useRef([]);
   
   const currentYear = new Date().getFullYear();
   const availableYears = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
@@ -360,21 +367,27 @@ export default function BuchhaltungTransactions({ readOnly }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const updateAssistantDocs = (updater) => {
+    const nextDocs = typeof updater === 'function' ? updater(assistantDocsRef.current) : updater;
+    assistantDocsRef.current = nextDocs;
+    return nextDocs;
+  };
+
   const clearAssistantState = () => {
     modalSessionRef.current += 1;
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
+    if (blobUrlsRef.current.length > 0) {
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      blobUrlsRef.current = [];
     }
+    assistantDocsRef.current = [];
     setModalDragOver(false);
     setAssistantState({
+      docs: [],
+      activeDocIndex: 0,
       analyzing: false,
       progressText: '',
       error: '',
       result: null,
-      localPreviewUrl: null,
-      isPdf: false,
-      fileName: '',
       appliedFields: {}
     });
   };
@@ -443,103 +456,60 @@ export default function BuchhaltungTransactions({ readOnly }) {
     }));
   };
 
-  const analyzeDocumentWithAssistant = async (
-    fileOrBlob,
-    fileName,
-    { autoFillNew = false, sessionId = modalSessionRef.current } = {}
-  ) => {
-    try {
-      setAssistantState(prev => ({
-        ...prev,
-        analyzing: true,
-        progressText: 'Evrak okunuyor...',
-        error: ''
-      }));
+  const processModalFiles = async (filesInput, { isNewRecordOverride = null } = {}) => {
+    const files = Array.from(filesInput || []).filter(Boolean);
+    if (files.length === 0) return;
 
-      const rawText = await extractTextFromFile(fileOrBlob, fileName, (progressText) => {
-        if (modalSessionRef.current === sessionId) {
-          setAssistantState(prev => ({ ...prev, progressText }));
-        }
-      });
-
-      if (modalSessionRef.current !== sessionId) return;
-
-      const parsed = parseDocumentText(rawText, fileName, {
-        categories,
-        accounts,
-        contacts
-      });
-
-      const hasAnyField = Boolean(
-        parsed.vendorName || parsed.date || parsed.receiptNo || parsed.amount || parsed.categoryId || parsed.accountId
-      );
-
-      let autoApplied = {};
-      if (autoFillNew && hasAnyField) {
-        setFormData(prev => {
-          const { next, applied } = mergeAssistantIntoForm(prev, parsed, false);
-          autoApplied = applied;
-          return next;
-        });
-      }
-
-      setAssistantState(prev => ({
-        ...prev,
-        analyzing: false,
-        progressText: '',
-        error: hasAnyField
-          ? ''
-          : 'Evraktan otomatik bilgi çıkarılamadı. Soldaki önizlemeye bakarak alanları doldurabilirsiniz.',
-        result: parsed,
-        appliedFields: autoFillNew ? autoApplied : prev.appliedFields
-      }));
-    } catch (err) {
-      if (modalSessionRef.current !== sessionId) return;
-      setAssistantState(prev => ({
-        ...prev,
-        analyzing: false,
-        progressText: '',
-        error: err.message || 'Evrak okunurken bir hata oluştu.'
-      }));
-    }
-  };
-
-  const processModalFile = async (file, isNewRecordOverride = null) => {
-    if (!file) return;
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
-
-    const previewUrl = URL.createObjectURL(file);
-    blobUrlRef.current = previewUrl;
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const sessionId = modalSessionRef.current;
     const shouldAutoFill = isNewRecordOverride !== null ? isNewRecordOverride : !editingId;
 
-    setAssistantState({
-      analyzing: true,
-      progressText: 'Evrak yükleniyor ve okunuyor...',
-      error: '',
-      result: null,
-      localPreviewUrl: previewUrl,
-      isPdf,
-      fileName: file.name,
-      appliedFields: {}
+    const newEntries = files.map((file, idx) => {
+      const previewUrl = URL.createObjectURL(file);
+      blobUrlsRef.current.push(previewUrl);
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      return {
+        id: `${Date.now()}_${idx}_${Math.random().toString(36).slice(2)}`,
+        file,
+        path: '',
+        previewUrl,
+        isPdf,
+        fileName: file.name,
+        parsed: null,
+        analyzing: true,
+        error: ''
+      };
     });
+
+    const startIndex = assistantDocsRef.current.length;
+    const updatedList = updateAssistantDocs([...assistantDocsRef.current, ...newEntries]);
+
+    setAssistantState(prev => ({
+      ...prev,
+      docs: updatedList,
+      activeDocIndex: startIndex,
+      analyzing: true,
+      progressText: files.length > 1 ? `${files.length} evrak yükleniyor ve okunuyor...` : 'Evrak yükleniyor ve okunuyor...',
+      error: ''
+    }));
 
     const uploadTask = (async () => {
       try {
         setUploading(true);
-        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
-        const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
-        const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
+        for (const entry of newEntries) {
+          const fileExt = entry.file.name.includes('.') ? entry.file.name.split('.').pop() : '';
+          const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
+          const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
 
-        const { error } = await supabase.storage.from('receipts').upload(filePath, file);
-        if (error) throw error;
+          const { error } = await supabase.storage.from('receipts').upload(filePath, entry.file);
+          if (error) throw error;
+          if (modalSessionRef.current !== sessionId) return;
 
-        if (modalSessionRef.current === sessionId) {
-          setFormData(prev => ({ ...prev, document_url: filePath }));
+          const afterPath = updateAssistantDocs(docs =>
+            docs.map(d => (d.id === entry.id ? { ...d, path: filePath } : d))
+          );
+          const allPaths = afterPath.map(d => d.path).filter(Boolean);
+          setFormData(prev => ({ ...prev, document_url: serializeDocumentUrls(allPaths) }));
+          setAssistantState(prev => ({ ...prev, docs: afterPath }));
         }
       } catch (error) {
         alert('Fehler: ' + error.message);
@@ -548,35 +518,171 @@ export default function BuchhaltungTransactions({ readOnly }) {
       }
     })();
 
-    const analyzeTask = analyzeDocumentWithAssistant(file, file.name, {
-      autoFillNew: shouldAutoFill,
-      sessionId
-    });
+    const analyzeTask = (async () => {
+      for (let i = 0; i < newEntries.length; i += 1) {
+        const entry = newEntries[i];
+        if (modalSessionRef.current !== sessionId) return;
+        try {
+          const rawText = await extractTextFromFile(entry.file, entry.fileName, (progressText) => {
+            if (modalSessionRef.current === sessionId) {
+              const prefix = newEntries.length > 1 ? `[${i + 1}/${newEntries.length}] ` : '';
+              setAssistantState(prev => ({ ...prev, progressText: `${prefix}${progressText}` }));
+            }
+          });
+          if (modalSessionRef.current !== sessionId) return;
+
+          const parsed = parseDocumentText(rawText, entry.fileName, {
+            categories,
+            accounts,
+            contacts
+          });
+
+          const nextDocs = updateAssistantDocs(docs =>
+            docs.map(d => (d.id === entry.id ? { ...d, parsed, analyzing: false } : d))
+          );
+          setAssistantState(prev => ({ ...prev, docs: nextDocs }));
+        } catch (err) {
+          if (modalSessionRef.current !== sessionId) return;
+          const nextDocs = updateAssistantDocs(docs =>
+            docs.map(d =>
+              d.id === entry.id ? { ...d, analyzing: false, error: err.message || 'Okunamadı' } : d
+            )
+          );
+          setAssistantState(prev => ({ ...prev, docs: nextDocs }));
+        }
+      }
+
+      if (modalSessionRef.current !== sessionId) return;
+
+      const finalDocs = assistantDocsRef.current;
+      const combined = combineParsedDocuments(finalDocs);
+      const hasAnyField = Boolean(
+        combined &&
+          (combined.vendorName ||
+            combined.date ||
+            combined.receiptNo ||
+            combined.amount ||
+            combined.categoryId ||
+            combined.accountId)
+      );
+
+      let autoApplied = {};
+      if (shouldAutoFill && combined && hasAnyField) {
+        setFormData(prev => {
+          const { next, applied } = mergeAssistantIntoForm(prev, combined, false);
+          autoApplied = applied;
+          return next;
+        });
+      }
+
+      setAssistantState(prev => ({
+        ...prev,
+        docs: finalDocs,
+        analyzing: false,
+        progressText: '',
+        result: combined,
+        error: hasAnyField
+          ? ''
+          : 'Evraklardan otomatik bilgi çıkarılamadı. Soldaki önizlemeye bakarak alanları doldurabilirsiniz.',
+        appliedFields: shouldAutoFill ? { ...prev.appliedFields, ...autoApplied } : prev.appliedFields
+      }));
+    })();
 
     await Promise.all([uploadTask, analyzeTask]);
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    await processModalFile(file);
+    if (files.length === 0) return;
+    await processModalFiles(files);
   };
 
-  const analyzeExistingDocumentInModal = async (documentPath) => {
-    if (!documentPath) return;
+  const removeModalDocAtIndex = (indexToRemove) => {
+    const currentDocs = assistantDocsRef.current;
+    if (indexToRemove < 0 || indexToRemove >= currentDocs.length) return;
+
+    const nextDocs = updateAssistantDocs(currentDocs.filter((_, idx) => idx !== indexToRemove));
+    const allPaths = nextDocs.map(d => d.path).filter(Boolean);
+    setFormData(prev => ({ ...prev, document_url: serializeDocumentUrls(allPaths) }));
+
+    const combined = combineParsedDocuments(nextDocs);
+    setAssistantState(prev => ({
+      ...prev,
+      docs: nextDocs,
+      activeDocIndex: Math.max(0, Math.min(prev.activeDocIndex, nextDocs.length - 1)),
+      result: combined,
+      error: nextDocs.length === 0 ? '' : prev.error
+    }));
+  };
+
+  const analyzeAllExistingModalDocs = async () => {
+    const docsToAnalyze = assistantDocsRef.current;
+    if (docsToAnalyze.length === 0) return;
     const sessionId = modalSessionRef.current;
+
     setAssistantState(prev => ({
       ...prev,
       analyzing: true,
-      progressText: 'Kayıtlı evrak indiriliyor...',
+      progressText: 'Kayıtlı evraklar indiriliyor ve okunuyor...',
       error: ''
     }));
+
     try {
-      const { data, error } = await supabase.storage.from('receipts').download(documentPath);
-      if (error) throw error;
+      for (let i = 0; i < docsToAnalyze.length; i += 1) {
+        const docItem = docsToAnalyze[i];
+        if (docItem.parsed || !docItem.path) continue;
+        if (modalSessionRef.current !== sessionId) return;
+
+        const prefix = docsToAnalyze.length > 1 ? `[${i + 1}/${docsToAnalyze.length}] ` : '';
+        setAssistantState(prev => ({ ...prev, progressText: `${prefix}Evrak indiriliyor...` }));
+
+        const { data, error } = await supabase.storage.from('receipts').download(docItem.path);
+        if (error) throw error;
+        if (modalSessionRef.current !== sessionId) return;
+
+        const rawText = await extractTextFromFile(data, docItem.fileName, (progressText) => {
+          if (modalSessionRef.current === sessionId) {
+            setAssistantState(prev => ({ ...prev, progressText: `${prefix}${progressText}` }));
+          }
+        });
+        if (modalSessionRef.current !== sessionId) return;
+
+        const parsed = parseDocumentText(rawText, docItem.fileName, {
+          categories,
+          accounts,
+          contacts
+        });
+
+        const nextDocs = updateAssistantDocs(docs =>
+          docs.map(d => (d.id === docItem.id ? { ...d, parsed, analyzing: false } : d))
+        );
+        setAssistantState(prev => ({ ...prev, docs: nextDocs }));
+      }
+
       if (modalSessionRef.current !== sessionId) return;
-      await analyzeDocumentWithAssistant(data, documentPath, { autoFillNew: false, sessionId });
+      const finalDocs = assistantDocsRef.current;
+      const combined = combineParsedDocuments(finalDocs);
+      const hasAnyField = Boolean(
+        combined &&
+          (combined.vendorName ||
+            combined.date ||
+            combined.receiptNo ||
+            combined.amount ||
+            combined.categoryId ||
+            combined.accountId)
+      );
+
+      setAssistantState(prev => ({
+        ...prev,
+        docs: finalDocs,
+        analyzing: false,
+        progressText: '',
+        result: combined,
+        error: hasAnyField
+          ? ''
+          : 'Evraklardan otomatik bilgi çıkarılamadı. Önizlemeye bakarak alanları doldurabilirsiniz.'
+      }));
     } catch (err) {
       if (modalSessionRef.current !== sessionId) return;
       setAssistantState(prev => ({
@@ -640,77 +746,112 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   const handleAssistantQuickUpload = async (e) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    await processModalFile(file, true);
+    if (files.length === 0) return;
+    await processModalFiles(files, { isNewRecordOverride: true });
   };
 
-  const openDocument = async (path) => {
-    if (!path) return;
-    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
+  const openDocument = async (rawPath, index = 0) => {
+    const paths = parseDocumentUrls(rawPath);
+    const targetPath = paths[index] || paths[0];
+    if (!targetPath) return;
+    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(targetPath, 60);
     if (error) { alert(error.message); return; }
     window.open(data.signedUrl, '_blank');
   };
 
-  const openPreviewModal = async (trx) => {
-    if (!trx?.document_url) return;
-    const isPdf = trx.document_url.toLowerCase().split('?')[0].endsWith('.pdf');
-    setPreviewModal({ isOpen: true, trx, signedUrl: null, isPdf, loading: true });
+  const loadSignedUrlsForPreview = async (trx, urls, activeIndex = 0) => {
+    setPreviewModal({ isOpen: true, trx, urls, activeIndex, signedUrls: {}, loading: true });
 
-    const { data, error } = await supabase.storage.from('receipts').createSignedUrl(trx.document_url, 300);
-    if (error) {
-      alert('Fehler beim Laden des Belegs: ' + error.message);
-      setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+    const results = await Promise.all(
+      urls.map(path => supabase.storage.from('receipts').createSignedUrl(path, 300))
+    );
+    const firstError = results.find(r => r.error)?.error;
+    if (firstError) {
+      alert('Fehler beim Laden des Belegs: ' + firstError.message);
+      setPreviewModal({ isOpen: false, trx: null, urls: [], activeIndex: 0, signedUrls: {}, loading: false });
       return;
     }
 
+    const signedMap = {};
+    results.forEach((res, idx) => {
+      if (res.data?.signedUrl) signedMap[idx] = res.data.signedUrl;
+    });
+
     setPreviewModal(prev =>
       prev.isOpen && prev.trx?.id === trx.id
-        ? { ...prev, signedUrl: data.signedUrl, loading: false }
+        ? { ...prev, signedUrls: signedMap, loading: false }
         : prev
     );
   };
 
-  const closePreviewModal = () => {
-    setPreviewModal({ isOpen: false, trx: null, signedUrl: null, isPdf: false, loading: false });
+  const openPreviewModal = async (trx, initialIndex = 0) => {
+    const urls = parseDocumentUrls(trx?.document_url);
+    if (urls.length === 0) return;
+    const safeIndex = Math.max(0, Math.min(initialIndex, urls.length - 1));
+    await loadSignedUrlsForPreview(trx, urls, safeIndex);
   };
 
-  const uploadDocumentForTransaction = async (trxId, file) => {
-    if (readOnly || !trxId || !file) return;
+  const closePreviewModal = () => {
+    setPreviewModal({ isOpen: false, trx: null, urls: [], activeIndex: 0, signedUrls: {}, loading: false });
+  };
+
+  const uploadDocumentsForTransaction = async (
+    trxId,
+    filesInput,
+    { mode = 'append', replaceIndex = null } = {}
+  ) => {
+    const files = Array.from(filesInput || []).filter(Boolean);
+    if (readOnly || !trxId || files.length === 0) return;
+
     try {
       setUploadingRowId(trxId);
-      const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
-      const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
+      const uploadedPaths = [];
+      for (const file of files) {
+        const fileExt = file.name.includes('.') ? file.name.split('.').pop() : '';
+        const randomName = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        const filePath = fileExt ? `${randomName}.${fileExt}` : randomName;
 
-      const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, file);
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        uploadedPaths.push(filePath);
+      }
 
+      const currentTrx = transactions.find(t => t.id === trxId);
+      const existingUrls = parseDocumentUrls(currentTrx?.document_url);
+
+      let nextUrls;
+      let targetActiveIndex = 0;
+      if (mode === 'replace' && replaceIndex !== null && existingUrls.length > 0) {
+        nextUrls = [...existingUrls];
+        nextUrls[replaceIndex] = uploadedPaths[0];
+        if (uploadedPaths.length > 1) {
+          nextUrls.splice(replaceIndex + 1, 0, ...uploadedPaths.slice(1));
+        }
+        targetActiveIndex = replaceIndex;
+      } else if (mode === 'replace_all') {
+        nextUrls = uploadedPaths;
+        targetActiveIndex = 0;
+      } else {
+        nextUrls = [...existingUrls, ...uploadedPaths];
+        targetActiveIndex = Math.max(0, existingUrls.length);
+      }
+
+      const serialized = serializeDocumentUrls(nextUrls);
       const { error: dbError } = await supabase
         .from('accounting_transactions')
-        .update({ document_url: filePath })
+        .update({ document_url: serialized || null })
         .eq('id', trxId);
       if (dbError) throw dbError;
 
+      const updatedTrx = currentTrx ? { ...currentTrx, document_url: serialized } : null;
       setTransactions(prev =>
-        prev.map(t => (t.id === trxId ? { ...t, document_url: filePath } : t))
+        prev.map(t => (t.id === trxId ? { ...t, document_url: serialized } : t))
       );
 
       if (previewModal.isOpen && previewModal.trx?.id === trxId) {
-        const isPdf = filePath.toLowerCase().split('?')[0].endsWith('.pdf');
-        const { data: signedData } = await supabase.storage.from('receipts').createSignedUrl(filePath, 300);
-        setPreviewModal(prev =>
-          prev.isOpen && prev.trx?.id === trxId
-            ? {
-                ...prev,
-                trx: { ...prev.trx, document_url: filePath },
-                signedUrl: signedData?.signedUrl || prev.signedUrl,
-                isPdf,
-                loading: false
-              }
-            : prev
-        );
+        await loadSignedUrlsForPreview(updatedTrx || { ...previewModal.trx, document_url: serialized }, nextUrls, targetActiveIndex);
       }
     } catch (error) {
       alert('Fehler: ' + error.message);
@@ -719,11 +860,44 @@ export default function BuchhaltungTransactions({ readOnly }) {
     }
   };
 
-  const handleRowFileSelect = async (trxId, e) => {
-    const file = e.target.files?.[0];
+  const removeDocumentFromTransaction = async (trx, indexToRemove) => {
+    if (readOnly || !trx) return;
+    const urls = parseDocumentUrls(trx.document_url);
+    if (urls.length <= 1) return;
+    if (!window.confirm(`${indexToRemove + 1}. evrakı bu işlemden kaldırmak istediğinize emin misiniz?`)) return;
+
+    const nextUrls = urls.filter((_, idx) => idx !== indexToRemove);
+    const serialized = serializeDocumentUrls(nextUrls);
+
+    try {
+      setUploadingRowId(trx.id);
+      const { error } = await supabase
+        .from('accounting_transactions')
+        .update({ document_url: serialized || null })
+        .eq('id', trx.id);
+      if (error) throw error;
+
+      const updatedTrx = { ...trx, document_url: serialized };
+      setTransactions(prev =>
+        prev.map(t => (t.id === trx.id ? updatedTrx : t))
+      );
+
+      if (previewModal.isOpen && previewModal.trx?.id === trx.id) {
+        const nextIndex = Math.min(indexToRemove, nextUrls.length - 1);
+        await loadSignedUrlsForPreview(updatedTrx, nextUrls, nextIndex);
+      }
+    } catch (error) {
+      alert('Fehler: ' + error.message);
+    } finally {
+      setUploadingRowId(null);
+    }
+  };
+
+  const handleRowFileSelect = async (trxId, e, options = { mode: 'append' }) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if (!file) return;
-    await uploadDocumentForTransaction(trxId, file);
+    if (files.length === 0) return;
+    await uploadDocumentsForTransaction(trxId, files, options);
   };
 
   const handleRowDragOver = (trxId, e) => {
@@ -744,9 +918,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
     e.stopPropagation();
     setDragOverRowId(null);
     if (readOnly) return;
-    const file = e.dataTransfer?.files?.[0];
-    if (file) {
-      await uploadDocumentForTransaction(trxId, file);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length > 0) {
+      await uploadDocumentsForTransaction(trxId, files, { mode: 'append' });
     }
   };
 
@@ -1201,15 +1375,25 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   // 2. BELEG DRUCKEN
-  const printVoucher = async (trx) => {
-    let signedUrl = null;
-    let isPdf = false;
-    if (trx.document_url) {
-      const { data } = await supabase.storage.from('receipts').createSignedUrl(trx.document_url, 60);
-      if (data) signedUrl = data.signedUrl;
-      if (trx.document_url.toLowerCase().endsWith('.pdf')) isPdf = true;
+  const printVoucher = async (trx, docIndex = null) => {
+    const docUrls = parseDocumentUrls(trx.document_url);
+    const targetPaths =
+      docIndex !== null && docUrls[docIndex] ? [docUrls[docIndex]] : docUrls;
+
+    const imageSignedUrls = [];
+    for (const path of targetPaths) {
+      const { data } = await supabase.storage.from('receipts').createSignedUrl(path, 60);
+      if (!data?.signedUrl) continue;
+      if (path.toLowerCase().split('?')[0].endsWith('.pdf')) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        imageSignedUrls.push(data.signedUrl);
+      }
     }
-    if (isPdf && signedUrl) { window.open(signedUrl, '_blank'); return; }
+
+    if (targetPaths.length > 0 && imageSignedUrls.length === 0) {
+      return;
+    }
 
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) return;
@@ -1217,12 +1401,16 @@ export default function BuchhaltungTransactions({ readOnly }) {
     const dateStr = formatDateDE(trx.date);
     const amountStr = parseFloat(trx.amount).toFixed(2) + ' €';
     const typeStr = trx.type === 'income' ? 'Einnahme' : 'Ausgabe';
-    
+    const imagesHtml = imageSignedUrls
+      .map((url) => `<div style="margin-top:12px;"><img src="${url}" style="max-width:100%;" /></div>`)
+      .join('');
+
     const htmlContent = `
       <html><head><title>Beleg</title><style>body{font-family:Arial;padding:20px;}</style></head>
         <body>
           <h3>Buchungsbeleg</h3><p>Datum: ${dateStr} | Typ: ${typeStr}</p><p>Betrag: <strong>${amountStr}</strong></p><p>${trx.description || ''}</p>
-          ${signedUrl ? `<img src="${signedUrl}" style="max-width:100%;" onload="window.print()"/>` : '<script>window.print()</script>'}
+          ${imagesHtml}
+          <script>window.addEventListener('load', function() { window.print(); });</script>
         </body></html>`;
     printWindow.document.write(htmlContent);
     printWindow.document.close();
@@ -1387,6 +1575,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
   const handleEdit = (trx) => {
     clearAssistantState();
     const sessionId = modalSessionRef.current;
+    const docUrls = parseDocumentUrls(trx.document_url);
 
     setFormData({
       date: trx.date, type: trx.type, amount: trx.amount, category_id: trx.category_id,
@@ -1397,21 +1586,37 @@ export default function BuchhaltungTransactions({ readOnly }) {
     setEditingId(trx.id);
     setIsFormOpen(true);
 
-    if (trx.document_url) {
-      const isPdf = trx.document_url.toLowerCase().split('?')[0].endsWith('.pdf');
-      supabase.storage
-        .from('receipts')
-        .createSignedUrl(trx.document_url, 300)
-        .then(({ data }) => {
-          if (modalSessionRef.current === sessionId && data?.signedUrl) {
-            setAssistantState(prev => ({
-              ...prev,
-              localPreviewUrl: data.signedUrl,
-              isPdf,
-              fileName: trx.document_url
-            }));
-          }
-        });
+    if (docUrls.length > 0) {
+      const initialDocs = docUrls.map((url, idx) => ({
+        id: `existing_${trx.id}_${idx}`,
+        file: null,
+        path: url,
+        previewUrl: '',
+        isPdf: url.toLowerCase().split('?')[0].endsWith('.pdf'),
+        fileName: url,
+        parsed: null,
+        analyzing: false,
+        error: ''
+      }));
+      updateAssistantDocs(initialDocs);
+      setAssistantState(prev => ({
+        ...prev,
+        docs: initialDocs,
+        activeDocIndex: 0
+      }));
+
+      Promise.all(
+        docUrls.map((url) => supabase.storage.from('receipts').createSignedUrl(url, 300))
+      ).then((results) => {
+        if (modalSessionRef.current !== sessionId) return;
+        const withUrls = updateAssistantDocs((docs) =>
+          docs.map((doc, idx) => ({
+            ...doc,
+            previewUrl: results[idx]?.data?.signedUrl || doc.previewUrl
+          }))
+        );
+        setAssistantState(prev => ({ ...prev, docs: withUrls }));
+      });
     }
   };
 
@@ -1462,13 +1667,14 @@ export default function BuchhaltungTransactions({ readOnly }) {
 
   // Evrak (Beleg) Takip İstatistikleri ve Filtreleme
   const totalCount = transactions.length;
-  const withDocCount = transactions.filter(t => Boolean(t.document_url)).length;
+  const withDocCount = transactions.filter(t => parseDocumentUrls(t.document_url).length > 0).length;
   const missingDocCount = totalCount - withDocCount;
   const completionRate = totalCount > 0 ? Math.round((withDocCount / totalCount) * 100) : 100;
 
   const displayedTransactions = transactions.filter(t => {
-    if (docFilter === 'with_doc') return Boolean(t.document_url);
-    if (docFilter === 'missing_doc') return !t.document_url;
+    const hasDocs = parseDocumentUrls(t.document_url).length > 0;
+    if (docFilter === 'with_doc') return hasDocs;
+    if (docFilter === 'missing_doc') return !hasDocs;
     return true;
   });
 
@@ -1483,8 +1689,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   const showAssistantColumn = Boolean(
-    formData.document_url ||
-      assistantState.localPreviewUrl ||
+    assistantState.docs.length > 0 ||
+      parseDocumentUrls(formData.document_url).length > 0 ||
       assistantState.analyzing ||
       assistantState.result ||
       assistantState.error
@@ -1496,6 +1702,15 @@ export default function BuchhaltungTransactions({ readOnly }) {
         <FaMagic className="text-[9px]" /> Asistan
       </span>
     ) : null;
+
+  const activeAssistantDoc = assistantState.docs[assistantState.activeDocIndex] || assistantState.docs[0] || null;
+  const hasUnparsedModalDocs = assistantState.docs.some(d => !d.parsed && d.path);
+  const invoiceSum = (assistantState.result?.items || []).reduce((sum, item) => sum + (item.numericAmount || 0), 0);
+  const parsedFormAmount = Number.parseFloat(String(formData.amount || '').replace(',', '.')) || 0;
+  const amountDiff = Number((parsedFormAmount - invoiceSum).toFixed(2));
+  const activePreviewPath = previewModal.urls[previewModal.activeIndex] || '';
+  const activePreviewSignedUrl = previewModal.signedUrls[previewModal.activeIndex] || '';
+  const activePreviewIsPdf = activePreviewPath.toLowerCase().split('?')[0].endsWith('.pdf');
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -1544,6 +1759,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
               <input
                 ref={assistantFileInputRef}
                 type="file"
+                multiple
                 accept="image/*,.pdf"
                 className="hidden"
                 onChange={handleAssistantQuickUpload}
@@ -1552,7 +1768,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                 type="button"
                 onClick={openNewWithAssistant}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-                title="Evrak yükle ve asistan ile otomatik doldur"
+                title="Bir veya birden fazla evrak yükle ve asistan ile otomatik doldur"
               >
                 <FaMagic /> Evraktan Kayıt (Asistan)
               </button>
@@ -1596,8 +1812,10 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           <FaMagic />
                         </span>
                         <div>
-                          <h4 className="text-sm font-bold text-gray-900">Akıllı Evrak Asistanı</h4>
-                          <p className="text-[11px] text-gray-600">Evraktan okunan taslak bilgiler</p>
+                          <h4 className="text-sm font-bold text-gray-900">
+                            Akıllı Evrak Asistanı {assistantState.docs.length > 1 ? `(${assistantState.docs.length} Evrak)` : ''}
+                          </h4>
+                          <p className="text-[11px] text-gray-600">Evraklardan okunan taslak bilgiler ve tutar kontrolü</p>
                         </div>
                       </div>
                       {assistantState.result && (
@@ -1623,13 +1841,77 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     {assistantState.analyzing ? (
                       <div className="flex items-center gap-2 text-xs text-blue-800 bg-white/80 rounded-lg p-3 border border-blue-200">
                         <FaSpinner className="animate-spin text-blue-600 shrink-0" />
-                        <span>{assistantState.progressText || 'Evrak analiz ediliyor...'}</span>
+                        <span>{assistantState.progressText || 'Evraklar analiz ediliyor...'}</span>
                       </div>
                     ) : assistantState.result ? (
                       <div className="space-y-2 text-xs">
                         {assistantState.error && (
                           <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-800">
                             {assistantState.error}
+                          </div>
+                        )}
+
+                        {assistantState.result.items && assistantState.result.items.length > 1 && (
+                          <div className="bg-white rounded-lg border border-indigo-200 p-2.5 space-y-1">
+                            <div className="text-[11px] font-bold text-indigo-800">
+                              Çoklu Fatura / Sammelbeleg Özeti ({assistantState.result.items.length} Evrak)
+                            </div>
+                            {assistantState.result.items.map((item) => (
+                              <div key={item.index} className="flex justify-between text-[11px] text-gray-700">
+                                <span className="truncate pr-2">
+                                  {item.index + 1}. Evrak {item.receiptNo ? `(${item.receiptNo})` : ''}
+                                </span>
+                                <span className="font-semibold shrink-0">
+                                  {item.amount ? `${item.amount} €` : '—'}
+                                </span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between pt-1 mt-1 border-t border-indigo-100 text-xs font-bold text-indigo-900">
+                              <span>Evrakların Toplamı:</span>
+                              <span>{invoiceSum > 0 ? `${invoiceSum.toFixed(2)} €` : '—'}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {invoiceSum > 0 && parsedFormAmount > 0 && (
+                          <div
+                            className={`p-2.5 rounded-lg border text-[11px] font-medium ${
+                              Math.abs(amountDiff) < 0.02
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                                : 'bg-amber-50 border-amber-300 text-amber-900'
+                            }`}
+                          >
+                            {Math.abs(amountDiff) < 0.02 ? (
+                              <span>
+                                ✓ Kayıt tutarı ({parsedFormAmount.toFixed(2)} €) ile yüklenen evrakların toplamı ({invoiceSum.toFixed(2)} €) birebir eşleşiyor.
+                              </span>
+                            ) : (
+                              <div className="space-y-1">
+                                <div>
+                                  ⚠ Kayıt tutarı <strong>{parsedFormAmount.toFixed(2)} €</strong>, okunan evrak toplamı{' '}
+                                  <strong>{invoiceSum.toFixed(2)} €</strong> (Fark: <strong>{Math.abs(amountDiff).toFixed(2)} €</strong>).
+                                  Karşılığı olan diğer faturayı &quot;+ Ek Fatura / Evrak Ekle&quot; ile ekleyebilirsiniz.
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => applySingleAssistantField('amount', invoiceSum.toFixed(2))}
+                                    className="px-2 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                                  >
+                                    Tutarı {invoiceSum.toFixed(2)} € yap
+                                  </button>
+                                  {assistantState.result.receiptNo && (
+                                    <button
+                                      type="button"
+                                      onClick={() => applySingleAssistantField('receipt_no', assistantState.result.receiptNo)}
+                                      className="px-2 py-0.5 rounded bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold"
+                                    >
+                                      Beleg-Nr: {assistantState.result.receiptNo} uygula
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -1654,7 +1936,7 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               applyValue: assistantState.result.receiptNo
                             },
                             {
-                              label: 'Tutar (Betrag)',
+                              label: assistantState.result.docCount > 1 ? 'Evrak Toplamı' : 'Tutar (Betrag)',
                               value: assistantState.result.amount ? `${assistantState.result.amount} €` : '',
                               field: 'amount',
                               applyValue: assistantState.result.amount
@@ -1708,6 +1990,16 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           ))}
                         </div>
 
+                        {hasUnparsedModalDocs && (
+                          <button
+                            type="button"
+                            onClick={analyzeAllExistingModalDocs}
+                            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition"
+                          >
+                            <FaMagic /> Okunmamış Evrakları Da Oku
+                          </button>
+                        )}
+
                         {assistantState.result.vendorName && !assistantState.result.matchedContactId && !readOnly && (
                           <button
                             type="button"
@@ -1727,47 +2019,96 @@ export default function BuchhaltungTransactions({ readOnly }) {
                             {assistantState.error}
                           </div>
                         )}
-                        {formData.document_url && (
+                        {assistantState.docs.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => analyzeExistingDocumentInModal(formData.document_url)}
+                            onClick={analyzeAllExistingModalDocs}
                             className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition"
                           >
-                            <FaMagic /> Evrakı Asistan İle Oku
+                            <FaMagic /> Evrakları Asistan İle Oku
                           </button>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Belge Önizleme */}
-                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-2">
-                    <div className="flex items-center justify-between px-1 pb-2 text-xs text-gray-600">
+                  {/* Çoklu Belge Sekmeleri & Belge Önizleme */}
+                  <div className="bg-gray-100 border border-gray-200 rounded-xl p-2 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {assistantState.docs.map((docItem, idx) => (
+                          <div
+                            key={docItem.id}
+                            className={`inline-flex items-center rounded-md border text-xs font-semibold transition ${
+                              idx === assistantState.activeDocIndex
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setAssistantState(prev => ({ ...prev, activeDocIndex: idx }))}
+                              className="px-2.5 py-1"
+                            >
+                              {idx + 1}. Evrak
+                              {docItem.parsed?.amount ? ` (${docItem.parsed.amount}€)` : ''}
+                            </button>
+                            {!readOnly && (
+                              <button
+                                type="button"
+                                onClick={() => removeModalDocAtIndex(idx)}
+                                className={`pr-2 pl-0.5 py-1 hover:opacity-75 ${
+                                  idx === assistantState.activeDocIndex ? 'text-blue-100' : 'text-gray-400 hover:text-red-600'
+                                }`}
+                                title="Bu evrakı kaldır"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {!readOnly && (
+                        <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
+                          <FaPlus className="text-[10px]" /> Ek Fatura / Evrak Ekle
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between px-1 text-xs text-gray-600">
                       <span className="font-semibold truncate">
-                        {assistantState.fileName || 'Belge Önizleme'}
+                        {activeAssistantDoc?.fileName || 'Belge Önizleme'}
                       </span>
-                      {formData.document_url && (
+                      {activeAssistantDoc?.path && (
                         <button
                           type="button"
-                          onClick={() => openDocument(formData.document_url)}
+                          onClick={() => openDocument(activeAssistantDoc.path, 0)}
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-semibold shrink-0"
                         >
                           <FaExternalLinkAlt className="text-[10px]" /> Yeni Sekme
                         </button>
                       )}
                     </div>
-                    {assistantState.localPreviewUrl ? (
-                      assistantState.isPdf ? (
+
+                    {activeAssistantDoc?.previewUrl ? (
+                      activeAssistantDoc.isPdf ? (
                         <iframe
-                          src={assistantState.localPreviewUrl}
+                          src={activeAssistantDoc.previewUrl}
                           title="Evrak Önizleme"
-                          className="w-full h-[380px] rounded border bg-white"
+                          className="w-full h-[360px] rounded border bg-white"
                         />
                       ) : (
                         <img
-                          src={assistantState.localPreviewUrl}
+                          src={activeAssistantDoc.previewUrl}
                           alt="Evrak Önizleme"
-                          className="w-full max-h-[380px] object-contain rounded border bg-white"
+                          className="w-full max-h-[360px] object-contain rounded border bg-white"
                         />
                       )
                     ) : (
@@ -1913,18 +2254,19 @@ export default function BuchhaltungTransactions({ readOnly }) {
                       e.preventDefault();
                       e.stopPropagation();
                       setModalDragOver(false);
-                      const file = e.dataTransfer?.files?.[0];
-                      if (file) await processModalFile(file);
+                      const files = Array.from(e.dataTransfer?.files || []);
+                      if (files.length > 0) await processModalFiles(files);
                     }}
                     className={`border-2 border-dashed rounded-lg p-3 transition ${
                       modalDragOver ? 'border-emerald-500 bg-emerald-50' : 'border-gray-300 bg-gray-50'
                     }`}
                   >
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Beleg (PDF veya Görsel sürükleyin ya da seçin – Asistan otomatik okur)
+                      Beleg (Tek veya birden fazla PDF/Görsel seçin ya da sürükleyin – Asistan toplamını hesaplar)
                     </label>
                     <input
                       type="file"
+                      multiple
                       accept="image/*,.pdf"
                       onChange={handleFileUpload}
                       disabled={uploading}
@@ -1936,14 +2278,17 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           <FaSpinner className="animate-spin" /> Dosya yükleniyor...
                         </span>
                       )}
-                      {formData.document_url && (
+                      {parseDocumentUrls(formData.document_url).length > 0 && (
                         <>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                            <FaCheckCircle /> Evrak yüklü
+                            <FaCheckCircle />
+                            {parseDocumentUrls(formData.document_url).length > 1
+                              ? `${parseDocumentUrls(formData.document_url).length} Evrak yüklü`
+                              : 'Evrak yüklü'}
                           </span>
                           <button
                             type="button"
-                            onClick={() => openDocument(formData.document_url)}
+                            onClick={() => openDocument(formData.document_url, 0)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 transition"
                           >
                             <FaEye /> Görüntüle
@@ -2122,7 +2467,8 @@ export default function BuchhaltungTransactions({ readOnly }) {
             ) : (
               displayedTransactions.map((trx) => {
                 const isZero = parseFloat(trx.amount) === 0;
-                const hasDoc = Boolean(trx.document_url);
+                const docUrls = parseDocumentUrls(trx.document_url);
+                const hasDoc = docUrls.length > 0;
                 const isUploadingRow = uploadingRowId === trx.id;
                 const isDragOver = dragOverRowId === trx.id;
 
@@ -2161,12 +2507,12 @@ export default function BuchhaltungTransactions({ readOnly }) {
                     ) : hasDoc ? (
                       <div className="flex flex-col items-center gap-1.5">
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold whitespace-nowrap">
-                          <FaCheckCircle /> Beleg yüklü
+                          <FaCheckCircle /> {docUrls.length > 1 ? `${docUrls.length} Evrak yüklü` : 'Beleg yüklü'}
                         </span>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => openPreviewModal(trx)}
+                            onClick={() => openPreviewModal(trx, 0)}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition"
                             title="Ansehen / Önizle"
                           >
@@ -2174,25 +2520,42 @@ export default function BuchhaltungTransactions({ readOnly }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => openDocument(trx.document_url)}
+                            onClick={() => openDocument(trx.document_url, 0)}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition"
                             title="Yeni Sekme"
                           >
                             <FaExternalLinkAlt />
                           </button>
                           {!readOnly && (
-                            <label
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium cursor-pointer transition"
-                              title="Evrakı değiştir"
-                            >
-                              <FaUpload />
-                              <input
-                                type="file"
-                                accept="image/*,.pdf"
-                                className="hidden"
-                                onChange={(e) => handleRowFileSelect(trx.id, e)}
-                              />
-                            </label>
+                            <>
+                              <label
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium cursor-pointer transition whitespace-nowrap"
+                                title="Bu işleme ek fatura / evrak ekle"
+                              >
+                                <FaPlus className="text-[10px]" /> Ek Evrak
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept="image/*,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'append' })}
+                                />
+                              </label>
+                              {docUrls.length === 1 && (
+                                <label
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 text-xs font-medium cursor-pointer transition"
+                                  title="Evrakı değiştir"
+                                >
+                                  <FaUpload />
+                                  <input
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    className="hidden"
+                                    onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'replace', replaceIndex: 0 })}
+                                  />
+                                </label>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -2207,12 +2570,13 @@ export default function BuchhaltungTransactions({ readOnly }) {
                               <FaUpload /> Evrak Yükle
                               <input
                                 type="file"
+                                multiple
                                 accept="image/*,.pdf"
                                 className="hidden"
-                                onChange={(e) => handleRowFileSelect(trx.id, e)}
+                                onChange={(e) => handleRowFileSelect(trx.id, e, { mode: 'append' })}
                               />
                             </label>
-                            <span className="text-[10px] text-gray-400">veya dosyayı buraya sürükleyin</span>
+                            <span className="text-[10px] text-gray-400">veya dosyaları buraya sürükleyin</span>
                           </>
                         )}
                       </div>
@@ -2247,7 +2611,9 @@ export default function BuchhaltungTransactions({ readOnly }) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
             <div className="flex justify-between items-start gap-4 px-6 py-4 border-b bg-gray-50">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Belegvorschau / Evrak Önizleme</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Belegvorschau / Evrak Önizleme {previewModal.urls.length > 1 ? `(${previewModal.urls.length} Evrak)` : ''}
+                </h3>
                 <p className="text-xs text-gray-600 mt-1">
                   {formatDateDE(previewModal.trx.date)}
                   {previewModal.trx.receipt_no ? ` • Beleg-Nr: ${previewModal.trx.receipt_no}` : ''}
@@ -2269,23 +2635,42 @@ export default function BuchhaltungTransactions({ readOnly }) {
               </button>
             </div>
 
+            {previewModal.urls.length > 1 && (
+              <div className="flex flex-wrap items-center gap-2 px-6 py-2.5 border-b bg-slate-50">
+                {previewModal.urls.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPreviewModal(prev => ({ ...prev, activeIndex: idx }))}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                      previewModal.activeIndex === idx
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    {idx + 1}. Evrak
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="p-4 flex-1 overflow-auto bg-gray-100 flex items-center justify-center min-h-[300px]">
               {previewModal.loading ? (
                 <div className="flex flex-col items-center gap-2 text-gray-600">
                   <FaSpinner className="animate-spin text-3xl text-blue-600" />
                   <span className="text-sm">Beleg wird geladen...</span>
                 </div>
-              ) : previewModal.isPdf && previewModal.signedUrl ? (
+              ) : activePreviewIsPdf && activePreviewSignedUrl ? (
                 <iframe
-                  src={previewModal.signedUrl}
+                  src={activePreviewSignedUrl}
                   title="Beleg PDF"
-                  className="w-full h-[65vh] rounded border bg-white"
+                  className="w-full h-[62vh] rounded border bg-white"
                 />
-              ) : previewModal.signedUrl ? (
+              ) : activePreviewSignedUrl ? (
                 <img
-                  src={previewModal.signedUrl}
+                  src={activePreviewSignedUrl}
                   alt="Beleg"
-                  className="max-w-full max-h-[65vh] mx-auto rounded shadow object-contain bg-white"
+                  className="max-w-full max-h-[62vh] mx-auto rounded shadow object-contain bg-white"
                 />
               ) : null}
             </div>
@@ -2294,28 +2679,54 @@ export default function BuchhaltungTransactions({ readOnly }) {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => openDocument(previewModal.trx.document_url)}
+                  onClick={() => openDocument(previewModal.trx.document_url, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-semibold transition"
                 >
                   <FaExternalLinkAlt /> Yeni Sekmede Aç
                 </button>
                 <button
                   type="button"
-                  onClick={() => printVoucher(previewModal.trx)}
+                  onClick={() => printVoucher(previewModal.trx, previewModal.activeIndex)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold transition"
                 >
                   <FaPrint /> Yazdır
                 </button>
                 {!readOnly && (
-                  <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
-                    <FaUpload /> Yeni Evrak Yükle / Değiştir
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => handleRowFileSelect(previewModal.trx.id, e)}
-                    />
-                  </label>
+                  <>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer transition">
+                      <FaPlus /> + Ek Evrak / 2. Fatura Ekle
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => handleRowFileSelect(previewModal.trx.id, e, { mode: 'append' })}
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold cursor-pointer transition">
+                      <FaUpload /> Seçili Evrakı Değiştir
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleRowFileSelect(previewModal.trx.id, e, {
+                            mode: 'replace',
+                            replaceIndex: previewModal.activeIndex
+                          })
+                        }
+                      />
+                    </label>
+                    {previewModal.urls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDocumentFromTransaction(previewModal.trx, previewModal.activeIndex)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition"
+                      >
+                        <FaTrash /> Seçili Evrakı Sil
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
               <button
