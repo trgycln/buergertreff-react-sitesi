@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { resolveSignatoryForDate, escapeAttr } from '../../utils/signatories';
 import { FaPlus, FaPrint, FaTrash, FaCheck, FaTimes, FaFileInvoice, FaEdit, FaCopy } from 'react-icons/fa';
 
 const formatCurrency = (value) =>
@@ -10,7 +11,7 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('de-DE');
 };
 
-function printInvoiceWindow(invoice, items, contact, settings) {
+function printInvoiceWindow(invoice, items, contact, settings, signatory = {}) {
   // Gerçek site_settings anahtarlarından oku, yoksa derneğin gerçek bilgilerini kullan
   const orgName   = settings?.org_name || 'Bürgertreff Wissen e.V.';
   const orgPostal = settings?.org_postal_code || '57537';
@@ -35,8 +36,14 @@ function printInvoiceWindow(invoice, items, contact, settings) {
   const vereinsreg     = settings?.vereinsregister    || '';
   const finanzamt      = settings?.exemption_office   || 'Altenkirchen-Hachenburg';
 
-  // İmza: vorsitzende_name alanından oku, yoksa Erika Uber (1. Vorsitzende)
-  const chairName      = settings?.vorsitzende_name   || 'Erika Uber';
+  // İmza: faturanın tarihinde görevde olan 1. Vorsitzende (accounting_signatories).
+  // Böylece başkan değişse bile eski faturalar eski isim ve imzayla basılır.
+  const chairName      = signatory.name || settings?.vorsitzende_name || 'Erika Uber';
+  // Tablo henüz kurulmamışsa (SQL çalıştırılmadıysa) eski sabit imzayı kullan
+  const signatureUrl   = signatory.found ? signatory.signatureUrl : '/imza.png';
+  const signatureHtml  = signatureUrl
+    ? `<img src="${escapeAttr(signatureUrl)}" alt="Unterschrift" class="sig-img" onerror="this.style.display='none'" />`
+    : '<div style="height:50px"></div>';
 
 
   const itemRows = items.map((item, idx) => `
@@ -141,7 +148,7 @@ function printInvoiceWindow(invoice, items, contact, settings) {
   <div class="footer">
     <div class="signature">
       <p class="greeting">Mit freundlichen Grüßen</p>
-      <img src="/imza.png" alt="Unterschrift" class="sig-img" onerror="this.style.display='none'" />
+      ${signatureHtml}
       <div class="sig-line">
         <strong>${chairName}</strong>
         <span>1. Vorsitzende</span>
@@ -440,7 +447,8 @@ export default function BuchhaltungInvoices({ readOnly }) {
         return;
       }
 
-      printInvoiceWindow(invoice, itemsData || [], contact, settings);
+      const signatory = await resolveSignatoryForDate('vorsitzende', invoice.invoice_date);
+      printInvoiceWindow(invoice, itemsData || [], contact, settings, signatory);
     } catch (error) {
       console.error('Print error:', error);
       alert('Fehler beim Vorbereiten des Drucks: ' + error.message);

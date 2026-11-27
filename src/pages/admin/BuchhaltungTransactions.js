@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
+import { resolveSignatoryForDate, escapeAttr } from '../../utils/signatories';
 import {
   extractTextFromFile,
   parseDocumentText,
@@ -1417,13 +1418,21 @@ export default function BuchhaltungTransactions({ readOnly }) {
   };
 
   // 3. Spendenquittung
-  const printDonationReceipt = (trx) => {
+  const printDonationReceipt = async (trx) => {
     if (trx.type !== 'income') return;
     const contact = contacts.find(c => c.id === trx.contact_id);
     if (!contact) { alert('Kontakt fehlt!'); return; }
 
+    // Popup sofort öffnen (sonst blockiert der Browser nach dem await)
     const printWindow = window.open('', '_blank', 'width=900,height=1000');
     if (!printWindow) return;
+
+    // Kassierer/in, der/die am Tag der Zuwendung im Amt war -> alte Bescheinigungen bleiben unverändert
+    const signatory = await resolveSignatoryForDate('kassierer', trx.date);
+    const treasurerName = signatory.name || orgSettings.treasurer_name || 'Kassierer/in';
+    const signatureImg = signatory.signatureUrl
+      ? `<img src="${escapeAttr(signatory.signatureUrl)}" alt="Unterschrift" style="height: 45px; max-width: 200px; object-fit: contain;" onerror="this.style.display='none'" />`
+      : '';
 
     const dateStr = formatDateDE(trx.date); 
     const amountVal = parseFloat(trx.amount);
@@ -1518,9 +1527,10 @@ export default function BuchhaltungTransactions({ readOnly }) {
             <div class="signature-box">
               <div style="display: flex; justify-content: space-between; align-items: flex-start; font-size: 10pt;">
                 <span>Wissen, ${formatDateDE(new Date())}</span>
-                <span style="margin-right: 80px;">${orgSettings.treasurer_name || 'Kassierer/in'}</span>
+                <span style="margin-right: 80px;">${treasurerName}</span>
               </div>
-              <div style="margin-top: 50px; border-top: 1px solid #000; padding-top: 5px; display: flex; justify-content: space-between;">
+              <div style="height: 50px; display: flex; justify-content: flex-end; align-items: flex-end; padding-right: 60px;">${signatureImg}</div>
+              <div style="border-top: 1px solid #000; padding-top: 5px; display: flex; justify-content: space-between;">
                 <span style="font-size: 8pt; color: #666;">Ort, Datum</span>
                 <span style="font-size: 8pt; color: #666; margin-right: 80px;">Unterschrift</span>
               </div>
