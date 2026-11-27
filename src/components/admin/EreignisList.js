@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Link } from 'react-router-dom';
-import { FaPlus, FaPencilAlt, FaTrashAlt, FaFilter, FaStar, FaRegStar, FaBolt } from 'react-icons/fa'; // Icons hinzugefügt
+import { FaPlus, FaPencilAlt, FaTrashAlt, FaFilter, FaStar, FaRegStar, FaBolt, FaDownload } from 'react-icons/fa'; // Icons hinzugefügt
+import JSZip from 'jszip';
 
 // Hilfsfunktion zum Formatieren des Datums
 const formatDate = (dateString) => {
@@ -17,12 +18,83 @@ const formatDate = (dateString) => {
     }
 };
 
+// Alle Fotos eines Ereignisses (archive_photos, Fallback image_url)
+const getEventPhotos = (event) => {
+    if (Array.isArray(event.archive_photos) && event.archive_photos.length > 0) return event.archive_photos;
+    return event.image_url ? [event.image_url] : [];
+};
+
+// Ordnername: "2025-03-14_Titel der Aktivitaet"
+const buildFolderName = (event) => {
+    const datePart = event.event_date ? new Date(event.event_date).toISOString().slice(0, 10) : 'ohne-Datum';
+    const titlePart = (event.title || `Ereignis-${event.id}`)
+        .replace(/[\\/:*?"<>|]+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80);
+    return `${datePart}_${titlePart}`;
+};
+
+const getExtension = (url, blob) => {
+    const fromUrl = (url.split('?')[0].split('.').pop() || '').toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fromUrl)) return fromUrl;
+    const fromType = (blob?.type || '').split('/')[1];
+    return fromType || 'jpg';
+};
+
+// Fotos der angegebenen Ereignisse in ein ZIP packen (ein Ordner pro Ereignis) und herunterladen
+const downloadEventPhotosZip = async (events, zipName, onProgress) => {
+    const zip = new JSZip();
+    const usedFolders = new Set();
+    const total = events.reduce((sum, e) => sum + getEventPhotos(e).length, 0);
+    let done = 0;
+    let failed = 0;
+
+    for (const event of events) {
+        const photos = getEventPhotos(event);
+        if (photos.length === 0) continue;
+
+        let folderName = buildFolderName(event);
+        if (usedFolders.has(folderName)) folderName = `${folderName}_${event.id}`;
+        usedFolders.add(folderName);
+        const folder = zip.folder(folderName);
+
+        for (let i = 0; i < photos.length; i++) {
+            try {
+                const res = await fetch(photos[i]);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                const nr = String(i + 1).padStart(2, '0');
+                folder.file(`${nr}${i === 0 ? '_Titelbild' : ''}.${getExtension(photos[i], blob)}`, blob);
+            } catch (err) {
+                console.warn('Foto konnte nicht geladen werden:', photos[i], err);
+                failed++;
+            }
+            done++;
+            onProgress?.(done, total);
+        }
+    }
+
+    if (done - failed === 0) throw new Error('Keine Fotos zum Herunterladen gefunden.');
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(content);
+    link.download = zipName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    return { total, failed };
+};
+
 export default function EreignisList({ pageInfo }) {
     const [ereignisse, setEreignisse] = useState([]);
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState('');
     const [filterCategory, setFilterCategory] = useState(''); // State für den Kategorie-Filter
     const [userRole, setUserRole] = useState(null);
+    const [downloading, setDownloading] = useState(null); // 'all' oder Ereignis-ID
 
     const isViewer = userRole === 'viewer';
 
@@ -130,6 +202,28 @@ export default function EreignisList({ pageInfo }) {
     };
 
 
+    // Fotos herunterladen (einzelnes Ereignis oder alle aktuell gefilterten)
+    const handleDownload = async (events, key, zipName) => {
+        if (downloading) return;
+        setDownloading(key);
+        setMessage('Fotos werden vorbereitet...');
+        try {
+            const { total, failed } = await downloadEventPhotosZip(events, zipName, (done, all) => {
+                setMessage(`Fotos werden geladen... (${done}/${all})`);
+            });
+            setMessage(failed > 0
+                ? `ZIP erstellt: ${total - failed} von ${total} Fotos (${failed} konnten nicht geladen werden).`
+                : `ZIP erstellt: ${total} Fotos heruntergeladen.`);
+        } catch (err) {
+            setMessage(`Fehler beim Herunterladen: ${err.message}`);
+        } finally {
+            setDownloading(null);
+            setTimeout(() => setMessage(''), 5000);
+        }
+    };
+
+    const eventsWithPhotos = ereignisse.filter((e) => getEventPhotos(e).length > 0);
+
     if (loading && ereignisse.length === 0) { // Nur initial "Lade..." anzeigen
         return <div className="p-8">Lade Ereignisliste...</div>;
     }
@@ -156,6 +250,21 @@ export default function EreignisList({ pageInfo }) {
                             ))}
                         </select>
                     </div>
+                    {/* Alle Fotos (aktueller Filter) als ZIP herunterladen */}
+                    <button
+                        type="button"
+                        onClick={() => handleDownload(
+                            eventsWithPhotos,
+                            'all',
+                            `Fotos_${filterCategory ? filterCategory.replace(/[\\/:*?"<>|\s]+/g, '-') + '_' : ''}${new Date().toISOString().slice(0, 10)}.zip`
+                        )}
+                        disabled={!!downloading || eventsWithPhotos.length === 0}
+                        className="flex items-center px-4 py-2 bg-white border border-rcBlue text-rcBlue font-semibold rounded-md shadow-sm hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Alle Fotos als ZIP herunterladen – ein Ordner pro Aktivität"
+                    >
+                        <FaDownload className="mr-2" />
+                        {downloading === 'all' ? 'Lade...' : 'Alle Fotos (ZIP)'}
+                    </button>
                     {/* "Neu hinzufügen"-Button (Link zur Formularseite) */}
                     {!isViewer && (
                         <Link
@@ -207,10 +316,17 @@ export default function EreignisList({ pageInfo }) {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                         <div className="text-sm font-medium text-rcDarkGray">{event.title}</div>
-                                        {Array.isArray(event.archive_photos) && event.archive_photos.length > 0 && (
-                                            <span className="text-[11px] font-semibold bg-blue-50 text-rcBlue border border-blue-200 rounded px-1.5 py-0.5">
-                                                📸 {event.archive_photos.length}
-                                            </span>
+                                        {getEventPhotos(event).length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownload([event], event.id, `${buildFolderName(event)}.zip`)}
+                                                disabled={!!downloading}
+                                                title="Fotos dieser Aktivität als ZIP herunterladen"
+                                                className="inline-flex items-center gap-1 text-[11px] font-semibold bg-blue-50 text-rcBlue border border-blue-200 rounded px-1.5 py-0.5 hover:bg-blue-100 disabled:opacity-50"
+                                            >
+                                                📸 {getEventPhotos(event).length}
+                                                <FaDownload size={10} className={downloading === event.id ? 'animate-pulse' : ''} />
+                                            </button>
                                         )}
                                     </div>
                                     <div className="text-xs text-gray-500">{event.location || ''}</div>
