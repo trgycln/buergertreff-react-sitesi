@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { parseDocumentUrls } from '../../../utils/documentAssistant';
+import { resolveSignatoryForDate, escapeAttr } from '../../../utils/signatories';
 import { FaSpinner, FaPaperclip, FaExternalLinkAlt, FaHandHoldingHeart } from 'react-icons/fa';
 
 export default function DonationConfirmations({ readOnly }) {
@@ -139,11 +140,19 @@ export default function DonationConfirmations({ readOnly }) {
     return str;
   };
 
-  const printDonationReceipt = (trx) => {
+  const printDonationReceipt = async (trx) => {
     if (!trx || trx.type !== 'income') return;
 
+    // Popup sofort öffnen (sonst blockiert der Browser nach dem await)
     const printWindow = window.open('', '_blank', 'width=900,height=1000');
     if (!printWindow) return;
+
+    // Kassierer/in, der/die am Tag der Zuwendung im Amt war
+    const signatory = await resolveSignatoryForDate('kassierer', trx.date);
+    const treasurerName = signatory.name || orgSettings.treasurer_name || 'Kassierer/in';
+    const signatureImg = signatory.signatureUrl
+      ? `<img src="${escapeAttr(signatory.signatureUrl)}" alt="Unterschrift" style="height:45px; display:block; margin-left:auto;" onerror="this.style.display='none'" />`
+      : '';
 
     const donorName = trx.accounting_contacts?.name || 'Unbekannter Spender';
     const donorAddress = trx.accounting_contacts?.address || '';
@@ -198,9 +207,9 @@ export default function DonationConfirmations({ readOnly }) {
             <div style="font-size: 8.5pt; margin-bottom: 10px;">
               Freistellungsbescheid des <strong>${faName}</strong>, Steuernummer <strong>${stNr}</strong>, vom <strong>${exemptionDate}</strong>.
             </div>
-            <div style="margin-top: 18px; display: flex; justify-content: space-between; font-size: 10pt;">
+            <div style="margin-top: 18px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10pt;">
               <span>Wissen, ${formatDateDE(new Date())}</span>
-              <span>${orgSettings.treasurer_name || 'Kassierer/in'}</span>
+              <span style="text-align: right;">${signatureImg}${treasurerName}</span>
             </div>
           </div>
           <script>window.onload = function() { window.print(); }</script>

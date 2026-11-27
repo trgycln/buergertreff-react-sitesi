@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
+import SignatoriesManager from '../../components/admin/SignatoriesManager';
 import { FaPlus, FaTrash, FaCheck, FaTimes, FaSave } from 'react-icons/fa';
 
 export default function BuchhaltungSettings({ readOnly }) {
@@ -103,10 +104,17 @@ export default function BuchhaltungSettings({ readOnly }) {
     setOrgSettings(prev => ({ ...prev, [name]: value }));
   };
 
+  // Aktuelle Amtsinhaber kommen aus der Unterschriften-Historie
+  const handleCurrentNamesChange = useCallback((names) => {
+    setOrgSettings(prev => ({ ...prev, ...names }));
+  }, []);
+
   const saveOrgSettings = async (e) => {
     e.preventDefault();
     if (readOnly) return;
-    const updates = Object.keys(orgSettings).map(key => ({
+    // Namen der Amtsinhaber werden von der Unterschriften-Historie gepflegt
+    const managedKeys = ['vorsitzende_name', 'treasurer_name'];
+    const updates = Object.keys(orgSettings).filter(key => !managedKeys.includes(key)).map(key => ({
       key: key,
       value: orgSettings[key]
     }));
@@ -424,13 +432,8 @@ export default function BuchhaltungSettings({ readOnly }) {
               <div className="md:col-span-2 mb-2 mt-4">
                 <h3 className="text-sm font-bold text-blue-800 bg-blue-50 p-2 rounded">🎯 Verantwortliche & Zweck</h3>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">1. Vorsitzende/r (vollständiger Name)</label>
-                <input disabled={readOnly} type="text" name="vorsitzende_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.vorsitzende_name} onChange={handleOrgSettingChange} placeholder="z.B. Erika Uber" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kassierer/in</label>
-                <input disabled={readOnly} type="text" name="treasurer_name" className="w-full border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:ring-2 ring-blue-100 outline-none" value={orgSettings.treasurer_name} onChange={handleOrgSettingChange} />
+              <div className="md:col-span-2">
+                <SignatoriesManager readOnly={readOnly} onCurrentNamesChange={handleCurrentNamesChange} />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Satzungszweck (Verwendungszweck)</label>
